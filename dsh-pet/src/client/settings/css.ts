@@ -133,6 +133,11 @@ const SETTINGS_CSS = [
   '.dsh-pet-cfg__btn.is-danger{border-color:var(--dsw-alias-state-error-secondary);color:var(--dsw-alias-state-error-primary)}',
   '.dsh-pet-cfg__btn.is-sm{padding:2px 10px}',
   '.dsh-pet-cfg__btn.is-ghost{border-style:dashed;color:var(--dsw-alias-label-secondary)}',
+  // 语音卡 Fish 区：纵向堆叠输入与自定义音色列表。
+  '.dsh-pet-cfg__stack{display:flex;flex-direction:column;gap:8px;min-width:0}',
+  '.dsh-pet-cfg__check{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);cursor:pointer;user-select:none}',
+  '.dsh-pet-cfg__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}',
+  '.dsh-pet-cfg__listRow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary)}',
 
   '.dsh-pet-cfg__tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}',
   '.dsh-pet-cfg__tabsLabel{font-size:12px;color:var(--dsw-alias-label-secondary)}',

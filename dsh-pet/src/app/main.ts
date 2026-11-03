@@ -14,11 +14,13 @@ import { flattenPetList, readAllConfig } from '../host/config.ts';
 import { dshHomeDir } from '../host/helper-process.ts';
 import { apply } from '../host/index.ts';
 import { createFileLogger, setDefaultLogger } from '../host/log-file.ts';
+import { petUserRootForHome } from '../host/pet-user-root.ts';
 import { createStandaloneAi } from '../standalone/ai-provider.ts';
 import { packageVersion } from '../standalone/check.ts';
 import { createStandaloneContext, type RegisteredRoute } from '../standalone/context.ts';
 import { configPathsFor } from '../standalone/options.ts';
 import { createRequestSecurity } from '../standalone/request-security.ts';
+import { appRuntimeStateDir, writeStandaloneRuntime } from '../standalone/runtime-state.ts';
 
 import { installDesktopAuth, type DesktopSession } from './desktop-auth.ts';
 import { startRouter } from './router.ts';
@@ -72,7 +74,7 @@ async function boot(): Promise<void> {
   // 独立应用没有控制台：插件日志、standalone 日志与同进程 Helper/渲染端的 console 全部落盘。
   // 原始 console 方法要先快照——包装后的 console 会转给文件 logger，logger 的 base 必须指向原始方法，
   // 否则 logger → console → logger 无限递归。
-  const logFile = join(dshHomeDir(), 'dsh-pet', 'logs.txt');
+  const logFile = join(petUserRootForHome(dshHomeDir()), 'logs.txt');
   const rawConsole = {
     log: console.log.bind(console),
     info: console.info.bind(console),
@@ -118,6 +120,20 @@ async function boot(): Promise<void> {
   const origin = `http://127.0.0.1:${port}`;
   log(`本机服务 ${origin}`);
 
+  // 桌面运行状态落在 ~/.blue-fish6（不进 .dsh）；外部程序读 port / token。
+  let releaseRuntime: () => void;
+  try {
+    releaseRuntime = writeStandaloneRuntime(appRuntimeStateDir(), {
+      port,
+      token: security.token,
+      settingsUrl: security.authenticatedUrl(origin),
+      pluginRoot: packageRoot,
+    });
+  } catch (error) {
+    await server.close().catch(() => undefined);
+    throw error;
+  }
+
   // 先把「我自己就是应用」告诉插件，再 apply：apply 内部据此短路 spawn 与下载
   process.env.DSH_PET_IN_PROCESS = '1';
   process.env.DSH_PET_APP_MODE = '1';
@@ -135,6 +151,8 @@ async function boot(): Promise<void> {
 
   // helper 读它决定建几个窗口；读不到时它会回落到单个默认窗口，首帧再由渲染端自校正
   process.env.DSH_PET_PETS = JSON.stringify(desktopPets());
+  // OBS 窗口捕获：与配置 obsCaptureEnabled 同步；helper 建窗时读 DSH_PET_OBS_CAPTURE
+  process.env.DSH_PET_OBS_CAPTURE = obsCaptureEnabled() ? '1' : '0';
 
   // 同进程跑 Helper：建窗、托盘、IPC、碰撞都在它内部完成（CJS，需要 require）。
   // 渲染端日志必须转出来——打包后的应用没有控制台，渲染端报错只会表现成「窗口透明」。
@@ -161,6 +179,11 @@ async function boot(): Promise<void> {
 
   app.on('second-instance', () => log('已有一个实例在运行，忽略本次启动'));
   app.on('will-quit', () => {
+    try {
+      releaseRuntime();
+    } catch (error) {
+      log(`清理运行状态失败：${error instanceof Error ? error.message : String(error)}`);
+    }
     // 退出前把最后一批日志刷出去（定时器最多 1s，这里显式补一次）
     void logger.flush();
     logger.dispose();
@@ -185,6 +208,15 @@ function desktopPets(): Array<{ id: string; size: number }> {
   } catch (error) {
     log(`读配置失败（回落单窗）：${error instanceof Error ? error.message : String(error)}`);
     return [];
+  }
+}
+
+/** OBS 窗口捕获开关：读失败按关闭（与 desktop/pets 的 getObsCaptureOn 同口径）。 */
+function obsCaptureEnabled(): boolean {
+  try {
+    return readAllConfig(configPathsFor(packageRoot, dshHomeDir())).main?.obsCaptureEnabled === true;
+  } catch {
+    return false;
   }
 }
 

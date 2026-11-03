@@ -34,6 +34,7 @@ function harness(options: {
   isBridge?: boolean;
   canQuit?: boolean;
   pets?: Array<Record<string, unknown>>;
+  obsCaptureEnabled?: boolean;
 }) {
   const requests: string[] = [];
   const bodies: string[] = [];
@@ -61,7 +62,17 @@ function harness(options: {
       requests.push(method + ' ' + url);
       if (body !== undefined) bodies.push(body);
       if (url.endsWith('/config')) {
-        return { status: 200, body: JSON.stringify({ main: { pets: options.pets ?? [] } }) };
+        return {
+          status: 200,
+          body: JSON.stringify({
+            main: {
+              pets: options.pets ?? [],
+              ...(options.obsCaptureEnabled !== undefined
+                ? { obsCaptureEnabled: options.obsCaptureEnabled }
+                : {}),
+            },
+          }),
+        };
       }
       if (url.endsWith('/quit')) {
         return { status: 200, body: JSON.stringify({ canQuit: options.canQuit === true }) };
@@ -97,9 +108,11 @@ describe('createTray —— 勾选与点击', () => {
       ],
     });
     await tray.start();
-    const items = lastMenu(menus).filter((item) => item.type === 'checkbox');
+    const petItems = lastMenu(menus).filter(
+      (item) => item.type === 'checkbox' && item.label !== '窗口模式',
+    );
     assert.deepEqual(
-      items.map((item) => item.checked),
+      petItems.map((item) => item.checked),
       [true, false, true],
     );
   });
@@ -114,7 +127,7 @@ describe('createTray —— 勾选与点击', () => {
     for (const [from, to] of cases) {
       const { tray, menus, requests, bodies } = harness({ pets: [{ label: 'a', id: 'a', display: from }] });
       await tray.start();
-      const item = lastMenu(menus).find((entry) => entry.type === 'checkbox');
+      const item = lastMenu(menus).find((entry) => entry.type === 'checkbox' && entry.label !== '窗口模式');
       assert.ok(item?.click, '每只宠物都应有可点的开关项');
       item.click();
       assert.ok(requests.includes('POST /dsh-pet-7340/pet-display'), `display=${from} 时应把新值写回宿主`);
@@ -124,6 +137,20 @@ describe('createTray —— 勾选与点击', () => {
         `display=${from} 应写成 ${to}（浏览器位保持不动）`,
       );
     }
+  });
+
+  test('窗口模式勾选来自配置，点一下 POST /obs-capture', async () => {
+    const { tray, menus, requests, bodies } = harness({
+      pets: [{ label: 'a', id: 'a', display: 'both' }],
+      obsCaptureEnabled: true,
+    });
+    await tray.start();
+    const item = lastMenu(menus).find((entry) => entry.label === '窗口模式');
+    assert.ok(item?.type === 'checkbox' && item.click, '必须有窗口模式开关');
+    assert.equal(item.checked, true);
+    item.click();
+    assert.ok(requests.includes('POST /dsh-pet-7340/obs-capture'));
+    assert.equal((JSON.parse(bodies[0] ?? '{}') as { enabled?: boolean }).enabled, false);
   });
 });
 

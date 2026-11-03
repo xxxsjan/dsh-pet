@@ -9,6 +9,12 @@
 /** 提示框 class（两端共用）。 */
 export const TOOLTIP_CLASS = 'pet-tooltip';
 
+/**
+ * 宠物名悬浮提示总开关（浏览器 overlay 与桌面 Helper 共用）。
+ * 暂时关闭：悬停不再弹出自定义名字提示；改回 `true` 即恢复。
+ */
+export const NAME_TOOLTIP_ENABLED = false;
+
 /** 光标与提示框之间的间隙（占宠物宽度比例）：462px 的宠物下约 10px，与原生提示的偏移观感接近。 */
 export const TOOLTIP_GAP_RATIO = 0.022;
 

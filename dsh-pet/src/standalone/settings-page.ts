@@ -7,13 +7,13 @@
  * @module dsh-pet/src/standalone/settings-page
  */
 import { CORNER_SET } from '../host/config/constants.ts';
+import { FISH_BUILTIN_VOICES } from '../host/voice/fish-voices.ts';
 import { VOICES } from '../host/voice/voices.ts';
 import { LOGO_URL } from '../shared/avatar.ts';
 import { PET_DISPLAYS } from '../shared/config.ts';
 import { ROUTE_SEGMENT } from '../shared/constants.ts';
 import { DEFAULT_FONT, FONT_PRESETS } from '../shared/fonts.ts';
 import { DEFAULT_PHYSICS } from '../shared/physics.ts';
-import { DEFAULT_WEIGHTS } from '../shared/weights.ts';
 import { aiScript } from './settings-page/script/ai.ts';
 import { avatarScript } from './settings-page/script/avatar.ts';
 import { bootScript } from './settings-page/script/boot.ts';
@@ -37,12 +37,12 @@ export const settingsScript = [
   '(function () {',
   coreScript(ROUTE_SEGMENT, {
     voices: VOICES.map((voice) => ({ id: voice.id, name: voice.name, tag: voice.tag })),
+    fishVoices: FISH_BUILTIN_VOICES.map((voice) => ({ id: voice.id, name: voice.name, tag: voice.tag })),
     fonts: FONT_PRESETS.map((preset) => preset.id),
     displays: PET_DISPLAYS,
     corners: [...CORNER_SET],
     physics: DEFAULT_PHYSICS,
     font: DEFAULT_FONT,
-    weights: DEFAULT_WEIGHTS,
   }),
   widgetsScript(),
   overlayScript(),

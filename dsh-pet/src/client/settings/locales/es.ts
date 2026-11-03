@@ -1,20 +1,18 @@
 /**
- * 设置页西班牙语文案；键集与 zh 完全一致。
- */
+ * 设置页西班牙语文案；键集�?zh 完全一致�? */
 import type { Key } from './zh.ts';
 
 export const es: Record<Key, string> = {
   nav: 'Configuración de mascotas',
   intro:
     'Gestiona varias mascotas: cada una tiene su propio tamaño y posición (se aplica al instante después de guardar).',
-  // 卡片标题与卡片级说明；说明统一进问号气泡。
-  petCardTitle: 'Mascota',
+  // 卡片标题与卡片级说明；说明统一进问号气泡�?  petCardTitle: 'Mascota',
   avatarLabel: 'Avatar',
   avatarHint:
     'La imagen pequeña que aparece junto a los mensajes de esta mascota en el panel de chat. Sin subir nada se usa el logotipo predeterminado del plugin; al subir una imagen se aplica al instante y reemplaza la anterior, sin pulsar "Guardar".',
   avatarUpload: 'Subir avatar',
   avatarChange: 'Cambiar',
-  avatarUploading: 'Subiendo…',
+  avatarUploading: 'Subiendo�?,
   avatarUploaded: 'Avatar actualizado',
   petCardHint:
     'Ajustes por mascota: nombre / tamaño / visualización / esquina / márgenes / los cuatro interruptores de funciones. Pulsa "Guardar" abajo para aplicar al instante.',
@@ -25,8 +23,7 @@ export const es: Record<Key, string> = {
     'En qué esquina de la pantalla se pega la mascota (en escritorio se calcula por el área de trabajo de cada monitor).',
   marginXHint: 'Distancia horizontal desde la esquina elegida (px); puede ser cualquier número.',
   marginYHint: 'Distancia vertical desde la esquina elegida (px); puede ser cualquier número.',
-  // 「/」命令菜单的行标题（图标由 app.ts 经 command-faces.ts 补上）。
-  'cmd.chat': 'Chat',
+  // �?」命令菜单的行标题（图标�?app.ts �?command-faces.ts 补上）�?  'cmd.chat': 'Chat',
   'cmd.pet': 'Mascota',
   'cmd.balance': 'Saldo',
   'shortcut.open': 'Abrir el chat de la mascota',
@@ -49,7 +46,7 @@ export const es: Record<Key, string> = {
     'En la web basta con pasar el puntero sobre la mascota. En la ventana del escritorio hay que hacer clic en la mascota para que reciba el foco del teclado.',
   shortcutGroupGlobal: 'Atajos globales',
   shortcutGroupGlobalHint:
-    'Los distribuye DSH en la web y en la ventana del escritorio; se cambian en Ajustes → General → Atajos.',
+    'Los distribuye DSH en la web y en la ventana del escritorio; se cambian en Ajustes �?General �?Atajos.',
   petsLabel: 'Mascotas',
   add: 'Agregar mascota',
   remove: 'Eliminar',
@@ -63,7 +60,7 @@ export const es: Record<Key, string> = {
   sizeHint: 'La altura es automática = ancho × 9/16.',
   sizePercentLabel: 'Ancho de pantalla máx. (%)',
   sizePercentHint:
-    'Cuánto del ancho de pantalla puede ocupar la mascota: 100 = nunca más ancha que una pantalla (igual que px en ventanas anchas); 30–40 la hace claramente más pequeña en el móvil sin cambiar el escritorio. Se calcula una vez al cargar; recarga tras redimensionar.',
+    'Cuánto del ancho de pantalla puede ocupar la mascota: 100 = nunca más ancha que una pantalla (igual que px en ventanas anchas); 30�?0 la hace claramente más pequeña en el móvil sin cambiar el escritorio. Se calcula una vez al cargar; recarga tras redimensionar.',
   nameLabel: 'Nombre',
   nameHint:
     'Se muestra al pasar el cursor y se añade a las personas de la IA ("tu nombre es X"). Se permiten duplicados; si se deja vacío, se usa el id de la mascota.',
@@ -103,12 +100,12 @@ export const es: Record<Key, string> = {
   corruptTitle: 'La configuración del usuario está dañada; no se guardó',
   corruptConfirm: 'Guardar de todos modos',
   corruptBody:
-    'No se puede analizar el archivo de configuración del usuario (dañado, no es JSON/JSONC válido): {path}. Si guardas ahora, se reconstruirá desde la lista blanca: todo lo que hay actualmente en ese archivo (animations / physics / memes…) se perderá. Cancelar = no tocar el archivo (corrígelo y vuelve a guardar); Confirmar = guardar de todos modos (descartar lo que hay en el archivo).',
+    'No se puede analizar el archivo de configuración del usuario (dañado, no es JSON/JSONC válido): {path}. Si guardas ahora, se reconstruirá desde la lista blanca: todo lo que hay actualmente en ese archivo (animations / physics / memes�? se perderá. Cancelar = no tocar el archivo (corrígelo y vuelve a guardar); Confirmar = guardar de todos modos (descartar lo que hay en el archivo).',
   syncHint:
     '"Sincronizar" escribe la configuración predeterminada incluida (con comentarios y todos los campos avanzados) en el archivo de configuración del usuario, sobrescribiendo tus personalizaciones actuales; después el archivo se puede editar directamente. Dos advertencias: (1) una vez creado, ese archivo es una capa de sobrescritura explícita: los cambios posteriores en los valores predeterminados incluidos no se aplicarán automáticamente (hasta que vuelvas a sincronizar o borres el archivo); (2) al pulsar "Guardar" en esta página se reescribe el archivo desde una lista blanca: los valores de los campos se conservan, pero los comentarios se pierden.',
   configMeta: 'Avanzado (archivos)',
   configMetaHint:
-    'La configuración del usuario puede sobrescribir las mascotas / los pools de animación / los pesos; recarga o reinicia para aplicarlo: recarga la página en el navegador, o haz clic derecho en una mascota de escritorio → "Recargar configuración" (reconstruye todas las ventanas de mascotas de escritorio). La configuración predeterminada es la referencia completa.',
+    'La configuración del usuario puede sobrescribir las mascotas / los pools de animación / los pesos; recarga o reinicia para aplicarlo: recarga la página en el navegador, o haz clic derecho en una mascota de escritorio �?"Recargar configuración" (reconstruye todas las ventanas de mascotas de escritorio). La configuración predeterminada es la referencia completa.',
   defaultConfig: 'Configuración predeterminada (solo lectura, referencia completa)',
   userConfig: 'Configuración del usuario (sobrescrituras personalizadas)',
   todosFile:
@@ -125,10 +122,10 @@ export const es: Record<Key, string> = {
   saveInvalid: 'No se pudo guardar la configuración: el contenido no es válido. Revísalo e inténtalo de nuevo.',
   syncError:
     'No se pudo sincronizar la configuración. Revisa la conexión con el servidor y los permisos de escritura del directorio de configuración.',
-  loading: 'Cargando configuración…',
+  loading: 'Cargando configuración�?,
   retry: 'Reintentar',
   invalid: 'Revisa los datos: el tamaño debe ser positivo; los márgenes pueden ser cualquier número.',
-  busy: 'Guardando…',
+  busy: 'Guardando�?,
   extraPetsHint:
     'Otras {n} variantes provienen de archivos del directorio pet/ (<nombre>-config.json + <nombre>-animation/). Cambia a ellas en la fila Tipos de arriba; Guardar escribe en la configuración de cada pack, nunca en main-config.jsonc.',
   kindLabel: 'Tipos',
@@ -158,6 +155,9 @@ export const es: Record<Key, string> = {
   trayToggle: 'Bandeja del sistema',
   trayToggleHint:
     'Muestra un icono en la bandeja (área de notificaciones en Windows, barra de menús en macOS) cuando el modo escritorio está activo. Lista todas las mascotas de la configuración y alterna cada una entre escritorio y web/ninguno, incluidas las que ahora no están en el escritorio y no tienen ventana donde hacer clic derecho. Con esto desactivado, para devolver una mascota al escritorio hay que abrir el navegador (la página de configuración o el clic derecho sobre la mascota web). Windows ya oculta los iconos de terceros en «iconos ocultos». Solo afecta al modo escritorio.',
+  obsCaptureToggle: 'Window mode',
+  obsCaptureToggleHint:
+    'Like Big Blue Fish: stay transparent. When on, the pet appears on the taskbar without the tool-window style so OBS Window Capture can list it (prefer Windows 10 / Graphics Capture); when off, it stays hidden from the taskbar and Window Capture usually cannot find it. Desktop mode only; also available from the tray.',
   voiceTitle: 'Voz',
   voiceHint:
     'Tres interruptores y una voz: el maestro controla la locución automática y los dos secundarios controlan un tipo de mensaje proactivo cada uno. Todo desactivado por defecto; se escribe en la configuración del usuario al "Guardar" (nunca al instante).',
@@ -171,9 +171,30 @@ export const es: Record<Key, string> = {
   voiceTodoEnabledHint:
     'Locuta el recordatorio de una tarea cuando vence (el globo sigue apareciendo; esto solo decide si se locuta). Depende del interruptor maestro de arriba. Desactivado por defecto.',
   voiceNameLabel: 'Voz',
+  voiceProviderLabel: 'Engine',
+  voiceProviderHint:
+    'Edge is free online Chinese voices; Fish Audio needs an API key and supports custom Voice IDs. After switching, make sure the selected voice still belongs to that engine.',
+  voiceProviderEdge: 'Edge (free)',
+  voiceProviderFish: 'Fish Audio',
+  fishApiKeyLabel: 'Fish Audio API Key',
+  fishApiKeyHint:
+    'Get it from the Fish Audio console. The key is stored only in the local user config; GET /config never returns the plaintext. Leave blank on save to keep the existing key.',
+  fishApiKeyPlaceholder: 'Paste API Key',
+  fishApiKeyKeepPlaceholder: 'Key saved (leave blank to keep)',
+  fishApiKeyClear: 'Clear saved key',
+  fishTtsModelLabel: 'Fish model',
+  fishTtsModelHint: 'Sent as the model header; defaults to the free tier to avoid 402 when out of quota.',
+  fishCustomVoiceLabel: 'Custom Voice ID',
+  fishCustomVoiceHint: 'Copy a Voice ID from Fish Audio (letters, digits, _ and - only). Built-in voices cannot be removed.',
+  fishCustomVoiceIdPlaceholder: 'Voice ID',
+  fishCustomVoiceLabelPlaceholder: 'Display name (optional)',
+  fishCustomVoiceAdd: 'Add',
+  fishCustomVoiceRemove: 'Remove',
+  voiceRateLabel: 'Speech rate',
+  voiceRateHint: 'Absolute rate 0.5-2 (1 = normal). Takes effect after save.',
   voiceVolumeLabel: 'Volumen',
   voiceVolumeHint:
-    'Volumen de reproducción como decimal 0–1: 1 es el volumen máximo (100 %) y 0 silencia. Solo cambia la intensidad y no vuelve a sintetizar el audio, así que ajustarlo no tiene coste extra. Es independiente del interruptor general de arriba: con ese interruptor apagado no surte efecto.',
+    'Volumen de reproducción como decimal 0�?: 1 es el volumen máximo (100 %) y 0 silencia. Solo cambia la intensidad y no vuelve a sintetizar el audio, así que ajustarlo no tiene coste extra. Es independiente del interruptor general de arriba: con ese interruptor apagado no surte efecto.',
   physicsTitle: 'Física (sensación al arrastrar y lanzar)',
   physicsHint:
     'Valor predeterminado global, compartido por todas las mascotas (un pet pack puede sobrescribirlo en el archivo de su propio tipo); se escribe en la configuración del usuario al "Guardar" (nunca al instante). En el navegador se aplica al instante; en el escritorio se aplica cuando Guardar recarga las ventanas de mascotas.',
@@ -184,7 +205,7 @@ export const es: Record<Key, string> = {
   'physics.gravityHint': 'px/s²: cuanto mayor, más rápido cae; 0 = sin gravedad (vuela en línea recta para siempre)',
   'physics.restitution': 'Rebote',
   'physics.restitutionHint':
-    '0–1, velocidad que se conserva al rebotar en una pared o el suelo (1 = completamente elástico, 0 = se detiene en seco)',
+    '0�?, velocidad que se conserva al rebotar en una pared o el suelo (1 = completamente elástico, 0 = se detiene en seco)',
   'physics.groundFriction': 'Fricción de contacto',
   'physics.groundFrictionHint':
     'por segundo, amortiguación a lo largo de cualquier superficie (pared, suelo, techo); 0 = hielo en todas',
@@ -195,7 +216,7 @@ export const es: Record<Key, string> = {
   physicsCeilingBounceHint:
     'Desactívalo para que un lanzamiento pueda salir por la parte superior de la pantalla (la gravedad sigue tirando de él hacia abajo)',
   physicsPetCollision: 'Colisiones entre mascotas',
-  physicsPetCollisionHint: 'Una mascota en vuelo rebota contra las demás conservando el momento (masa ∝ tamaño²)',
+  physicsPetCollisionHint: 'Una mascota en vuelo rebota contra las demás conservando el momento (masa �?tamaño²)',
   physicsHaptic: 'Vibración al chocar',
   physicsHapticHint:
     'Una vibración por impacto (paredes, suelo, techo, otras mascotas). Funciona en Chrome/Edge; no en iOS ni en navegadores WebView como Via. El modo No molestar la bloquea.',
@@ -206,7 +227,7 @@ export const es: Record<Key, string> = {
   physicsShakeHint:
     'Agita para lanzar la mascota en la dirección del gesto; la fuerza escala con throwPower. No depende de la gravedad, así que funciona con gravedad 0. Requiere HTTPS/localhost.',
   invalidPhysics:
-    'Revisa los parámetros de física: gravedad / fricción con el suelo ≥ 0, rebote 0–1, fuerza de lanzamiento > 0.',
+    'Revisa los parámetros de física: gravedad / fricción con el suelo �?0, rebote 0�?, fuerza de lanzamiento > 0.',
   fontTitle: 'Apariencia y fuente',
   fontHint:
     'La familia se aplica a todos los textos que ahora usan la fuente candy: globo de la mascota, tooltip al pasar el cursor, ventana de chat y ventana de puntuación. El tamaño solo se aplica al globo de la mascota y al tooltip (las ventanas de chat y de puntuación conservan su tamaño). Valor predeterminado global, compartido por todas las mascotas (un pet pack puede sobrescribirlo en el archivo de su propio tipo); se escribe en la configuración del usuario al "Guardar": al instante en el navegador y, en el escritorio, cuando Guardar recarga las ventanas de mascotas.',
@@ -215,7 +236,7 @@ export const es: Record<Key, string> = {
     '«Candy (integrada)» viene con el plugin; las demás son fuentes del sistema. Si una fuente no está instalada en esta máquina, se usa la siguiente de la pila (nunca queda en blanco ni da error).',
   fontSizeLabel: 'Tamaño de fuente (px)',
   fontSizeHint:
-    'Tamaño del texto del globo; el tooltip y las líneas pequeñas dentro del globo se escalan en proporción. Rango 4–200.',
+    'Tamaño del texto del globo; el tooltip y las líneas pequeñas dentro del globo se escalan en proporción. Rango 4�?00.',
   fontFollowToggle: 'Escalar la fuente con el tamaño de la mascota',
   fontFollowToggleHint:
     'Activado (predeterminado): la fuente crece con la mascota; con 462 px de ancho es exactamente el tamaño de arriba. Desactivado: el tamaño queda fijo sin importar el tamaño de la mascota.',
@@ -232,10 +253,10 @@ export const es: Record<Key, string> = {
   modelHint:
     'Qué modelo usa cada uno de susurros y chat, y cuánto historial lleva cada solicitud de chat. "Seguir la conversación actual" usa el modelo de tu conversación actual (predeterminado). Valor predeterminado global: se aplica a todas las mascotas y un pet pack puede sobrescribirlo en el archivo de su propio tipo. Las opciones vienen de la misma fuente que el selector de modelos de DSH y el host las sirve en vivo.',
   modelFollow: 'Seguir la conversación actual',
-  modelSearch: 'Buscar modelos…',
+  modelSearch: 'Buscar modelos�?,
   modelEmpty: 'No hay modelos que coincidan.',
   modelNoModels: 'No hay modelos disponibles.',
-  modelLoading: 'Actualizando la lista de modelos…',
+  modelLoading: 'Actualizando la lista de modelos�?,
   modelTriggerAria: 'Seleccionar modelo, actual {model}',
   modelUnknown: ' (configuración actual, no está en la lista)',
   modelNone: 'Este proveedor no tiene modelos disponibles',
@@ -250,11 +271,11 @@ export const es: Record<Key, string> = {
   chatMemory: 'Rondas de historial del chat',
   chatMemoryHint:
     'Cuántas rondas recientes lleva cada solicitud de chat (1 ronda = 1 pregunta + 1 respuesta; 0 = sin historial, cada mensaje empieza de cero). La memoria en sí lo guarda todo: esto solo decide cuánto entra en el contexto; más rondas recuerdan más y gastan más tokens. Valor predeterminado global, compartido por todas las mascotas (un pet pack puede sobrescribirlo en el archivo de su propio tipo).',
-  invalidChatMemory: 'Revisa las rondas de historial del chat: debe ser un número ≥ 0.',
+  invalidChatMemory: 'Revisa las rondas de historial del chat: debe ser un número �?0.',
   chatImageLimit: 'Límite de imágenes en el chat',
   chatImageLimitHint:
     'Cuántos memes como máximo se listan al modelo durante el chat ("los primeros N" = los N que escribiste primero en la configuración; mueve al frente los que quieras enviar). Esa lista completa se adjunta a cada mensaje y los tokens crecen de forma lineal con la cantidad, así que una lista larga es puro gasto; limitarla a los primeros N hace que el modelo elija solo entre esos. 0 = sin límite (enviar todo). Valor integrado predeterminado: 10. Valor predeterminado global, compartido por todas las mascotas (un pet pack puede sobrescribirlo en el archivo de su propio tipo). Solo afecta a la selección de imágenes del chat: un susurro lleva solo el meme que sacó.',
-  invalidChatImageLimit: 'Revisa el límite de imágenes del chat: debe ser un número ≥ 0 (0 = sin límite).',
+  invalidChatImageLimit: 'Revisa el límite de imágenes del chat: debe ser un número �?0 (0 = sin límite).',
   notifyTest: 'Probar notificación',
   notifyTestOk: 'Notificación de prueba enviada; mírala abajo a la derecha del escritorio.',
   notifyDenyUnsupported: 'Este entorno no admite notificaciones del sistema (no hay API Notification).',
@@ -262,7 +283,7 @@ export const es: Record<Key, string> = {
   notifyDenyRejected: 'Elegiste «Bloquear» en el aviso de permiso.',
   notifyDenyError: 'Error al solicitar permiso',
   notifyGuide:
-    'Guía: haz clic en el icono 🔒/ⓘ junto a la barra de direcciones → Configuración del sitio → Notificaciones → cámbialo a «Permitir» y luego recarga la página y reintenta.',
+    'Guía: haz clic en el icono 🔒/�?junto a la barra de direcciones �?Configuración del sitio �?Notificaciones �?cámbialo a «Permitir» y luego recarga la página y reintenta.',
   storageTitle: 'Desinstalación y almacenamiento',
   storageHint:
     'Todas las ubicaciones que escribe este plugin. Borrar las cachés no rompe nada (se vuelven a descargar/reconstruir); borrar los «datos de usuario del plugin» pierde la configuración y la memoria del chat.',
@@ -283,12 +304,5 @@ export const es: Record<Key, string> = {
     '2. Quita el plugin en sí (ejecútalo en la terminal; también lo elimina de la capa de bundles del perfil):',
   uninstallStep3:
     '3. Borra las ubicaciones de arriba según necesites: las cachés no hacen daño; borrar los «datos de usuario del plugin» pierde la configuración y la memoria del chat (haz una copia de main-config.jsonc si quieres conservarla).',
-  motionTitle: 'Frecuencia de acciones',
-  motionHint:
-    'Cuatro casillas: espera / giro / movimiento son editables; la acción aleatoria se calcula (100 − las otras tres). Solo se aplica a la entrada main; los pet packs definen sus pesos en su archivo de tipo.',
-  'motion.idle': 'En espera',
-  'motion.turn': 'Giro',
-  'motion.move': 'Movimiento',
-  'motion.action': 'Acción aleatoria',
   uninstallCmd: 'dsh plugin --profile {profile} remove dsh-pet',
 };

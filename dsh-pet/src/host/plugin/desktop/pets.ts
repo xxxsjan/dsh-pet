@@ -57,6 +57,15 @@ export function createDesktopPets(deps: DesktopPetsInput) {
     }
   };
 
+  /** OBS 窗口捕获开关；读失败按关闭（保持原透明窗，不主动改窗口形态）。 */
+  const getObsCaptureOn = (): boolean => {
+    try {
+      return readAllConfig(configPaths).main?.obsCaptureEnabled === true;
+    } catch {
+      return false;
+    }
+  };
+
   /** 参与桌面窗的宠物（给 helper 的启动参数）；读失败返回空列表。 */
   const desktopPetList = (): Array<{ id: string; size: number }> => {
     try {
@@ -86,7 +95,7 @@ export function createDesktopPets(deps: DesktopPetsInput) {
   // 装配时先打一行，便于对照「这次进程起来时判定成了什么」。
   logDesktopDecision();
 
-  return { getHasDesktopPet, getTrayOn, desktopPetList, logDesktopDecision };
+  return { getHasDesktopPet, getTrayOn, getObsCaptureOn, desktopPetList, logDesktopDecision };
 }
 
 /** DesktopPets的产出。 */

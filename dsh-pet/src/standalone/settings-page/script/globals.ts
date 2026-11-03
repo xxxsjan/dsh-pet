@@ -1,8 +1,8 @@
 /**
- * 「桌宠配置」面板的全局部分：开关、语音、外观、物理、移动端、对话模型与落盘位置。
+ * 「桌宠配置」面板的全局部分：开关、外观、物理、对话上下文与落盘位置；语音 / 模型各自在左侧独立分区。
  *
  * 全部读写 state.globals（main 条目的全局字段），由 ./pets 的保存一并提交。
- * 卡片按 builder 数组返回，渲染时机由 ./pets 决定——这里不自己找容器。
+ * 配置页卡片按 builder 数组返回；语音页由 {@link renderVoicePanel} 自己找容器。
  * @module dsh-pet/src/standalone/settings-page/script/globals
  */
 
@@ -10,11 +10,22 @@
 export function globalsScript(): string {
   return `
 function globalCards() {
-  return [globalFlagsCard, voiceCard, fontCard, physicsCard, motionCard, modelCard, advancedCard];
+  return [globalFlagsCard, fontCard, physicsCard, modelCard, advancedCard];
 }
 
 function setGlobal(key, value) {
   state.globals[key] = value;
+}
+
+function renderVoicePanel() {
+  const host = byId('voice-cards');
+  if (!host) return;
+  host.textContent = '';
+  if (!state.globals) {
+    host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
+    return;
+  }
+  host.append(voiceCard());
 }
 
 function globalFlagsCard() {
@@ -27,15 +38,186 @@ function globalFlagsCard() {
     toggleRow('g-chat-anim', '对话动作联动', '对话时让模型挑一个动作当场表演。', g.chatAnimationEnabled, (value) => setGlobal('chatAnimationEnabled', value)),
     toggleRow('g-confine', '锁定在当前屏幕', '抛掷与自主漫游只在当前所在的这块屏幕里活动。', g.confineToScreen, (value) => setGlobal('confineToScreen', value)),
     toggleRow('g-tray', '系统托盘图标', '桌面模式常驻托盘；关掉后只能从任务栏找回。', g.trayEnabled, (value) => setGlobal('trayEnabled', value)),
+    toggleRow('g-obs', '窗口模式', '开启后仍保持透明，但出现在任务栏并去掉工具窗样式，便于 OBS 窗口捕获；关掉则藏任务栏（窗口捕获通常列不到）。', g.obsCaptureEnabled === true, (value) => setGlobal('obsCaptureEnabled', value)),
   ]);
+}
+
+function voiceOptionsForProvider(provider) {
+  if (provider === 'fish') {
+    const custom = Array.isArray(state.globals.fishVoices) ? state.globals.fishVoices : [];
+    const builtinIds = new Set(FISH_VOICES.map((voice) => voice.id));
+    const customOpts = custom
+      .filter((voice) => voice && voice.id && !builtinIds.has(voice.id))
+      .map((voice) => ({
+        value: voice.id,
+        label: (voice.label || voice.id) + ' · Fish · 自定义',
+      }));
+    return FISH_VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag })).concat(customOpts);
+  }
+  return VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag }));
+}
+
+function defaultVoiceForProvider(provider) {
+  if (provider === 'fish') return (FISH_VOICES[0] && FISH_VOICES[0].id) || '';
+  const edgeDefault = VOICES.find((voice) => voice.id === 'zh-CN-XiaoyiNeural');
+  return (edgeDefault && edgeDefault.id) || (VOICES[0] && VOICES[0].id) || '';
+}
+
+/** 试听音频句柄与世代号：新点一次会掐掉上一句，避免叠播。 */
+let previewAudio = null;
+let previewSeq = 0;
+const VOICE_PREVIEW_TEXT = '你好，这是音色试听。';
+
+function savedVoiceProvider() {
+  const main = state.config && state.config.main;
+  return main && main.voiceProvider === 'fish' ? 'fish' : 'edge';
+}
+
+function voicePreviewRow() {
+  const btn = button('试听', () => { void previewVoice(); });
+  btn.id = 'voice-preview-btn';
+  return make('div', { class: 'testRow' }, [
+    btn,
+    make('span', { id: 'voice-preview-status', class: 'status', role: 'status', 'aria-live': 'polite' }),
+  ]);
+}
+
+/** 试听专用 AudioContext：音量 >100% 时复用，避免反复创建导致二次无声。 */
+let previewBoostCtx = null;
+
+async function applyPreviewVolume(audio, volume) {
+  const vol = volume < 0 ? 0 : volume > 4 ? 4 : volume;
+  if (!(vol > 1) || typeof AudioContext === 'undefined') {
+    audio.volume = vol > 1 ? 1 : vol;
+    return;
+  }
+  audio.volume = 1;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) {
+    audio.volume = 1;
+    return;
+  }
+  let ctx = previewBoostCtx;
+  if (!ctx || ctx.state === 'closed') {
+    ctx = new Ctx();
+    previewBoostCtx = ctx;
+  }
+  if (ctx.state === 'suspended') {
+    try { await ctx.resume(); } catch (_) { /* ignore */ }
+  }
+  try {
+    const source = ctx.createMediaElementSource(audio);
+    const gain = ctx.createGain();
+    gain.gain.value = vol;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+  } catch (_) {
+    audio.volume = 1;
+  }
+}
+
+async function previewVoice() {
+  const g = state.globals;
+  const status = byId('voice-preview-status');
+  const btn = byId('voice-preview-btn');
+  if (!g || !g.voiceName) {
+    setStatus(status, '请先选择音色。', 'error');
+    return;
+  }
+  const draftProvider = g.voiceProvider === 'fish' ? 'fish' : 'edge';
+  if (draftProvider !== savedVoiceProvider()) {
+    setStatus(status, '请先保存语音引擎，再试听。', 'error');
+    return;
+  }
+  if (draftProvider === 'fish' && !g.hasFishApiKey) {
+    setStatus(status, '请先保存 Fish API Key，再试听。', 'error');
+    return;
+  }
+  const token = ++previewSeq;
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio = null;
+  }
+  if (btn) btn.disabled = true;
+  setStatus(status, '正在合成试听…');
+  try {
+    const absRate = typeof g.voiceRate === 'number' ? g.voiceRate : 1;
+    const rateClamped = absRate < 0.5 ? 0.5 : absRate > 2 ? 2 : absRate;
+    const ratePct = Math.round((rateClamped - 1) * 100);
+    const rate = (ratePct >= 0 ? '+' : '') + ratePct + '%';
+    const response = await fetch(API + '/voice/speak', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: VOICE_PREVIEW_TEXT, voice: g.voiceName, rate: rate }),
+    });
+    if (token !== previewSeq) return;
+    const ctype = response.headers.get('content-type') || '';
+    if (!response.ok || !ctype.includes('audio')) {
+      const data = await response.json().catch(() => null);
+      throw new Error((data && data.message) || '试听合成失败');
+    }
+    const objectUrl = URL.createObjectURL(await response.blob());
+    if (token !== previewSeq) {
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+    const audio = new Audio(objectUrl);
+    audio.onended = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (previewAudio === audio) previewAudio = null;
+      if (token === previewSeq) setStatus(status, '试听结束。', 'ok');
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (previewAudio === audio) previewAudio = null;
+      if (token === previewSeq) setStatus(status, '播放失败。', 'error');
+    };
+    await applyPreviewVolume(audio, typeof g.voiceVolume === 'number' ? g.voiceVolume : 1);
+    previewAudio = audio;
+    setStatus(status, '正在播放…', 'ok');
+    await audio.play();
+  } catch (error) {
+    if (token === previewSeq) {
+      setStatus(status, error && error.message ? error.message : String(error), 'error');
+    }
+  } finally {
+    if (btn && token === previewSeq) btn.disabled = false;
+  }
 }
 
 function voiceCard() {
   const g = state.globals;
-  return card('语音', '桌宠开口说话用的音色与音量。', [
+  const isFish = g.voiceProvider === 'fish';
+  const voiceOpts = voiceOptionsForProvider(isFish ? 'fish' : 'edge');
+  const fishRows = isFish ? [
+    passwordField('g-fish-key', 'Fish Audio API Key', g.fishApiKeyDraft || '', (value) => setGlobal('fishApiKeyDraft', value), g.hasFishApiKey ? '已保存密钥，留空保留；勾选下方可清除' : '在 Fish Audio 控制台获取'),
+    g.hasFishApiKey ? toggleRow('g-fish-clear', '清除已保存的 Fish API Key', '下次保存时删除磁盘上的密钥。', g.clearFishApiKey === true, (value) => setGlobal('clearFishApiKey', value)) : null,
+    selectField('g-fish-model', 'Fish 合成模型', g.fishTtsModel || 's2.1-pro-free', [
+      { value: 's2.1-pro-free', label: 'S2.1 Pro Free' },
+      { value: 's2.1-pro', label: 'S2.1 Pro' },
+      { value: 's2-pro', label: 'S2 Pro' },
+      { value: 'drama-3', label: 'Drama 3' },
+    ], (value) => setGlobal('fishTtsModel', value)),
+  ].filter(Boolean) : [];
+  return card('语音播报', '桌宠开口说话用的引擎、音色与音量；保存后立即写盘。', [
     toggleRow('g-voice', '语音播报', '关闭后所有语音都静音，文字气泡不受影响。', g.voiceEnabled, (value) => setGlobal('voiceEnabled', value)),
-    selectField('g-voice-name', '音色', g.voiceName, VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag })), (value) => setGlobal('voiceName', value)),
-    numberField('g-voice-volume', '音量（0–1）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 1, 1)), { min: 0, max: 1, step: 0.05 }),
+    selectField('g-voice-provider', '语音引擎', g.voiceProvider || 'edge', [
+      { value: 'edge', label: 'Edge（免费）' },
+      { value: 'fish', label: 'Fish Audio' },
+    ], (value) => {
+      const next = value === 'fish' ? 'fish' : 'edge';
+      setGlobal('voiceProvider', next);
+      const opts = voiceOptionsForProvider(next);
+      if (!opts.some((opt) => opt.value === g.voiceName)) setGlobal('voiceName', defaultVoiceForProvider(next));
+      renderVoicePanel();
+    }),
+    ...fishRows,
+    selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '切换引擎、模型或 Key 后请先保存再试听；只换音色可直接试。'),
+    voicePreviewRow(),
+    numberField('g-voice-rate', '语速（0.5–2）', g.voiceRate == null ? 1 : g.voiceRate, (value) => setGlobal('voiceRate', clampNumber(value, 0.5, 2, 1)), { min: 0.5, max: 2, step: 0.05, hint: '1 为原速；会重新合成，试听前建议先保存。' }),
+    numberField('g-voice-volume', '音量（0–4，最高 400%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 4, 1)), { min: 0, max: 4, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
     toggleRow('g-voice-whisper', '周期碎碎念也念出来', '关掉只影响周期碎碎念，手动对话照常发声。', g.voiceWhisperEnabled, (value) => setGlobal('voiceWhisperEnabled', value)),
     toggleRow('g-voice-todo', '待办提醒也念出来', '关掉只影响待办提醒的朗读。', g.voiceTodoEnabled, (value) => setGlobal('voiceTodoEnabled', value)),
   ]);
@@ -66,35 +248,9 @@ function physicsCard() {
   ]);
 }
 
-function motionCard() {
-  const g = state.globals;
-  const weights = g.animationWeights;
-  const actionId = 'g-motion-action';
-  const actionValue = () => String(Math.max(0, 100 - weights.idle - weights.turn - weights.move));
-  const syncAction = () => {
-    const node = byId(actionId);
-    if (node) node.value = actionValue();
-  };
-  const weightField = (key, label) =>
-    numberField('g-motion-' + key, label, weights[key], (value) => {
-      const others = weights.idle + weights.turn + weights.move - weights[key];
-      const max = Math.max(0, 100 - others);
-      weights[key] = Math.round(Math.min(Math.max(value, 0), max));
-      syncAction();
-    }, { min: 0, max: 100, step: 1 });
-  return card('动作频率', '四个框：待机 / 转向 / 移动可改，随机动作自动算（= 100 − 其余三项）。只作用于默认条目；保存后生效。', [
-    make('div', { class: 'grid2' }, [
-      weightField('idle', '待机（%）'),
-      weightField('turn', '转向（%）'),
-      weightField('move', '移动（%）'),
-      numberField(actionId, '随机动作（%，自动）', actionValue(), () => {}, { min: 0, max: 100, step: 1, readOnly: true }),
-    ]),
-  ]);
-}
-
 function modelCard() {
   const g = state.globals;
-  return card('对话上下文', '模型与接入方式在「AI 服务商」页配置；这里只管对话保留多少上下文。', [
+  return card('对话上下文', '模型与接入方式在左侧「模型」分区配置；这里只管对话保留多少上下文。', [
     make('div', { class: 'grid2' }, [
       numberField('g-memory', '对话记忆轮数', g.chatMemoryRounds, (value) => setGlobal('chatMemoryRounds', Math.round(clampNumber(value, 0, 100, 0))), { min: 0, max: 100, step: 1, hint: '0 表示不带历史。' }),
       numberField('g-image-limit', '配图张数上限', g.chatImageLimit, (value) => setGlobal('chatImageLimit', Math.round(clampNumber(value, 0, 50, 0))), { min: 0, max: 50, step: 1, hint: '0 表示不限制。' }),

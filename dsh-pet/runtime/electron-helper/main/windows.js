@@ -10,6 +10,7 @@ const path = require('node:path');
 const { pointerZone, decideWindowIgnore } = require('../pointer-target.js');
 const { TOPMOST_WATCHDOG_ENABLED, TOPMOST_WATCHDOG_TICK_MS } = require('../topmost-watchdog.js');
 const { TASKBAR_WATCHDOG_TICK_MS, shouldRunTaskbarWatchdog } = require('../taskbar-watchdog.js');
+const { applyLiveCaptureExStyle } = require('./win32-exstyle.js');
 
 /** 兜底通道的光标轮询间隔（ms）。 */
 const POINTER_POLL_MS = 60;
@@ -107,6 +108,11 @@ function createWindows({
     return [{ id: 'main', size: 462, index: 0 }];
   }
 
+  /** OBS 窗口捕获模式：宿主经 DSH_PET_OBS_CAPTURE 注入；开启后用不透明窗，便于窗口捕获。 */
+  function obsCaptureOn() {
+    return process.env.DSH_PET_OBS_CAPTURE === '1';
+  }
+
   /** 窗口初始尺寸 = 宠物包围盒 + 四周外扩余量；渲染端首帧会按真实配置精确覆盖。 */
   function petWindowSize(size) {
     const height = (size * 9) / 16;
@@ -115,14 +121,15 @@ function createWindows({
     return { width: Math.round(size) + m * 2, height: Math.round(height + bottomPad) + m * 2 };
   }
 
-  /** 单次重申（幂等）：show 的异步重建路径与看门狗共用。 */
+  /** 单次重申（幂等）：show 的异步重建路径与看门狗共用。OBS 捕获模式要留在任务栏，绝不重申 skip。 */
   function reassertTaskbar(win) {
-    if (!win || win.isDestroyed()) return;
+    if (!win || win.isDestroyed() || obsCaptureOn()) return;
     win.setSkipTaskbar(true);
   }
 
   /** 把窗口从任务栏摘掉：show 后 Shell 会异步重建按钮，紧跟一次 0ms 的第二次调用才算数。 */
   function keepOffTaskbar(win) {
+    if (obsCaptureOn()) return;
     reassertTaskbar(win);
     setTimeout(() => reassertTaskbar(win), 0);
   }
@@ -130,8 +137,9 @@ function createWindows({
   /** 看门狗定时器句柄；null 表示未启动。 */
   let taskbarWatchdogTimer = null;
 
-  /** 启动任务栏看门狗：仅 Windows 且总开关开启；重复调用无副作用。 */
+  /** 启动任务栏看门狗：仅 Windows 且总开关开启；OBS 捕获模式跳过（窗口必须留在任务栏）。 */
   function startTaskbarWatchdog() {
+    if (obsCaptureOn()) return;
     if (taskbarWatchdogTimer || !shouldRunTaskbarWatchdog(process.platform, taskbarWatchdogEnabled)) return;
     taskbarWatchdogTimer = setInterval(() => {
       for (const win of windows.values()) reassertTaskbar(win);
@@ -187,8 +195,12 @@ function createWindows({
     return () => clearInterval(topmostTimer);
   }
 
-  /** 建窗口时的固定参数（与渲染端约定的透明置顶小窗）。 */
+  /**
+   * 建窗口参数：始终透明分层（对齐蓝色大肥鱼）。
+   * 窗口模式（OBS）只改任务栏可枚举性：进任务栏、固定标题，Win32 侧再清 TOOLWINDOW。
+   */
   function windowOptions(size, area) {
+    const obs = obsCaptureOn();
     return {
       ...size,
       x: area.x, // 初始左上角；renderer 首帧按配置角落/位置校正
@@ -200,7 +212,8 @@ function createWindows({
       transparent: true,
       frame: false,
       alwaysOnTop: true,
-      skipTaskbar: true,
+      skipTaskbar: !obs,
+      title: obs ? 'dsh-pet' : undefined,
       // 任务栏按钮万一还是冒出来（唤醒后重建），至少显示宠物图标而不是 Electron 默认原子图
       icon: path.join(helperDir, '..', '..', 'assets', 'logo.png'),
       resizable: false,
@@ -218,9 +231,18 @@ function createWindows({
     };
   }
 
+  /** 窗口模式：进任务栏 + 清 TOOLWINDOW，让 OBS/WGC 能枚举（仍保持透明）。 */
+  function applyObsCaptureListing(win) {
+    if (!obsCaptureOn() || win.isDestroyed()) return;
+    win.setTitle('dsh-pet');
+    win.setSkipTaskbar(false);
+    applyLiveCaptureExStyle(win, true);
+  }
+
   /** 一只宠物一个窗口；返回窗口，泵与清理都在这里装好。 */
   function createPetWindow(pet, geo, scale) {
     const win = new BrowserWindow(windowOptions(petWindowSize(pet.size * scale), geo.hull));
+    if (obsCaptureOn()) win.setTitle('dsh-pet');
     win.setAlwaysOnTop(true, topmostLevel(process.platform));
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // 被遮挡的窗口默认暂停渲染，表现成「消失」；关掉后台节流让它持续渲染
@@ -230,9 +252,13 @@ function createWindows({
     // 页面级缩放与渲染端 CONFIG.scale 同源；show:false 的窗口 zoomFactor 不生效，须加载后设置
     win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(scale));
     setWindowIgnore(win, true);
-    win.on('show', () => keepOffTaskbar(win));
+    win.on('show', () => {
+      keepOffTaskbar(win);
+      applyObsCaptureListing(win);
+    });
     win.once('ready-to-show', () => {
       keepOffTaskbar(win);
+      applyObsCaptureListing(win);
       win.showInactive();
     });
     // 兜底显示：paintWhenInitiallyHidden:false 时可能不产出首帧，ready-to-show 永不触发
@@ -269,6 +295,8 @@ function createWindows({
       openTarget,
       scale: String(scale),
       petIndex: String(pet.index),
+      // 窗口模式标记（渲染端可按需区分布局；背景仍保持透明）
+      obsCapture: obsCaptureOn() ? '1' : '0',
       workAreaW: String(geo.hull.width),
       workAreaH: String(geo.hull.height),
       workAreaX: String(geo.hull.x),

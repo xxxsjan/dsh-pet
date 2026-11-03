@@ -25,7 +25,7 @@ export type DesktopSpawnInput = Pick<
   DesktopHelperDeps,
   'ctx' | 'getHandlePetRoute' | 'log' | 'reportDownload' | 'thumbUserRoot'
 > &
-  Pick<DesktopPets, 'getHasDesktopPet' | 'desktopPetList' | 'getTrayOn'>;
+  Pick<DesktopPets, 'getHasDesktopPet' | 'desktopPetList' | 'getTrayOn' | 'getObsCaptureOn'>;
 
 /** 宿主是不是 DSH 桌面应用（Electron 宿主）。 */
 const isDesktopHost = (): boolean => Boolean(process.versions.electron);
@@ -51,8 +51,17 @@ export function resolveOpenTarget(siteUrl: string, desktopHost: boolean): OpenTa
  * 创建 Helper 进程的拉起与停止句柄：进程内宿主直接跳过，其余按需下载 Electron 后 spawn 并退避重试。
  */
 export function createDesktopSpawn(deps: DesktopSpawnInput) {
-  const { ctx, getHandlePetRoute, log, reportDownload, thumbUserRoot, getHasDesktopPet, desktopPetList, getTrayOn } =
-    deps;
+  const {
+    ctx,
+    getHandlePetRoute,
+    log,
+    reportDownload,
+    thumbUserRoot,
+    getHasDesktopPet,
+    desktopPetList,
+    getTrayOn,
+    getObsCaptureOn,
+  } = deps;
 
   let desktopModeEverActive = false;
 
@@ -134,6 +143,8 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
           DSH_PET_BRIDGE: '1',
           // 每只桌面宠物一个局部小窗口：透传宠物列表（[{id,size}]）
           DSH_PET_PETS: JSON.stringify(desktopPetList()),
+          // OBS 窗口捕获：helper 建窗时读它决定透明/不透明（与 main 配置 obsCaptureEnabled 同步）
+          DSH_PET_OBS_CAPTURE: getObsCaptureOn() ? '1' : '0',
         },
         // bridge 协议处理器 = HTTP 路由同一份 handlePetRoute（业务逻辑唯一，两端天然一致）；
         // 形状转换在 ./bridge-response，本模块只管把请求转进去。

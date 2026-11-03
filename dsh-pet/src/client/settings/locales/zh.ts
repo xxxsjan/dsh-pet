@@ -145,6 +145,9 @@ export const zh = {
   trayToggle: '系统托盘',
   trayToggleHint:
     '桌面模式启动后在通知区域（macOS 为菜单栏）常驻一个图标，列出配置里的全部宠物，勾选就能切换显示位置——包括当前不在桌面、没有窗口可右键的那些。关掉之后要把宠物叫回桌面，只能开浏览器用设置页，或在网页端那只宠物身上右键。Windows 本来就会把它折叠进「隐藏的图标」面板。仅影响桌面模式。',
+  obsCaptureToggle: '窗口模式',
+  obsCaptureToggleHint:
+    '对齐「蓝色大肥鱼」：始终保持透明。开启后进入任务栏并去掉工具窗样式，便于 OBS「窗口捕获」（建议捕获方式用 Windows 10/Graphics Capture）；关掉则藏任务栏，窗口捕获通常列不到。仅影响桌面模式；托盘里也能切换。',
   voiceTitle: '语音播报',
   voiceHint:
     '桌宠出声的三个开关与音色：总开关管自动播报，两个细分开关各管一类主动消息。默认全关，随「保存」写入用户配置（不做即时写入）。',
@@ -157,9 +160,31 @@ export const zh = {
   voiceTodoEnabled: '待办播报',
   voiceTodoEnabledHint: '到点的待办提醒念出来（同一句照样弹气泡，本项只决定念不念）。受上面的总开关约束。默认关闭。',
   voiceNameLabel: '音色',
+  voiceProviderLabel: '语音引擎',
+  voiceProviderHint:
+    'Edge 免费在线、五个中文音色；Fish Audio 需 API Key，音质更好，可按 Voice ID 追加自定义音色。切换引擎后请确认音色仍在对应列表里。',
+  voiceProviderEdge: 'Edge（免费）',
+  voiceProviderFish: 'Fish Audio',
+  fishApiKeyLabel: 'Fish Audio API Key',
+  fishApiKeyHint:
+    '在 Fish Audio 控制台获取。密钥只写入本机用户配置，GET /config 不回传明文；留空保存会保留已有密钥。',
+  fishApiKeyPlaceholder: '粘贴 API Key',
+  fishApiKeyKeepPlaceholder: '已保存密钥（留空保留）',
+  fishApiKeyClear: '清除已保存的密钥',
+  fishTtsModelLabel: 'Fish 合成模型',
+  fishTtsModelHint: '请求头 model；默认免费档，避免无额度时 402。',
+  fishCustomVoiceLabel: '自定义 Voice ID',
+  fishCustomVoiceHint: '在 Fish Audio 音色页复制 Voice ID（仅字母数字与 _-）；内置音色不可删。',
+  fishCustomVoiceIdPlaceholder: 'Voice ID',
+  fishCustomVoiceLabelPlaceholder: '显示名（可选）',
+  fishCustomVoiceAdd: '添加',
+  fishCustomVoiceRemove: '删除',
+  voiceRateLabel: '语速',
+  voiceRateHint:
+    '绝对倍率 0.5–2：1 为原速。会重新合成（影响缓存键），保存后对后续播报生效。',
   voiceVolumeLabel: '音量',
   voiceVolumeHint:
-    '播报音量，0–1 的小数：1 是最大音量（100%），0 是静音。只改播放响度，不会重新合成音频，调它不额外花钱。与上面的总开关是两件事——总开关关着时它不起作用。',
+    '播报音量 0–4：1 = 100%，4 = 400%（超过 1 用增益放大）。只改播放响度，不会重新合成。总开关关着时不起作用。',
   physicsTitle: '物理（拖拽抛掷手感）',
   physicsHint:
     '全局默认，所有宠物共用（pet pack 可在自己种类文件里单独覆盖）；随「保存」写入用户配置（不做即时写入）。浏览器保存后即时生效，桌面端由保存重载宠物窗口后生效。',
@@ -251,13 +276,6 @@ export const zh = {
   uninstallStep2: '2. 卸载插件本体（终端执行，会同时从 profile 的 bundle 层移除）：',
   uninstallStep3:
     '3. 按需删除上面的位置：缓存类删了无影响；「插件用户数据」删了会丢配置与对话记忆（想保留就先备份其中的 main-config.jsonc）。',
-  motionTitle: '动作频率',
-  motionHint:
-    '四个框：待机 / 转向 / 移动可改，随机动作自动算（= 100 − 其余三项）。只作用于主条目（内置宠物）；文件宠物的权重在各自种类文件里改。',
-  'motion.idle': '待机',
-  'motion.turn': '转向',
-  'motion.move': '移动',
-  'motion.action': '随机动作',
   uninstallCmd: 'dsh plugin --profile {profile} remove dsh-pet',
 };
 

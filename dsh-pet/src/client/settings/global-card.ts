@@ -8,10 +8,15 @@ import type { FunctionComponent } from 'react';
 import type { SettingsRuntime } from './runtime.ts';
 import { makeUiKit } from './ui.ts';
 
-/** 四个全局开关的键名，与成品配置的字段名一致。 */
-export type GlobalFlagKey = 'notificationsEnabled' | 'clickSoundEnabled' | 'confineToScreen' | 'trayEnabled';
+/** 全局开关的键名，与成品配置的字段名一致。 */
+export type GlobalFlagKey =
+  | 'notificationsEnabled'
+  | 'clickSoundEnabled'
+  | 'confineToScreen'
+  | 'trayEnabled'
+  | 'obsCaptureEnabled';
 
-/** 四个全局开关的当前值。 */
+/** 全局开关的当前值。 */
 export type GlobalFlags = Record<GlobalFlagKey, boolean>;
 
 /** 全局开关卡的输入。 */
@@ -30,6 +35,7 @@ const TOGGLES: Array<{ key: GlobalFlagKey; label: string }> = [
   { key: 'clickSoundEnabled', label: 'clickSoundToggle' },
   { key: 'confineToScreen', label: 'confineToggle' },
   { key: 'trayEnabled', label: 'trayToggle' },
+  { key: 'obsCaptureEnabled', label: 'obsCaptureToggle' },
 ];
 
 /**

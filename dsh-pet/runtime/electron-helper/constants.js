@@ -15,6 +15,8 @@ const CONFIG = {
   scale: Number(params.get('scale') || '1'),
   petIndex: Number(params.get('petIndex') || '0'),
   topInsetRatio: Number(params.get('topInsetRatio') || '0'),
+  // 窗口模式（OBS 可捕获）：主进程进任务栏时注入；页面仍保持透明（对齐蓝色大肥鱼）
+  obsCapture: params.get('obsCapture') === '1',
 };
 
 // 坐标系约定：主进程对窗口 setZoomFactor(CONFIG.scale) 后，DOM 度量、事件坐标、桌面几何与全部

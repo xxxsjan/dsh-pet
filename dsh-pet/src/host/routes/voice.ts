@@ -15,7 +15,8 @@ export async function handleVoiceRoutes(deps: PetRouteDeps, input: RouteInput): 
 
   if (rest === 'voice/voices') {
     if (method !== 'GET') return methodNotAllowed();
-    return okResult({ ok: true, voices: deps.voice.listVoices() });
+    // 目录含 edge / fish 分列与当前引擎下的 voices（旧客户端只读 voices 仍可用）
+    return okResult({ ok: true, ...deps.voice.listVoices() });
   }
 
   if (rest === 'voice/speak') {

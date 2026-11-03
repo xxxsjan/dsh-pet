@@ -10,13 +10,24 @@
  */
 import { ROUTE_PATH } from './constants.ts';
 import type { VoiceTarget } from './state.ts';
+import {
+  absoluteRateToEdge,
+  clampVoiceRate,
+  clampVoiceVolume,
+  DEFAULT_VOICE_RATE,
+  DEFAULT_VOICE_VOLUME,
+} from './voice-params.ts';
 
 /** 当前音色；空串 = 不指定，由宿主用默认音色。 */
 let voiceName = '';
 /** 播报总开关；只有成品配置明确为 true 才播。 */
 let voiceEnabled = false;
-/** 播放音量系数（0–1，1 = 最大音量）；两端共用，只作用于播放，不影响已合成好的音频。 */
-let voiceVolume = 1;
+/** 播放音量系数（0–4，1 = 100%；>1 用 Web Audio 增益）。 */
+let voiceVolume = DEFAULT_VOICE_VOLUME;
+/** 绝对语速（0.5–2），合成请求换成 Edge 的 `+N%`。 */
+let voiceRate = DEFAULT_VOICE_RATE;
+/** 超过 100% 时复用的 AudioContext（反复 create/close 会导致二次播放无声）。 */
+let boostCtx: AudioContext | null = null;
 /** 本端是网页端还是桌面端；`null` = 还没声明，此时不按叶子播放。 */
 let surface: VoiceTarget | null = null;
 /** 接口基址：网页端是同源前缀，桌面端由 `setVoiceBase` 换成 bridge 地址。 */
@@ -56,10 +67,10 @@ export const VOICE_SPEECH_MAX_CHARS = 60;
 /**
  * 客户端等合成结果的上限（ms）。
  *
- * 比宿主侧的总超时（28s）再宽一点：让宿主先超时并回结构化失败，
+ * 按最慢的内置引擎（Fish Audio 90s）再宽一点：让宿主先超时并回结构化失败，
  * 客户端这道只是兜底，避免上游挂住时气泡上的转圈永远停不下来。
  */
-const SPEAK_TIMEOUT_MS = 30_000;
+const SPEAK_TIMEOUT_MS = 95_000;
 
 /** 合成请求的超时信号；自动播报与手动点播共用同一份口径。 */
 function speakSignal(): AbortSignal {
@@ -147,23 +158,59 @@ export function setSurface(next: unknown): void {
 }
 
 /**
- * 记录成品配置里的音色、总开关与音量；网页端在读到 `/config` 时调一次。
+ * 记录成品配置里的音色、总开关、音量与语速；网页端在读到 `/config` 时调一次。
  * 调用即视为配置已就绪，后续播放不再自己去拉。
  * @param name - 音色 id（非字符串按未指定处理）。
  * @param enabled - 播报总开关（严格 `=== true` 才算开启）。
- * @param volume - 音量系数（0–1）；缺省或非数值按最大音量播放。
+ * @param volume - 音量系数（0–4）；缺省或非数值按 100%。
+ * @param rate - 绝对语速（0.5–2）；缺省或非数值按 1。
  */
-export function setVoiceConfig(name: unknown, enabled: unknown, volume?: unknown): void {
+export function setVoiceConfig(name: unknown, enabled: unknown, volume?: unknown, rate?: unknown): void {
   voiceName = typeof name === 'string' ? name : '';
   voiceEnabled = enabled === true;
-  voiceVolume = clampVolume(volume);
+  voiceVolume = clampVoiceVolume(volume);
+  voiceRate = clampVoiceRate(rate);
   configLoaded = true;
 }
 
-/** 把音量收敛到 0–1；非数值按最大音量（1）处理——脏配置不该把声音悄悄变成 0。 */
-function clampVolume(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+/**
+ * 按配置音量播放：≤1 用 `audio.volume`；>1 用 GainNode（与弹幕机同口径）。
+ * @param audio - 即将 play 的元素。
+ * @param volume - 0–4。
+ */
+async function applyPlaybackVolume(audio: HTMLAudioElement, volume: number): Promise<void> {
+  const vol = clampVoiceVolume(volume);
+  if (!(vol > 1) || typeof AudioContext === 'undefined') {
+    audio.volume = Math.min(1, vol);
+    return;
+  }
+  audio.volume = 1;
+  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) {
+    audio.volume = 1;
+    return;
+  }
+  let ctx = boostCtx;
+  if (!ctx || ctx.state === 'closed') {
+    ctx = new Ctx();
+    boostCtx = ctx;
+  }
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch {
+      /* 忽略：下面连增益失败会回落 */
+    }
+  }
+  try {
+    const source = ctx.createMediaElementSource(audio);
+    const gain = ctx.createGain();
+    gain.gain.value = vol;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+  } catch {
+    audio.volume = 1;
+  }
 }
 
 /** 懒加载成品配置；失败按「不播」处理，且只试一次（避免每句都发请求）。 */
@@ -175,7 +222,8 @@ async function loadConfigOnce(): Promise<void> {
     const main = body?.main;
     voiceName = typeof main?.voiceName === 'string' ? main.voiceName : '';
     voiceEnabled = main?.voiceEnabled === true;
-    voiceVolume = clampVolume(main?.voiceVolume);
+    voiceVolume = clampVoiceVolume(main?.voiceVolume);
+    voiceRate = clampVoiceRate(main?.voiceRate);
     // 只有成功才置位：拉不到（bridge 还没就绪 / 瞬时故障）留给下一句重试——
     // 否则一次失败就把这一端永久静音了。
     configLoaded = true;
@@ -230,7 +278,11 @@ async function speak(text: string): Promise<void> {
     const response = await fetch(voiceBase + '/voice/speak', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text, ...(voiceName ? { voice: voiceName } : {}) }),
+      body: JSON.stringify({
+        text,
+        rate: absoluteRateToEdge(voiceRate),
+        ...(voiceName ? { voice: voiceName } : {}),
+      }),
       signal: speakSignal(),
     });
     if (!response.ok || !(response.headers.get('content-type') ?? '').includes('audio')) {
@@ -239,10 +291,10 @@ async function speak(text: string): Promise<void> {
     }
     const objectUrl = URL.createObjectURL(await response.blob());
     const audio = new Audio(objectUrl);
-    audio.volume = voiceVolume;
     // 播完或出错都要释放，否则每句留一个 blob 引用
     audio.onended = () => URL.revokeObjectURL(objectUrl);
     audio.onerror = () => URL.revokeObjectURL(objectUrl);
+    await applyPlaybackVolume(audio, voiceVolume);
     // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
     setVoiceState('ready');
     await audio.play();
@@ -289,7 +341,11 @@ async function playManual(text: string, onPhase?: (phase: SpeakPhase) => void): 
     const response = await fetch(voiceBase + '/voice/speak', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text, ...(voiceName ? { voice: voiceName } : {}) }),
+      body: JSON.stringify({
+        text,
+        rate: absoluteRateToEdge(voiceRate),
+        ...(voiceName ? { voice: voiceName } : {}),
+      }),
       signal: speakSignal(),
     });
     if (token !== manualSeq) return;
@@ -300,7 +356,6 @@ async function playManual(text: string, onPhase?: (phase: SpeakPhase) => void): 
     const objectUrl = URL.createObjectURL(await response.blob());
     if (token !== manualSeq) return;
     const audio = new Audio(objectUrl);
-    audio.volume = voiceVolume;
     audio.onended = () => {
       URL.revokeObjectURL(objectUrl);
       if (manualAudio === audio) {
@@ -309,6 +364,7 @@ async function playManual(text: string, onPhase?: (phase: SpeakPhase) => void): 
       }
     };
     audio.onerror = () => URL.revokeObjectURL(objectUrl);
+    await applyPlaybackVolume(audio, voiceVolume);
     manualAudio = audio;
     onPhase?.('playing');
     await audio.play();

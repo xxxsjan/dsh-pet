@@ -5,7 +5,7 @@
  * @module dsh-pet/src/client/settings/config/http
  */
 import { ROUTE_PATH } from '../../../shared/constants.ts';
-import type { FontConfig, ModelSelection, Pet, PhysicsParams, Weights } from '../../../shared/types.ts';
+import type { FontConfig, ModelSelection, Pet, PhysicsParams } from '../../../shared/types.ts';
 import type { ModelCatalogGroup } from '../picker/index.ts';
 import type { MergedConfig } from './read.ts';
 
@@ -37,24 +37,38 @@ export interface SaveFields {
   chatAnimationEnabled: boolean;
   confineToScreen: boolean;
   trayEnabled: boolean;
+  /** OBS 窗口捕获模式。 */
+  obsCaptureEnabled: boolean;
   /** 语音播报总开关。 */
   voiceEnabled: boolean;
-  /** 语音音色 id（白名单内的四个之一）。 */
+  /** 语音引擎：edge 或 fish。 */
+  voiceProvider: 'edge' | 'fish';
+  /** 语音音色 id（随引擎变化：Edge 白名单或 Fish Voice ID）。 */
   voiceName: string;
-  /** 播放音量系数：0–1 的小数，1 = 最大音量，0 = 静音。 */
+  /** 播放音量系数：0–4，1 = 100%，4 = 400%；>1 用 Web Audio 增益。 */
   voiceVolume: number;
+  voiceRate: number;
   /** 周期碎碎念要不要念出来。 */
   voiceWhisperEnabled: boolean;
   /** 待办提醒要不要念出来。 */
   voiceTodoEnabled: boolean;
+  /** Fish 合成模型 id。 */
+  fishTtsModel: string;
+  /** 用户追加的 Fish 音色（不含内置）。 */
+  fishVoices: readonly { id: string; label: string }[];
+  /**
+   * 新的 Fish API Key；空串或缺省 = 保留磁盘旧值。
+   * 响应里永不回传明文，只看 `hasFishApiKey`。
+   */
+  fishApiKey?: string;
+  /** 为 true 时清空已保存的 Fish API Key。 */
+  clearFishApiKey?: boolean;
   physics: PhysicsParams;
   whisperModel: ModelSelection;
   chatModel: ModelSelection;
   chatMemoryRounds: number;
   chatImageLimit: number;
   font: FontConfig;
-  /** 动作频率权重（main 条目）：三项合计 ≤ 100，随机动作是余量。 */
-  animationWeights: Weights;
 }
 
 /** 保存结果：调用方按 `kind` 分支，不再猜 HTTP 细节。 */
@@ -80,18 +94,27 @@ export function buildSaveBody(fields: SaveFields): Record<string, unknown> {
     chatAnimationEnabled: fields.chatAnimationEnabled,
     confineToScreen: fields.confineToScreen,
     trayEnabled: fields.trayEnabled,
+    obsCaptureEnabled: fields.obsCaptureEnabled,
     voiceEnabled: fields.voiceEnabled,
+    voiceProvider: fields.voiceProvider,
     voiceName: fields.voiceName,
     voiceVolume: fields.voiceVolume,
+    voiceRate: fields.voiceRate,
     voiceWhisperEnabled: fields.voiceWhisperEnabled,
     voiceTodoEnabled: fields.voiceTodoEnabled,
+    fishTtsModel: fields.fishTtsModel,
+    fishVoices: fields.fishVoices,
+    ...(fields.clearFishApiKey === true
+      ? { clearFishApiKey: true }
+      : fields.fishApiKey !== undefined && fields.fishApiKey.trim() !== ''
+        ? { fishApiKey: fields.fishApiKey.trim() }
+        : {}),
     physics: fields.physics,
     whisperModel: fields.whisperModel,
     chatModel: fields.chatModel,
     chatMemoryRounds: fields.chatMemoryRounds,
     chatImageLimit: fields.chatImageLimit,
     font: fields.font,
-    animationWeights: fields.animationWeights,
   };
 }
 

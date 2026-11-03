@@ -52,6 +52,13 @@ function createTray({
     });
   }
 
+  /** 写回 OBS 窗口捕获开关：宿主写盘后会重启 / 重建窗口，响应可能永远不回 */
+  function traySetObsCapture(enabled) {
+    hostRequest('POST', petRoute + '/obs-capture', JSON.stringify({ enabled })).catch((e) => {
+      console.error('[dsh-pet-desktop-helper] tray obs-capture failed:', String(e && e.message ? e.message : e));
+    });
+  }
+
   /** 托盘图标：包内 logo 缩到 16×16（macOS 要模板图，否则深色菜单栏下看不见） */
   function trayIcon() {
     const file = path.join(helperDir, '..', '..', 'assets', 'logo.png');
@@ -117,6 +124,7 @@ function createTray({
         console.error('[dsh-pet-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
       });
     };
+    const obsCapture = !!(merged && merged.main && merged.main.obsCaptureEnabled === true);
     return Menu.buildFromTemplate([
       ...pets.map((pet) => ({
         label: pet.name || pet.id,
@@ -124,6 +132,13 @@ function createTray({
         checked: isDesktopDisplay(pet.display),
         click: () => traySetPetDisplay(pet.id, toggleDisplay(pet.display)),
       })),
+      { type: 'separator' },
+      {
+        label: '窗口模式',
+        type: 'checkbox',
+        checked: obsCapture,
+        click: () => traySetObsCapture(!obsCapture),
+      },
       ...(canQuit ? [{ type: 'separator' }, { label: '退出', click: quitApp }] : []),
     ]);
   }

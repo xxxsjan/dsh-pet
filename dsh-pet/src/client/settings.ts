@@ -9,7 +9,7 @@ import { ROUTE_PATH } from '../shared/constants.ts';
 import { avatarUrl } from '../shared/avatar.ts';
 import { DEFAULT_FONT } from '../shared/fonts.ts';
 import { DEFAULT_PHYSICS } from '../shared/physics.ts';
-import type { FontConfig, ModelSelection, PhysicsParams, Weights } from '../shared/types.ts';
+import type { FontConfig, ModelSelection, PhysicsParams } from '../shared/types.ts';
 import type { FunctionComponent } from 'react';
 import { requestNotificationPermission } from './notify.ts';
 import { injectSettingsCss } from './settings/css.ts';
@@ -22,7 +22,6 @@ import { makeGlobalCard, type GlobalFlagKey, type GlobalFlags } from './settings
 import { makeLoadStatus } from './settings/load-status.ts';
 import { makeModelCard, type ChatFlagKey, type ChatFlagValues, type ModelFieldKey } from './settings/model-card.ts';
 import { makeMobileCard } from './settings/mobile-card.ts';
-import { makeMotionCard } from './settings/motion-card.ts';
 import { makeModelPicker } from './settings/picker/index.ts';
 import { makeVoicePicker } from './settings/picker/voice-picker.ts';
 import { runNotificationTest } from './settings/notify-test.ts';
@@ -42,7 +41,6 @@ import { usePetList } from './settings/use-pet-list.ts';
 import { useRemoteData } from './settings/use-remote-data.ts';
 import { makeUiKit } from './settings/ui.ts';
 import { makeVoiceCard, type VoiceOption } from './settings/voice-card.ts';
-import { DEFAULT_WEIGHTS } from '../shared/weights.ts';
 
 // 字典与桥的真源都在 settings/ 里：宿主的 locale 注册、容器与测试夹具都经这里取，不各自深路径引用。
 export { dicts, NS } from './settings/locales/index.ts';
@@ -80,7 +78,6 @@ export function makePetConfigSection(
   const FontCard = makeFontCard(rt);
   const ModelCard = makeModelCard(rt, ModelPicker);
   const PhysicsCard = makePhysicsCard(rt);
-  const MotionCard = makeMotionCard(rt);
   const ShortcutsCard = makeShortcutsCard(rt, ctx);
   const MobileCard = makeMobileCard(rt);
   const Actions = makeActions(rt);
@@ -121,14 +118,30 @@ export function makePetConfigSection(
     // 说明气泡：挂 body 摆位（伪元素会被窗口边缘与滚动容器裁掉），随页面卸载一起拆。
     useEffect(() => attachTipLayer(), []);
 
-    // 音色列表：与配置无关的一次性拉取，失败留空即可（下拉会只显示当前值）。
+    // 音色目录：与配置无关的一次性拉取；Edge / Fish 分列，切换引擎时本地换表，不重打接口。
     useEffect(() => {
       let alive = true;
       void fetch(ROUTE_PATH + '/voice/voices')
         .then((response) => (response.ok ? response.json() : null))
-        .then((body: { voices?: VoiceOption[] } | null) => {
-          if (alive && body && Array.isArray(body.voices)) setVoiceOptions(body.voices);
-        })
+        .then(
+          (
+            body: {
+              edgeVoices?: VoiceOption[];
+              fishVoices?: VoiceOption[];
+              fishModels?: { id: string; label: string }[];
+              voices?: VoiceOption[];
+            } | null,
+          ) => {
+            if (!alive || !body) return;
+            if (Array.isArray(body.edgeVoices)) setEdgeVoices(body.edgeVoices);
+            else if (Array.isArray(body.voices)) setEdgeVoices(body.voices);
+            if (Array.isArray(body.fishVoices)) {
+              // 宿主可能已把自定义并进列表；内置用 tag 不含「自定义」区分，设置页另以 fishCustomVoices 为准
+              setFishBuiltinVoices(body.fishVoices.filter((voice) => !String(voice.tag).includes('自定义')));
+            }
+            if (Array.isArray(body.fishModels) && body.fishModels.length > 0) setFishModels(body.fishModels);
+          },
+        )
         .catch(() => undefined);
       return () => {
         alive = false;
@@ -150,22 +163,48 @@ export function makePetConfigSection(
     const [confineScreen, setConfineScreen] = useState(false);
     // 系统托盘开关（全局）：随「保存」一起提交；宿主半侧据此决定建不建托盘、没桌面宠物时还值不值得常驻 Helper。
     const [trayEnabled, setTrayEnabled] = useState(true);
+    // OBS 窗口捕获（全局）：随「保存」一起提交；开启后桌宠用不透明窗，便于 OBS 窗口捕获。
+    const [obsCaptureEnabled, setObsCaptureEnabled] = useState(false);
     // 语音播报开关与音色（全局默认）：随「保存」整包写入；初值即内置默认，加载后用成品值覆盖。
     const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const [voiceProvider, setVoiceProvider] = useState<'edge' | 'fish'>('edge');
     const [voiceName, setVoiceName] = useState('zh-CN-XiaoyiNeural');
-    // 播放音量（全局系数 0–1）：初值 1 是内置默认（最大音量），加载后由成品值覆盖。
+    // 播放音量（全局系数 0–4）：初值 1 = 100%，加载后由成品值覆盖。
     const [voiceVolume, setVoiceVolume] = useState(1);
+    const [voiceRate, setVoiceRate] = useState(1);
     // 语音的两个细分开关（周期碎碎念 / 待办提醒）：与总开关同一套语义，初值 false 是内置默认。
     const [voiceWhisperEnabled, setVoiceWhisperEnabled] = useState(false);
     const [voiceTodoEnabled, setVoiceTodoEnabled] = useState(false);
+    const [fishTtsModel, setFishTtsModel] = useState('s2.1-pro-free');
+    const [fishCustomVoices, setFishCustomVoices] = useState<{ id: string; label: string }[]>([]);
+    const [hasFishApiKey, setHasFishApiKey] = useState(false);
+    const [fishApiKeyDraft, setFishApiKeyDraft] = useState('');
+    const [clearFishApiKey, setClearFishApiKey] = useState(false);
     // 可选音色：来自宿主 /voice/voices，拉不到就留空——下拉只显示当前值，绝不硬编码音色 id。
-    const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
+    const [edgeVoices, setEdgeVoices] = useState<VoiceOption[]>([]);
+    const [fishBuiltinVoices, setFishBuiltinVoices] = useState<VoiceOption[]>([]);
+    const [fishModels, setFishModels] = useState<{ id: string; label: string }[]>([
+      { id: 's2.1-pro-free', label: 'S2.1 Pro Free' },
+      { id: 's2.1-pro', label: 'S2.1 Pro' },
+      { id: 's2-pro', label: 'S2 Pro' },
+      { id: 'drama-3', label: 'Drama 3' },
+    ]);
+    const DEFAULT_FISH_VOICE_ID = '55b28b196e1c4fff9a55cd32a46eff25';
+    const voiceOptions: VoiceOption[] =
+      voiceProvider === 'fish'
+        ? [
+            ...fishBuiltinVoices,
+            ...fishCustomVoices.map((voice) => ({
+              id: voice.id,
+              name: voice.label,
+              tag: 'Fish · 自定义',
+            })),
+          ]
+        : edgeVoices;
     // 物理参数（全局）：只改本地状态，随「保存」整包写入；初值仅占位，成品加载成功后才允许编辑与保存。
     const [physics, setPhysics] = useState<PhysicsParams>({ ...DEFAULT_PHYSICS });
     // 字体（全局默认）：与 physics 同一套语义；初值仅占位，成品加载成功后才允许编辑与保存。
     const [font, setFont] = useState<FontConfig>({ ...DEFAULT_FONT });
-    // 动作频率权重（main 条目）：三项合计 ≤ 100，随机动作是余量；随「保存」整包写入。
-    const [weights, setWeights] = useState<Weights>({ ...DEFAULT_WEIGHTS });
     // AI 模型（条目级）：碎碎念 / 对话各自的服务商与模型，两者都留空 = 跟随当前对话；随「保存」整包写入。
     const [whisperModel, setWhisperModel] = useState<ModelSelection>({ provider: '', model: '' });
     const [chatModel, setChatModel] = useState<ModelSelection>({ provider: '', model: '' });
@@ -193,14 +232,22 @@ export function makePetConfigSection(
         if (patch.chatAnimationEnabled !== undefined) setChatAnimation(patch.chatAnimationEnabled);
         if (patch.confineToScreen !== undefined) setConfineScreen(patch.confineToScreen);
         if (patch.trayEnabled !== undefined) setTrayEnabled(patch.trayEnabled);
+        if (patch.obsCaptureEnabled !== undefined) setObsCaptureEnabled(patch.obsCaptureEnabled);
         if (patch.voiceEnabled !== undefined) setVoiceEnabled(patch.voiceEnabled);
+        if (patch.voiceProvider !== undefined) setVoiceProvider(patch.voiceProvider);
         if (patch.voiceName !== undefined) setVoiceName(patch.voiceName);
         if (patch.voiceVolume !== undefined) setVoiceVolume(patch.voiceVolume);
+        if (patch.voiceRate !== undefined) setVoiceRate(patch.voiceRate);
         if (patch.voiceWhisperEnabled !== undefined) setVoiceWhisperEnabled(patch.voiceWhisperEnabled);
         if (patch.voiceTodoEnabled !== undefined) setVoiceTodoEnabled(patch.voiceTodoEnabled);
+        if (patch.fishTtsModel !== undefined) setFishTtsModel(patch.fishTtsModel);
+        if (patch.fishVoices !== undefined) setFishCustomVoices(patch.fishVoices);
+        if (patch.hasFishApiKey !== undefined) setHasFishApiKey(patch.hasFishApiKey);
+        // 读回配置后丢掉未提交的 Key 草稿与清空标记，避免「保存成功后又带上旧草稿」
+        setFishApiKeyDraft('');
+        setClearFishApiKey(false);
         if (patch.physics !== undefined) setPhysics(patch.physics);
         if (patch.font !== undefined) setFont(patch.font);
-        if (patch.animationWeights !== undefined) setWeights(patch.animationWeights);
         if (patch.whisperModel !== undefined) setWhisperModel(patch.whisperModel);
         if (patch.chatModel !== undefined) setChatModel(patch.chatModel);
         if (patch.chatMemoryRounds !== undefined) setChatMemory(patch.chatMemoryRounds);
@@ -261,6 +308,7 @@ export function makePetConfigSection(
       clickSoundEnabled: clickSound,
       confineToScreen: confineScreen,
       trayEnabled,
+      obsCaptureEnabled,
     };
     const chatFlags: ChatFlagValues = {
       whisperImageEnabled: whisperImage,
@@ -275,6 +323,7 @@ export function makePetConfigSection(
       clickSoundEnabled: setClickSound,
       confineToScreen: setConfineScreen,
       trayEnabled: setTrayEnabled,
+      obsCaptureEnabled: setObsCaptureEnabled,
       whisperImageEnabled: setWhisperImage,
       chatImageEnabled: setChatImage,
       chatAnimationEnabled: setChatAnimation,
@@ -305,18 +354,24 @@ export function makePetConfigSection(
         chatAnimationEnabled: chatAnimation,
         confineToScreen: confineScreen,
         trayEnabled,
+        obsCaptureEnabled,
         voiceEnabled,
+        voiceProvider,
         voiceName,
         voiceVolume,
+        voiceRate,
         voiceWhisperEnabled,
         voiceTodoEnabled,
+        fishTtsModel,
+        fishVoices: fishCustomVoices,
+        fishApiKey: fishApiKeyDraft,
+        clearFishApiKey,
         physics,
         whisperModel,
         chatModel,
         chatMemoryRounds: chatMemory,
         chatImageLimit,
         font,
-        animationWeights: weights,
       }),
       busy: () => busy,
       setBusy,
@@ -389,16 +444,60 @@ export function makePetConfigSection(
         h(VoiceCard, {
           busy,
           enabled: voiceEnabled,
+          provider: voiceProvider,
           voiceName,
           volume: voiceVolume,
+          rate: voiceRate,
           voices: voiceOptions,
+          fishTtsModel,
+          fishModels,
+          hasFishApiKey,
+          fishApiKeyDraft,
+          clearFishApiKey,
+          fishCustomVoices,
           whisperEnabled: voiceWhisperEnabled,
           todoEnabled: voiceTodoEnabled,
           onToggle: setVoiceEnabled,
+          onProviderChange: (next) => {
+            setVoiceProvider(next);
+            if (next === 'fish') {
+              const stillValid =
+                fishBuiltinVoices.some((voice) => voice.id === voiceName) ||
+                fishCustomVoices.some((voice) => voice.id === voiceName);
+              if (!stillValid) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+            } else {
+              const stillValid = edgeVoices.some((voice) => voice.id === voiceName);
+              if (!stillValid) {
+                setVoiceName(
+                  edgeVoices.find((voice) => voice.id === 'zh-CN-XiaoyiNeural')?.id ??
+                    edgeVoices[0]?.id ??
+                    'zh-CN-XiaoyiNeural',
+                );
+              }
+            }
+          },
           onVoiceChange: setVoiceName,
           onVolumeChange: setVoiceVolume,
+          onRateChange: setVoiceRate,
           onWhisperToggle: setVoiceWhisperEnabled,
           onTodoToggle: setVoiceTodoEnabled,
+          onFishModelChange: setFishTtsModel,
+          onFishApiKeyDraftChange: setFishApiKeyDraft,
+          onClearFishApiKeyChange: setClearFishApiKey,
+          onAddFishVoice: (id, label) => {
+            const cleaned = id.trim().replace(/\s+/g, '');
+            if (!cleaned) return;
+            setFishCustomVoices((current) => {
+              if (current.some((voice) => voice.id === cleaned)) return current;
+              if (fishBuiltinVoices.some((voice) => voice.id === cleaned)) return current;
+              return [...current, { id: cleaned, label: label.trim() || cleaned }];
+            });
+            setVoiceName(cleaned);
+          },
+          onRemoveFishVoice: (id) => {
+            setFishCustomVoices((current) => current.filter((voice) => voice.id !== id));
+            if (voiceName === id) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+          },
         }),
         h(FontCard, { busy, font, onChange: patchFont }),
         h(ModelCard, {
@@ -416,7 +515,6 @@ export function makePetConfigSection(
           onFlagChange: setChatFlag,
         }),
         h(PhysicsCard, { busy, physics, onChange: patchPhysics }),
-        h(MotionCard, { busy, weights, onChange: setWeights }),
         h(MobileCard, { busy, physics, onChange: patchPhysics }),
         h(Actions, {
           busy,

@@ -2,7 +2,7 @@
  * 全局开关卡（src/client/settings/global-card.ts）的契约测试。
  *
  * 两条契约：
- *   1. 四个开关的勾选态来自 `values`，切换回传的是配置字段名（键名错位会静默写坏别的开关）；
+ *   1. 全局开关的勾选态来自 `values`，切换回传的是配置字段名（键名错位会静默写坏别的开关）；
  *   2. 忙时全部禁用，一次切换只回调一次。
  */
 import { describe, test } from 'node:test';
@@ -31,23 +31,24 @@ const allOff: GlobalFlags = {
   clickSoundEnabled: false,
   confineToScreen: false,
   trayEnabled: false,
+  obsCaptureEnabled: false,
 };
 
-/** 四个开关的框，顺序即展示顺序。 */
+/** 全局开关的框，顺序即展示顺序。 */
 const boxes = (tree: unknown): Node[] => flatten(tree).filter((node) => node.tag === 'input');
 
 describe('GlobalCard —— 全局开关卡', () => {
-  test('四个开关都在，勾选态来自 values', () => {
+  test('全部开关都在，勾选态来自 values', () => {
     const tree = GlobalCard({
       busy: false,
-      values: { ...allOff, notificationsEnabled: true, trayEnabled: true },
+      values: { ...allOff, notificationsEnabled: true, trayEnabled: true, obsCaptureEnabled: true },
       onChange: () => {},
     } as never);
     const found = boxes(tree);
-    assert.equal(found.length, 4);
+    assert.equal(found.length, 5);
     assert.deepEqual(
       found.map((box) => box.props.checked),
-      [true, false, false, true],
+      [true, false, false, true, true],
     );
   });
 
@@ -63,7 +64,7 @@ describe('GlobalCard —— 全局开关卡', () => {
     }
     assert.deepEqual(
       seen.map(([key]) => key),
-      ['notificationsEnabled', 'clickSoundEnabled', 'confineToScreen', 'trayEnabled'],
+      ['notificationsEnabled', 'clickSoundEnabled', 'confineToScreen', 'trayEnabled', 'obsCaptureEnabled'],
     );
     assert.ok(
       seen.every(([, value]) => value === true),

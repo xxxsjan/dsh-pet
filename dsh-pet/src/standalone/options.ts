@@ -9,6 +9,7 @@
 import { join } from 'node:path';
 
 import type { ConfigPaths } from '../host/config.ts';
+import { petUserRootForHome } from '../host/pet-user-root.ts';
 import { DEFAULT_STANDALONE_PORT } from './server.ts';
 
 /** 解析后的命令行选项。 */
@@ -65,11 +66,11 @@ export function parseArgs(argv: string[]): { options: CliOptions } | { error: st
 /**
  * 推导配置路径集（宿主半侧那份推导的只读镜像）。
  * @param root - 插件包根目录。
- * @param home - DSH_HOME。
+ * @param home - DSH_HOME（默认 `~/.dsh` 时数据根为同级 `~/.blue-fish`）。
  * @returns 与宿主半侧一致的路径集。
  */
 export function configPathsFor(root: string, home: string): ConfigPaths {
-  const userRoot = join(home, 'dsh-pet');
+  const userRoot = petUserRootForHome(home);
   return {
     defaultFile: join(root, 'assets', 'config.jsonc'),
     userFile: join(userRoot, 'main-config.jsonc'),

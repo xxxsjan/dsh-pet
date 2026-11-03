@@ -1,5 +1,6 @@
 /**
- * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区，配置页把桌宠与 AI 两块合并在一处。
+ * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
+ * 分区为对话 / 语音 / 模型 / 配置；模型接入与桌宠配置各自独立面板。
  *
  * 页面只在本机回环上由 ./server 提供；CSP 是 `style-src 'self'`，所以这里不许出现内联样式，
  * 也不许内联脚本。桌宠配置面板的内容依赖 GET /config，初始只有一句占位文案。
@@ -19,6 +20,8 @@ export const settingsPage = `<!doctype html>
 <div class="brand"><img class="brandLogo" src="/standalone-ai/icon.png" alt=""><span>桌宠</span></div>
 <nav class="nav" aria-label="设置分区"><div class="navList" role="tablist">
 <button type="button" class="navCell" role="tab" id="tab-chat" data-tab="chat" data-title="对话" aria-controls="panel-chat" aria-selected="true"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="navLabel">对话</span></button>
+<button type="button" class="navCell" role="tab" id="tab-voice" data-tab="voice" data-title="语音" aria-controls="panel-voice" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2v3.6h2.2L8.8 13V3L5.4 6.2H3.2Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M10.4 5.6a2.6 2.6 0 0 1 0 4.8M12.2 4a4.4 4.4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">语音</span></button>
+<button type="button" class="navCell" role="tab" id="tab-model" data-tab="model" data-title="模型" aria-controls="panel-model" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.2" y="3.2" width="9.6" height="9.6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6.2 1.6v1.6M9.8 1.6v1.6M6.2 12.8v1.6M9.8 12.8v1.6M1.6 6.2h1.6M1.6 9.8h1.6M12.8 6.2h1.6M12.8 9.8h1.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/></svg><span class="navLabel">模型</span></button>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
 </div></nav>
 <div class="sideFoot">独立模式</div>
@@ -26,10 +29,14 @@ export const settingsPage = `<!doctype html>
 <div class="main">
 <div class="topbar"><h1 class="pageTitle" id="page-title">对话</h1><span class="dirty" id="dirty" hidden>有未保存的改动</span></div>
 <div class="options">
-<section class="panel" id="panel-config" role="tabpanel" aria-labelledby="tab-config" hidden>
+<section class="panel" id="panel-voice" role="tabpanel" aria-labelledby="tab-voice" hidden>
 <div class="scroll">
-<div id="pet-cards"><p class="empty">正在读取本机配置…</p></div>
-<div class="footer"><p class="status" id="pet-status" role="status" aria-live="polite"></p><button class="btn primary" id="pet-save" type="button" disabled>保存</button></div>
+<div id="voice-cards"><p class="empty">正在读取本机配置…</p></div>
+<div class="footer"><p class="status" id="voice-status" role="status" aria-live="polite"></p><button class="btn primary" id="voice-save" type="button" disabled>保存</button></div>
+</div>
+</section>
+<section class="panel" id="panel-model" role="tabpanel" aria-labelledby="tab-model" hidden>
+<div class="scroll">
 <form id="settings" aria-describedby="privacy">
 <div class="card"><div class="cardHead"><h2 class="cardTitle">模型连接</h2></div>
 <p class="cardHint">独立模式自己连服务商，不经过 DSH；所有配置只保存在当前机器。</p>
@@ -43,6 +50,12 @@ export const settingsPage = `<!doctype html>
 <p id="privacy" class="fineprint">所有配置与密钥仅保存在当前机器。</p>
 <div class="footer"><p class="status" id="status" role="status" aria-live="polite">正在读取本机设置…</p><button id="save" class="btn primary" type="submit" disabled>保存</button></div>
 </form>
+</div>
+</section>
+<section class="panel" id="panel-config" role="tabpanel" aria-labelledby="tab-config" hidden>
+<div class="scroll">
+<div id="pet-cards"><p class="empty">正在读取本机配置…</p></div>
+<div class="footer"><p class="status" id="pet-status" role="status" aria-live="polite"></p><button class="btn primary" id="pet-save" type="button" disabled>保存</button></div>
 </div>
 </section>
 <section class="panel" id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">

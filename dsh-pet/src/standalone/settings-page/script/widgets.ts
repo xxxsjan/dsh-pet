@@ -29,6 +29,16 @@ function textField(id, label, value, onChange, opts) {
   return fieldRow(id, label, input, opts && opts.hint);
 }
 
+function passwordField(id, label, value, onChange, hint) {
+  const input = make('input', { type: 'password', id: id, value: value, autocomplete: 'new-password' });
+  if (hint) input.placeholder = hint;
+  input.addEventListener('input', () => {
+    onChange(input.value);
+    markDirty(true);
+  });
+  return fieldRow(id, label, input, hint);
+}
+
 function numberField(id, label, value, onChange, opts) {
   const input = make('input', { type: 'number', id: id, value: String(value) });
   if (opts) {
@@ -36,10 +46,6 @@ function numberField(id, label, value, onChange, opts) {
     if (opts.max !== undefined) input.max = String(opts.max);
     if (opts.step !== undefined) input.step = String(opts.step);
     if (opts.disabled) input.disabled = true;
-    if (opts.readOnly) {
-      input.readOnly = true;
-      input.tabIndex = -1;
-    }
   }
   input.addEventListener('input', () => {
     const parsed = Number(input.value);

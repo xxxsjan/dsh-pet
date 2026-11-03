@@ -7,6 +7,7 @@
  * @module dsh-pet/src/host/routes/config/display
  */
 import { PET_DISPLAY_SET, findPetInstance, readAllConfig, saveUserConfig } from '../../config.ts';
+import { redactConfigSecrets } from '../../config/public.ts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { type RouteResult } from '../../http.ts';
 import type { PetRouteDeps, RouteInput } from '../types.ts';
@@ -77,5 +78,5 @@ export async function setPetDisplay(deps: PetRouteDeps, input: RouteInput): Prom
   // 响应体 = 改动后的成品聚合（与 PUT / POST /config 同形）：调用方（浏览器端右键菜单）
   // 直接把它交给 petBridge.reload，不必再发一次 GET /config —— 与设置页保存走的是同一条路，
   // 也就不会拿到可能陈旧的配置（现场表现：不返回聚合时浏览器端要刷新才生效）。
-  return okResult(readAllConfig(deps.configPaths));
+  return okResult(redactConfigSecrets(readAllConfig(deps.configPaths)));
 }

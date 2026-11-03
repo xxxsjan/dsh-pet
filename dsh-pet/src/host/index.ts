@@ -20,7 +20,7 @@ import { createPetLookup } from './plugin/pet-lookup.ts';
 import { createDownloadReport } from './plugin/download-report.ts';
 import { createWorkStatusBridge } from './plugin/work-status-bridge.ts';
 import { registerTodoReminders } from './plugin/todo-reminders.ts';
-import { createVoiceService } from './voice/speak.ts';
+import { createVoiceService, voiceRuntimeFromMain } from './voice/speak.ts';
 import { createHearService } from './voice/hear.ts';
 import { TODO_FILE_NAME, TodoStore } from './todo/store.ts';
 import { join } from 'node:path';
@@ -105,8 +105,12 @@ export function apply(ctx: any): void {
     ...sessionNotify,
     ctx,
     todos,
-    // 语音合成：缓存落 userRoot，失败只留日志，不打断宿主
-    voice: createVoiceService({ userRoot, log }),
+    // 语音合成：缓存落 userRoot；引擎 / Key / 模型每次现读成品 main（保存后立刻生效）
+    voice: createVoiceService({
+      userRoot,
+      log,
+      readRuntime: () => voiceRuntimeFromMain(readAllConfig(configPaths).main),
+    }),
     // 语音识别：能力来自宿主（DSH 的 speechToText），没启用时服务自己在调用时回 unsupported
     speech: createHearService({ speechToText: () => setup.optionalService('speechToText') }),
   };

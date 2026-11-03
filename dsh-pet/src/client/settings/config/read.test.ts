@@ -36,18 +36,6 @@ describe('readMainConfig —— 成品聚合 → 表单补丁', () => {
     assert.deepEqual(patch?.font, { ...DEFAULT_FONT, size: 20 });
   });
 
-  test('动作频率权重：三项非负数字才带出，坏值当作没写', () => {
-    const patch = readMainConfig({ main: { pets: [], animationWeights: { idle: 30, turn: 5, move: 5 } } });
-    assert.deepEqual(patch?.animationWeights, { idle: 30, turn: 5, move: 5 });
-    assert.equal('animationWeights' in (readMainConfig({ main: { pets: [] } }) ?? {}), false);
-    assert.equal(
-      'animationWeights' in
-        (readMainConfig({ main: { pets: [], animationWeights: { idle: -1, turn: 5, move: 5 } } }) ?? {}),
-      false,
-      '负数当作没写',
-    );
-  });
-
   test('模型选择只写一半：整对都当没写（宿主会按非法拒绝）', () => {
     const half = readMainConfig({ main: { pets: [], whisperModel: { provider: 'openai' } } });
     assert.equal(half?.whisperModel, undefined);
@@ -65,8 +53,11 @@ describe('readMainConfig —— 成品聚合 → 表单补丁', () => {
     const patch = readMainConfig({ main: { pets: [] } });
     assert.equal('notificationsEnabled' in (patch ?? {}), false);
     assert.equal('trayEnabled' in (patch ?? {}), false);
+    assert.equal('obsCaptureEnabled' in (patch ?? {}), false);
     const withFlag = readMainConfig({ main: { pets: [], trayEnabled: false } });
     assert.equal(withFlag?.trayEnabled, false);
+    const withObs = readMainConfig({ main: { pets: [], obsCaptureEnabled: true } });
+    assert.equal(withObs?.obsCaptureEnabled, true);
   });
 
   test('语音细分开关：布尔原样带出，缺失或非布尔不进补丁', () => {

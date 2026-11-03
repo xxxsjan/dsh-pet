@@ -8,6 +8,7 @@
  * @module dsh-pet/src/host/routes/config/index
  */
 import { readAllConfig } from '../../config.ts';
+import { redactConfigSecrets } from '../../config/public.ts';
 import { type RouteResult } from '../../http.ts';
 import { join } from 'node:path';
 import { PACKAGE_ROOT } from '../../paths.ts';
@@ -19,6 +20,7 @@ import type { PetRouteDeps, RouteInput } from '../types.ts';
 import { failResult, okResult } from '../result.ts';
 import { saveConfigRoute } from './save.ts';
 import { setPetDisplay } from './display.ts';
+import { setObsCapture } from './obs-capture.ts';
 import { savePetLayer } from './entry.ts';
 
 /** 内容配置领域：未命中返回 undefined，命中返回应答。 */
@@ -29,6 +31,8 @@ export async function handleConfigRoutes(deps: PetRouteDeps, input: RouteInput):
   }
   // 单只宠物的显示位置（桌面端右键「关闭桌面显示」→ POST /pet-display）
   if (input.rest === 'pet-display') return setPetDisplay(deps, input);
+  // OBS 窗口捕获开关（托盘勾选 → POST /obs-capture）
+  if (input.rest === 'obs-capture') return setObsCapture(deps, input);
   // 整个种类层的实例写回（设置页改文件宠物的配置 → POST /pet-config）
   if (input.rest === 'pet-config') return savePetLayer(deps, input);
   // 配置文件路径 + 存储位置清单（设置页「高级配置」与「卸载与存储」展示用）
@@ -41,7 +45,10 @@ function getConfig(deps: PetRouteDeps): RouteResult {
   try {
     // 动态配置必须杀缓存（与 /state 同口径）：消费端会「发现配置版本变化 → 重拉 /config」，
     // 这一次 GET 若命中缓存就会拿回旧配置，那套机制直接失效。
-    return okResult(readAllConfig(deps.configPaths), { 'cache-control': 'no-cache, no-store' });
+    // 密钥只落盘：HTTP 响应用 hasFishApiKey，不回传 fishApiKey 明文
+    return okResult(redactConfigSecrets(readAllConfig(deps.configPaths)), {
+      'cache-control': 'no-cache, no-store',
+    });
   } catch (e) {
     return failResult('generate-error', e instanceof Error ? e.message : String(e));
   }

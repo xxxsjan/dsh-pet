@@ -6,8 +6,8 @@
  */
 import { DEFAULT_FONT } from '../../../shared/fonts.ts';
 import { DEFAULT_PHYSICS } from '../../../shared/physics.ts';
-import type { FontConfig, ModelSelection, Pet, PhysicsParams, Weights } from '../../../shared/types.ts';
-import { parseWeights } from '../../../shared/weights.ts';
+import type { FontConfig, ModelSelection, Pet, PhysicsParams } from '../../../shared/types.ts';
+import { VOICE_VOLUME_MAX } from '../../../shared/voice-params.ts';
 
 /** 宿主返回的成品聚合：`main` 是大配置条目，其余键是文件定义的其他宠物条目。 */
 export type MergedConfig = Record<string, Record<string, unknown>>;
@@ -26,22 +26,31 @@ export interface MainConfigPatch {
   chatAnimationEnabled?: boolean;
   confineToScreen?: boolean;
   trayEnabled?: boolean;
+  /** OBS 窗口捕获模式；缺省表示这次响应里没有可信值。 */
+  obsCaptureEnabled?: boolean;
   /** 语音播报总开关；缺省表示这次响应里没有可信值。 */
   voiceEnabled?: boolean;
+  /** 语音引擎；缺省表示这次响应里没有可信值。 */
+  voiceProvider?: 'edge' | 'fish';
   /** 语音音色 id（宿主已按白名单校验，客户端原样展示）。 */
   voiceName?: string;
-  /** 播放音量系数（0–1）；缺省表示这次响应里没有可信值。 */
+  /** 播放音量系数（0–4）；缺省表示这次响应里没有可信值。 */
   voiceVolume?: number;
+  voiceRate?: number;
   /** 周期碎碎念的语音开关；缺省表示这次响应里没有可信值。 */
   voiceWhisperEnabled?: boolean;
   /** 待办提醒的语音开关；缺省表示这次响应里没有可信值。 */
   voiceTodoEnabled?: boolean;
+  /** Fish 合成模型；缺省表示这次响应里没有可信值。 */
+  fishTtsModel?: string;
+  /** 用户追加的 Fish 音色；缺省表示这次响应里没有可信值。 */
+  fishVoices?: { id: string; label: string }[];
+  /** 磁盘上是否已有 Fish API Key（响应脱敏后的布尔）。 */
+  hasFishApiKey?: boolean;
   /** 物理参数：成品已按「内置默认 ← 用户层」填满，缺子键再用内置默认兜底一次。 */
   physics?: PhysicsParams;
   /** 字体：同物理参数。 */
   font?: FontConfig;
-  /** 动作频率权重（main 条目）：缺省表示这次响应里没有可信值。 */
-  animationWeights?: Weights;
   whisperModel?: ModelSelection;
   chatModel?: ModelSelection;
   chatMemoryRounds?: number;
@@ -83,18 +92,31 @@ export function readMainConfig(merged: MergedConfig): MainConfigPatch | null {
   if (typeof main.chatAnimationEnabled === 'boolean') patch.chatAnimationEnabled = main.chatAnimationEnabled;
   if (typeof main.confineToScreen === 'boolean') patch.confineToScreen = main.confineToScreen;
   if (typeof main.trayEnabled === 'boolean') patch.trayEnabled = main.trayEnabled;
+  if (typeof main.obsCaptureEnabled === 'boolean') patch.obsCaptureEnabled = main.obsCaptureEnabled;
   if (typeof main.voiceEnabled === 'boolean') patch.voiceEnabled = main.voiceEnabled;
+  if (main.voiceProvider === 'edge' || main.voiceProvider === 'fish') patch.voiceProvider = main.voiceProvider;
   if (typeof main.voiceName === 'string') patch.voiceName = main.voiceName;
   if (typeof main.voiceWhisperEnabled === 'boolean') patch.voiceWhisperEnabled = main.voiceWhisperEnabled;
   if (typeof main.voiceTodoEnabled === 'boolean') patch.voiceTodoEnabled = main.voiceTodoEnabled;
+  if (typeof main.fishTtsModel === 'string') patch.fishTtsModel = main.fishTtsModel;
+  if (Array.isArray(main.fishVoices)) {
+    const voices: { id: string; label: string }[] = [];
+    for (const item of main.fishVoices) {
+      if (!item || typeof item !== 'object') continue;
+      const row = item as Record<string, unknown>;
+      if (typeof row.id !== 'string' || !row.id.trim()) continue;
+      const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : row.id.trim();
+      voices.push({ id: row.id.trim(), label });
+    }
+    patch.fishVoices = voices;
+  }
+  if (typeof main.hasFishApiKey === 'boolean') patch.hasFishApiKey = main.hasFishApiKey;
   if (main.physics && typeof main.physics === 'object') {
     patch.physics = { ...DEFAULT_PHYSICS, ...(main.physics as PhysicsParams) };
   }
   if (main.font && typeof main.font === 'object') {
     patch.font = { ...DEFAULT_FONT, ...(main.font as FontConfig) };
   }
-  const weights = parseWeights(main.animationWeights);
-  if (weights) patch.animationWeights = weights;
   const whisperModel = readModel(main.whisperModel);
   if (whisperModel) patch.whisperModel = whisperModel;
   const chatModel = readModel(main.chatModel);
@@ -105,7 +127,9 @@ export function readMainConfig(merged: MergedConfig): MainConfigPatch | null {
   if (limit !== undefined) patch.chatImageLimit = limit;
   // 上界在宿主侧已经把关，这里补一次跨进程读回的判定：脏值只影响显示，不让它流到播放端
   const volume = nonNegative(main.voiceVolume);
-  if (volume !== undefined && volume <= 1) patch.voiceVolume = volume;
+  if (volume !== undefined && volume <= VOICE_VOLUME_MAX) patch.voiceVolume = volume;
+  const rate = nonNegative(main.voiceRate);
+  if (rate !== undefined && rate >= 0.5 && rate <= 2) patch.voiceRate = rate;
   return patch;
 }
 

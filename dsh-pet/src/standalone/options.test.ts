@@ -56,14 +56,23 @@ describe('parseArgs —— 独立模式的命令行契约', () => {
 describe('configPathsFor —— 配置路径推导（host/index.ts 那份的镜像）', () => {
   // 镜像的漂移由 integration.test.ts 用插件自己的 GET /config/meta 钉住；
   // 这里钉住"拼接口径"本身，改动时能一眼看出动了哪条路径。
-  const paths = configPathsFor('/pkg', '/home/.dsh');
-
-  test('内置默认 / 用户主配置 / 旧版回落 / 文件宠物目录', () => {
+  test('默认 ~/.dsh → 同级 ~/.blue-fish', () => {
+    const paths = configPathsFor('/pkg', '/home/.dsh');
     assert.deepEqual(paths, {
       defaultFile: join('/pkg', 'assets', 'config.jsonc'),
-      userFile: join('/home/.dsh', 'dsh-pet', 'main-config.jsonc'),
-      legacyUserFile: join('/home/.dsh', 'dsh-pet', 'main-config.json'),
-      petDir: join('/home/.dsh', 'dsh-pet', 'pet'),
+      userFile: join('/home', '.blue-fish', 'main-config.jsonc'),
+      legacyUserFile: join('/home', '.blue-fish', 'main-config.json'),
+      petDir: join('/home', '.blue-fish', 'pet'),
+    });
+  });
+
+  test('自定义 DSH_HOME → {home}/dsh-pet', () => {
+    const paths = configPathsFor('/pkg', '/tmp/custom-dsh');
+    assert.deepEqual(paths, {
+      defaultFile: join('/pkg', 'assets', 'config.jsonc'),
+      userFile: join('/tmp/custom-dsh', 'dsh-pet', 'main-config.jsonc'),
+      legacyUserFile: join('/tmp/custom-dsh', 'dsh-pet', 'main-config.json'),
+      petDir: join('/tmp/custom-dsh', 'dsh-pet', 'pet'),
     });
   });
 });

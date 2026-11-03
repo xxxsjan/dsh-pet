@@ -15,6 +15,8 @@ async function start(
   const server = await startRouter(routes, {
     security,
     log,
+    // 测试用随机口，避免与本机已开的桌宠或并行用例抢 3080
+    port: 0,
     status: (port) => ({ audit: true, port }),
     landingPage: () => '<html>local app</html>',
     ...(chatPanelScript ? { chatPanelScript } : {}),

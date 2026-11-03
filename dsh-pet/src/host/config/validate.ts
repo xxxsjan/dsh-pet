@@ -6,6 +6,8 @@
  * @module dsh-pet/src/host/config/validate
  */
 import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '../../shared/fonts.ts';
+import { VOICE_VOLUME_MAX } from '../../shared/voice-params.ts';
+import { isFishVoiceIdFormat, normalizeFishTtsModel } from '../voice/fish-voices.ts';
 import { isKnownVoice } from '../voice/voices.ts';
 import { FONT_FAMILY_SET } from './constants.ts';
 
@@ -171,18 +173,33 @@ export function topFieldValid(key: string, value: unknown): boolean {
     case 'voiceEnabled':
       // 语音播报开关（全局布尔）：只决定念不念，不影响气泡与记忆
       return typeof value === 'boolean';
+    case 'voiceProvider':
+      // 语音引擎：edge（默认）或 fish；其它值非法，读取侧回落 edge
+      return value === 'edge' || value === 'fish';
     case 'voiceName':
-      // 音色必须是白名单内的 id；写错即非法，读取侧回落到默认音色并告警
+      // 音色：Edge 白名单，或 Fish 内置 / 合法 Voice ID 格式（自定义是否入目录由 speak 再判）
       return typeof value === 'string' && isKnownVoice(value);
     case 'voiceVolume':
-      // 播放音量系数：0–1 的有限数，与 Audio.volume 同量纲；越界即非法（不夹取，读取侧回落默认）
-      return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+      // 播放音量系数：0–4（400%）；>1 由播放侧 Web Audio 增益补，越界即非法
+      return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= VOICE_VOLUME_MAX;
+    case 'voiceRate':
+      // 绝对语速：0.5–2（与 Fish 倍率 / Edge ±50%…+100% 对齐）
+      return typeof value === 'number' && Number.isFinite(value) && value >= 0.5 && value <= 2;
     case 'voiceWhisperEnabled':
       // 周期碎碎念的语音开关（全局布尔）：只决定念不念，不影响气泡与记忆
       return typeof value === 'boolean';
     case 'voiceTodoEnabled':
       // 待办提醒的语音开关（全局布尔）：同上
       return typeof value === 'boolean';
+    case 'fishApiKey':
+      // Fish Audio Bearer Key：任意字符串（含空 = 未配置）；明文只落盘，HTTP 响应脱敏
+      return typeof value === 'string';
+    case 'fishTtsModel':
+      // Fish 合成模型：必须是已知 id；非法时 normalize 会回落，这里按「写了就要合法」卡
+      return typeof value === 'string' && normalizeFishTtsModel(value) === value.trim();
+    case 'fishVoices':
+      // 用户追加的 Fish 音色目录：数组，每项 id 合法且非内置重复；标签为字符串
+      return fishVoicesValid(value);
     case 'chatImageEnabled':
       return typeof value === 'boolean';
     case 'chatAnimationEnabled':
@@ -191,6 +208,9 @@ export function topFieldValid(key: string, value: unknown): boolean {
       return typeof value === 'boolean';
     case 'trayEnabled':
       // 桌面模式系统托盘开关（main 条目顶层；helper 读它决定建不建托盘图标）
+      return typeof value === 'boolean';
+    case 'obsCaptureEnabled':
+      // 窗口模式（main 条目顶层）：helper 读它决定是否进任务栏 / 清 TOOLWINDOW（仍保持透明）
       return typeof value === 'boolean';
     case 'animations':
       return animationsValid(value);
@@ -228,6 +248,21 @@ function eventsRefreshSecValid(value: unknown): boolean {
   for (const v of Object.values(value as Record<string, unknown>)) {
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) return false;
+  }
+  return true;
+}
+
+/**
+ * fishVoices 段校验：数组，每项必须有合法 Voice ID；标签可选字符串。
+ * 内置 id / 重复项在规范化时会被丢掉，不在这里判整段非法（避免旧配置里混了内置就被打回默认空数组）。
+ */
+function fishVoicesValid(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== 'string' || !isFishVoiceIdFormat(row.id.trim().replace(/\s+/g, ''))) return false;
+    if (row.label !== undefined && typeof row.label !== 'string') return false;
   }
   return true;
 }

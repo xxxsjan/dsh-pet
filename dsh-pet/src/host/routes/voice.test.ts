@@ -8,13 +8,20 @@ import type { PetRouteDeps } from './types.ts';
 import { handleVoiceRoutes } from './voice.ts';
 
 const VOICES = [{ id: 'zh-CN-XiaoxiaoNeural', name: '晓晓', tag: '女 · 通用', default: true }];
+const CATALOG = {
+  voices: VOICES,
+  edgeVoices: VOICES,
+  fishVoices: [],
+  fishModels: [],
+  voiceProvider: 'edge' as const,
+};
 
 /** 造最小依赖：只提供 voice 与 speech，其余字段这条路由不会碰。 */
 function makeDeps(
   speak: (raw: unknown) => Promise<unknown>,
   hear: (raw: unknown, signal?: AbortSignal) => Promise<unknown> = async () => ({ ok: true, text: '你好' }),
 ): PetRouteDeps {
-  return { voice: { listVoices: () => VOICES, speak }, speech: { hear } } as unknown as PetRouteDeps;
+  return { voice: { listVoices: () => CATALOG, speak }, speech: { hear } } as unknown as PetRouteDeps;
 }
 
 /** 造一次路由输入。 */

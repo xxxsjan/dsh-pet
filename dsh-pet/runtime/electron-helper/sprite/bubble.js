@@ -9,7 +9,8 @@
 
 Object.assign(PetSprite.prototype, {
   setTip(on) {
-    const next = !!on;
+    // 名字悬浮提示总开关在 shared（NAME_TOOLTIP_ENABLED）；关时强制不显示。
+    const next = !!(on && S.NAME_TOOLTIP_ENABLED);
     if (next === this.tipOn) return;
     this.tipOn = next;
     this.renderTip();

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * 发布前微调：跑完整构建（tsdown → lib、共享层 → shared-core.js、tsc → 类型声明），
+ * 发布前微调：跑构建（tsdown → lib、共享层 → shared-core.js），
  * 再把 package.json 的 files 收敛成发布清单。幂等：跑一次即定格，再跑结果不变，无需备份或恢复。
  *
+ * 类型声明（npm run types）在此跳过：开发期 build 不被 gen-types 卡住；需要声明时单独跑 `npm run types`。
  * 只发布单一 webm 格式（VP9-alpha），浏览器与桌面 Helper 共用，源码写死 .webm、发布期不做注入；
  * Safari/HEVC 兼容由仓库保留的流水线支持、需 fork 后自行启用，不参与本插件发布链。
- * 依赖 package.json 里的 bundle / build:desktop-core / types 三个脚本与本地 node_modules。
+ * 依赖 package.json 里的 bundle / build:desktop-core 与本地 node_modules。
  * @module dsh-pet/scripts/prepare
  */
 import { spawnSync } from 'node:child_process';
@@ -35,14 +36,8 @@ if (buildCore.status !== 0) {
   process.exit(1);
 }
 
-// 类型声明是构建产物、不入 git，克隆后靠这一步补齐；漏跑则 exports 声明的 types 路径全空。
-console.log('[prepare] generating types (npm run types)...');
-const typesRun = process.platform === 'win32' ? 'cmd /c npm run types' : 'npm run types';
-const buildTypes = spawnSync(typesRun, { cwd: ROOT, stdio: 'inherit', shell: true });
-if (buildTypes.status !== 0) {
-  console.error(`[prepare] 类型声明生成失败 (exit ${buildTypes.status})`);
-  process.exit(1);
-}
+// 跳过类型声明：避免开发期 build 被 gen-types 拦住；需要时手动 `npm run types`。
+console.log('[prepare] skip types (run `npm run types` separately if needed)');
 
 // files 收敛为发布清单：这是本脚本唯一的写操作，幂等，不备份旧值。
 const pkg = JSON.parse(readFileSync(PKG, 'utf8'));

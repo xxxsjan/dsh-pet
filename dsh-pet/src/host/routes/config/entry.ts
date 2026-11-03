@@ -7,6 +7,7 @@
  * @module dsh-pet/src/host/routes/config/entry
  */
 import { isValidPetId, readAllConfig, saveUserConfig } from '../../config.ts';
+import { redactConfigSecrets } from '../../config/public.ts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { type RouteResult } from '../../http.ts';
 import type { PetRouteDeps, RouteInput } from '../types.ts';
@@ -101,5 +102,5 @@ export async function savePetLayer(deps: PetRouteDeps, input: RouteInput): Promi
   }
   // 不 await：发起者可能就是即将被这次重载换掉的桌面 Helper。
   void deps.requestRestart();
-  return okResult(readAllConfig(deps.configPaths));
+  return okResult(redactConfigSecrets(readAllConfig(deps.configPaths)));
 }

@@ -53,10 +53,15 @@ export const GLOBAL_DEFAULT_KEYS = [
   'font',
   'confineToScreen',
   'voiceEnabled',
+  'voiceProvider',
   'voiceName',
   'voiceVolume',
+  'voiceRate',
   'voiceWhisperEnabled',
   'voiceTodoEnabled',
+  'fishTtsModel',
+  'fishVoices',
+  // fishApiKey 故意不进白名单：密钥只认 main 条目，不通过 packBase 摊到种类层
   'whisperImageEnabled',
   'chatImageEnabled',
   'chatAnimationEnabled',
@@ -80,10 +85,10 @@ export function warnOnce(key: string, message: string): void {
 export interface ConfigPaths {
   /** 包内 assets/config.jsonc（内置默认，绝对正确） */
   defaultFile: string;
-  /** ~/.dsh/dsh-pet/main-config.jsonc（用户主配置，可编辑层；JSONC——允许注释） */
+  /** ~/.blue-fish/main-config.jsonc（用户主配置，可编辑层；JSONC——允许注释；自定义 DSH_HOME 时为 $DSH_HOME/dsh-pet/…） */
   userFile: string;
-  /** 旧路径 ~/.dsh/dsh-pet/main-config.json：读取回落 + 启动时迁移（见 migrateUserConfig） */
+  /** 同目录下旧扩展名 main-config.json：读取回落 + 启动时迁移（见 migrateUserConfig） */
   legacyUserFile?: string;
-  /** ~/.dsh/dsh-pet/pet（文件宠物目录） */
+  /** ~/.blue-fish/pet（文件宠物目录；自定义 DSH_HOME 时为 $DSH_HOME/dsh-pet/pet） */
   petDir: string;
 }

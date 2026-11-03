@@ -16,17 +16,6 @@ function cloneJson(value) {
 /** 原配置里的 physics 段，用来判断哪些可选键「本来就有」。 */
 let physicsSource = null;
 
-/** 动作频率权重：缺字段或非法项回落到内置默认，三项各自独立判定。 */
-function pickWeights(raw) {
-  const base = Object.assign({}, FALLBACK_WEIGHTS);
-  if (!raw || typeof raw !== 'object') return base;
-  for (const key of ['idle', 'turn', 'move']) {
-    const value = Number(raw[key]);
-    if (Number.isFinite(value) && value >= 0) base[key] = value;
-  }
-  return base;
-}
-
 function pickGlobals(main) {
   const source = main || {};
   const physics = source.physics && typeof source.physics === 'object' ? source.physics : null;
@@ -39,16 +28,27 @@ function pickGlobals(main) {
     chatAnimationEnabled: source.chatAnimationEnabled === true,
     confineToScreen: source.confineToScreen === true,
     trayEnabled: source.trayEnabled !== false,
+    obsCaptureEnabled: source.obsCaptureEnabled === true,
     voiceEnabled: source.voiceEnabled === true,
+    voiceProvider: source.voiceProvider === 'fish' ? 'fish' : 'edge',
     voiceName: typeof source.voiceName === 'string' && source.voiceName ? source.voiceName : (VOICES[1] ? VOICES[1].id : ''),
-    voiceVolume: typeof source.voiceVolume === 'number' ? source.voiceVolume : 1,
+    voiceVolume: typeof source.voiceVolume === 'number' && Number.isFinite(source.voiceVolume)
+      ? Math.min(4, Math.max(0, source.voiceVolume))
+      : 1,
+    voiceRate: typeof source.voiceRate === 'number' && Number.isFinite(source.voiceRate)
+      ? Math.min(2, Math.max(0.5, source.voiceRate))
+      : 1,
     voiceWhisperEnabled: source.voiceWhisperEnabled !== false,
     voiceTodoEnabled: source.voiceTodoEnabled !== false,
+    fishTtsModel: typeof source.fishTtsModel === 'string' && source.fishTtsModel ? source.fishTtsModel : 's2.1-pro-free',
+    fishVoices: Array.isArray(source.fishVoices) ? source.fishVoices : [],
+    hasFishApiKey: source.hasFishApiKey === true,
+    fishApiKeyDraft: '',
+    clearFishApiKey: false,
     physics: Object.assign({}, FALLBACK_PHYSICS, source.physics || {}),
     font: Object.assign({}, FALLBACK_FONT, source.font || {}),
     chatMemoryRounds: Number.isFinite(Number(source.chatMemoryRounds)) ? Number(source.chatMemoryRounds) : 0,
     chatImageLimit: Number.isFinite(Number(source.chatImageLimit)) ? Number(source.chatImageLimit) : 0,
-    animationWeights: pickWeights(source.animationWeights),
   };
 }
 
@@ -86,7 +86,7 @@ function entryTabs(keys) {
 
 function packNote() {
   return card('条目说明', null, [
-    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与语音外观在「默认条目」里改。' }),
+    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与外观在「默认条目」里改，语音在左侧「语音」分区。' }),
   ]);
 }
 
@@ -102,6 +102,7 @@ function renderPetsPanel() {
   } else {
     host.append(packNote());
   }
+  renderVoicePanel();
 }
 
 /** 提交用的 physics 段：原配置没写过的可选键不带出去，避免保存时凭空补键。 */
@@ -122,28 +123,44 @@ function petsBody() {
     chatAnimationEnabled: state.globals.chatAnimationEnabled,
     confineToScreen: state.globals.confineToScreen,
     trayEnabled: state.globals.trayEnabled,
+    obsCaptureEnabled: state.globals.obsCaptureEnabled,
     voiceEnabled: state.globals.voiceEnabled,
+    voiceProvider: state.globals.voiceProvider,
     voiceName: state.globals.voiceName,
     voiceVolume: state.globals.voiceVolume,
+    voiceRate: state.globals.voiceRate,
     voiceWhisperEnabled: state.globals.voiceWhisperEnabled,
     voiceTodoEnabled: state.globals.voiceTodoEnabled,
+    fishTtsModel: state.globals.fishTtsModel,
+    fishVoices: state.globals.fishVoices,
+    ...(state.globals.clearFishApiKey
+      ? { clearFishApiKey: true }
+      : state.globals.fishApiKeyDraft
+        ? { fishApiKey: state.globals.fishApiKeyDraft }
+        : {}),
     physics: physicsBody(),
     font: state.globals.font,
     chatMemoryRounds: state.globals.chatMemoryRounds,
     chatImageLimit: state.globals.chatImageLimit,
-    animationWeights: state.globals.animationWeights,
   });
 }
 
 async function savePets() {
   const status = byId('pet-status');
+  const voiceStatus = byId('voice-status');
   const saveBtn = byId('pet-save');
+  const voiceSave = byId('voice-save');
+  const report = (message, kind) => {
+    setStatus(status, message, kind);
+    setStatus(voiceStatus, message, kind);
+  };
   if (state.entry === 'main' && currentPets().length === 0) {
-    setStatus(status, '默认条目至少要保留一只宠物，否则宿主会拒绝保存。', 'error');
+    report('默认条目至少要保留一只宠物，否则宿主会拒绝保存。', 'error');
     return;
   }
-  saveBtn.disabled = true;
-  setStatus(status, '正在保存…');
+  if (saveBtn) saveBtn.disabled = true;
+  if (voiceSave) voiceSave.disabled = true;
+  report('正在保存…');
   try {
     let merged;
     if (state.entry === 'main') {
@@ -157,7 +174,7 @@ async function savePets() {
           danger: true,
         });
         if (!confirmed) {
-          setStatus(status, '已取消保存。', 'error');
+          report('已取消保存。', 'error');
           return;
         }
         merged = await callApi('PUT', '/config?force=1', petsBody());
@@ -166,17 +183,18 @@ async function savePets() {
       merged = await callApi('POST', '/pet-config', { entry: state.entry, pets: currentPets() });
     }
     if (!merged || merged.ok === false) {
-      setStatus(status, (merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
+      report((merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
       return;
     }
     initDrafts(merged);
     markDirty(false);
     renderPetsPanel();
-    setStatus(status, '已保存到本机。', 'ok');
+    report('已保存到本机。', 'ok');
   } catch (error) {
-    setStatus(status, error && error.message ? error.message : String(error), 'error');
+    report(error && error.message ? error.message : String(error), 'error');
   } finally {
-    saveBtn.disabled = false;
+    if (saveBtn) saveBtn.disabled = false;
+    if (voiceSave) voiceSave.disabled = false;
   }
 }
 `;

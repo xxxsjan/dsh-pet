@@ -81,7 +81,7 @@ export async function handleChatRoutes(deps: PetRouteDeps, input: RouteInput): P
         return okResult({ ok: true, messages, rounds });
       }
       if (method === 'DELETE') return okResult(await deps.deleteHistory(petId, tsList));
-      return await postChat(deps, petId, body);
+      return await postChat(deps, petId, body, url.searchParams);
     } catch (e) {
       // 配置已由 readAllConfig 保证正确（不再有 config-error 分支）；其余（IO/LLM）→ generate-error
       return failResult('generate-error', e instanceof Error ? e.message : String(e));
@@ -114,9 +114,15 @@ function parseTsList(raws: readonly string[]): number[] | null {
  * @param deps - 路由依赖。
  * @param petId - 已校验存在的宠物 id。
  * @param body - 请求体原文；不是合法 JSON 时回 400。
+ * @param query - 请求查询参数（用于命令行诊断打印）。
  * @returns 与加入图片前同形的应答：成功只带 `text`（配图时另有 `image`）。
  */
-async function postChat(deps: PetRouteDeps, petId: string, body: string | undefined): Promise<RouteResult> {
+async function postChat(
+  deps: PetRouteDeps,
+  petId: string,
+  body: string | undefined,
+  query: URLSearchParams,
+): Promise<RouteResult> {
   let parsed: Record<string, unknown>;
   try {
     parsed = (JSON.parse(body ?? 'null') as Record<string, unknown> | null) ?? {};
@@ -126,6 +132,9 @@ async function postChat(deps: PetRouteDeps, petId: string, body: string | undefi
   const text = typeof parsed.text === 'string' ? parsed.text.trim() : '';
   if (!text) return failResult('bad-request', '消息为空');
   if (text.length > 2000) return failResult('bad-request', '消息过长（限 2000 字）');
+  const queryText = query.toString();
+  const bodyText = typeof body === 'string' ? body : JSON.stringify(parsed);
+  deps.log.info(`[dsh-pet] POST /chat?${queryText} pet=${petId} text=${text} body=${bodyText}`);
   // 图片缺省时直接返回空结论，下面的调用与加入图片前逐字一致（回归测试钉的就是这条）
   const admitted = await admitImage(deps, parsed.attachment);
   if (!admitted.ok) return admitted.res;

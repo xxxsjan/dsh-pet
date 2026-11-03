@@ -11,6 +11,14 @@ import { VoiceSynthError, type SynthInput } from './edge.ts';
 import { registerVoiceProvider } from './registry.ts';
 import { MAX_TEXT_CHARS, createVoiceService, isQueueStale, type VoiceService } from './speak.ts';
 
+/** 可过 looksLikeMpegAudio 的假 mp3（帧同步头）。 */
+function fakeMp3(fill = 0x11): Buffer {
+  const buf = Buffer.alloc(64, fill);
+  buf[0] = 0xff;
+  buf[1] = 0xfb;
+  return buf;
+}
+
 /** 造一个隔离的语音服务；`synthesize` 缺省写一个假 mp3。 */
 async function withService(
   run: (voice: VoiceService, root: string) => Promise<void>,
@@ -20,7 +28,7 @@ async function withService(
   try {
     const voice = createVoiceService({
       userRoot: root,
-      synthesize: synthesize ?? ((input) => writeFile(input.target, Buffer.from('mp3'))),
+      synthesize: synthesize ?? ((input) => writeFile(input.target, fakeMp3())),
     });
     await run(voice, root);
   } finally {
@@ -83,7 +91,7 @@ test('同一输入第二次：命中缓存，不再调用合成', async () => {
       userRoot: root,
       synthesize: async (input) => {
         calls += 1;
-        await writeFile(input.target, Buffer.from('mp3'));
+        await writeFile(input.target, fakeMp3());
       },
     });
     await voice.speak({ text: '同一句话' });
@@ -133,9 +141,11 @@ test('队列已满：后续请求判 voice-busy，而不是无限排队', () => 
 });
 
 test('isQueueStale —— 排队久了就丢弃', () => {
+  // 默认容许排队时长跟最慢内置引擎（Fish 90s）对齐
+  const limitMs = 90_000;
   assert.equal(isQueueStale(1_000, 1_000), false, '刚轮到自己不算久');
-  assert.equal(isQueueStale(1_000, 1_000 + 28_000), false, '正好到上限仍在容许范围内');
-  assert.equal(isQueueStale(1_000, 1_000 + 28_001), true, '超过上限就该丢');
+  assert.equal(isQueueStale(1_000, 1_000 + limitMs), false, '正好到上限仍在容许范围内');
+  assert.equal(isQueueStale(1_000, 1_000 + limitMs + 1), true, '超过上限就该丢');
 });
 
 test('排队等到客户端早已放弃：直接丢弃，不再白合成一次', async () => {
@@ -167,6 +177,43 @@ test('排队等到客户端早已放弃：直接丢弃，不再白合成一次',
     assert.equal(calls, 1, '被丢弃的那句不能再调合成');
   } finally {
     release();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Fish 引擎：走 synthesizeFish，缓存键含模型', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-fish-'));
+  let fishCalls = 0;
+  let edgeCalls = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesize: async (input) => {
+        edgeCalls += 1;
+        await writeFile(input.target, fakeMp3(0x22));
+      },
+      synthesizeFish: async (input) => {
+        fishCalls += 1;
+        assert.equal(input.apiKey, 'sk-fish');
+        assert.equal(input.model, 's2.1-pro-free');
+        await writeFile(input.target, fakeMp3(0x33));
+      },
+      readRuntime: () => ({
+        provider: 'fish',
+        fishApiKey: 'sk-fish',
+        fishTtsModel: 's2.1-pro-free',
+        fishVoices: [],
+        voiceRate: 1,
+      }),
+    });
+    const result = await voice.speak({ text: 'Fish 你好', voice: '55b28b196e1c4fff9a55cd32a46eff25' });
+    assert.equal(result.ok, true);
+    assert.equal(fishCalls, 1);
+    assert.equal(edgeCalls, 0);
+    const catalog = voice.listVoices();
+    assert.equal(catalog.voiceProvider, 'fish');
+    assert.ok(catalog.fishVoices.some((item) => item.id === '55b28b196e1c4fff9a55cd32a46eff25'));
+  } finally {
     await rm(root, { recursive: true, force: true });
   }
 });

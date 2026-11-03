@@ -154,6 +154,9 @@ export const en: Record<Key, string> = {
   trayToggle: 'System tray',
   trayToggleHint:
     'Shows a tray icon (notification area on Windows, menu bar on macOS) once desktop mode is running. It lists every pet in the config and toggles each one between desktop and web/none — including pets that are currently off the desktop and therefore have no window to right-click. With it off, bringing a pet back to the desktop requires opening the browser (the settings page, or right-clicking a web pet there). Windows already folds third-party icons into the "hidden icons" overflow. Desktop mode only.',
+  obsCaptureToggle: 'Window mode',
+  obsCaptureToggleHint:
+    'Like Big Blue Fish: stay transparent. When on, the pet appears on the taskbar without the tool-window style so OBS Window Capture can list it (prefer Windows 10 / Graphics Capture); when off, it stays hidden from the taskbar and Window Capture usually cannot find it. Desktop mode only; also available from the tray.',
   voiceTitle: 'Voice',
   voiceHint:
     'Three switches plus a voice: the master switch gates automatic speech, the two sub-switches gate one kind of proactive message each. All off by default; written to the user config on "Save" (never written immediately).',
@@ -167,9 +170,31 @@ export const en: Record<Key, string> = {
   voiceTodoEnabledHint:
     'Speaks a todo reminder when it comes due (the bubble still appears; this only decides whether it is spoken). Gated by the master switch above. Off by default.',
   voiceNameLabel: 'Voice',
+  voiceProviderLabel: 'Engine',
+  voiceProviderHint:
+    'Edge is free online Chinese voices; Fish Audio needs an API key and supports custom Voice IDs. After switching, make sure the selected voice still belongs to that engine.',
+  voiceProviderEdge: 'Edge (free)',
+  voiceProviderFish: 'Fish Audio',
+  fishApiKeyLabel: 'Fish Audio API Key',
+  fishApiKeyHint:
+    'Get it from the Fish Audio console. The key is stored only in the local user config; GET /config never returns the plaintext. Leave blank on save to keep the existing key.',
+  fishApiKeyPlaceholder: 'Paste API Key',
+  fishApiKeyKeepPlaceholder: 'Key saved (leave blank to keep)',
+  fishApiKeyClear: 'Clear saved key',
+  fishTtsModelLabel: 'Fish model',
+  fishTtsModelHint: 'Sent as the model header; defaults to the free tier to avoid 402 when out of quota.',
+  fishCustomVoiceLabel: 'Custom Voice ID',
+  fishCustomVoiceHint: 'Copy a Voice ID from Fish Audio (letters, digits, _ and - only). Built-in voices cannot be removed.',
+  fishCustomVoiceIdPlaceholder: 'Voice ID',
+  fishCustomVoiceLabelPlaceholder: 'Display name (optional)',
+  fishCustomVoiceAdd: 'Add',
+  fishCustomVoiceRemove: 'Remove',
+  voiceRateLabel: 'Speech rate',
+  voiceRateHint:
+    'Absolute multiplier 0.5–2 (1 = normal). Re-synthesizes audio; takes effect after save.',
   voiceVolumeLabel: 'Volume',
   voiceVolumeHint:
-    'Playback volume as a 0–1 decimal: 1 is full volume (100%), 0 is muted. Changes loudness only and never re-synthesizes audio, so adjusting it costs nothing extra. Independent of the master switch above — it has no effect while that switch is off.',
+    'Playback volume 0–4: 1 = 100%, 4 = 400% (boosted via Web Audio above 1). Changes loudness only and never re-synthesizes. Has no effect while the master switch is off.',
   physicsTitle: 'Physics (drag & throw feel)',
   physicsHint:
     'Global default, shared by every pet (a pet pack may override it in its own kind file); written to the user config on "Save" (never written immediately). Applies instantly in the browser; on the desktop it applies once Save reloads the pet windows.',
@@ -276,12 +301,5 @@ export const en: Record<Key, string> = {
   uninstallStep2: '2. Remove the plugin itself (run in a terminal; this also drops it from the profile bundle layer):',
   uninstallStep3:
     '3. Delete the locations above as needed: cache folders are harmless; deleting "plugin user data" loses your config and chat memory (back up main-config.jsonc first if you want to keep it).',
-  motionTitle: 'Action frequency',
-  motionHint:
-    'Four boxes: idle / turn / move are editable, and the random action is computed (100 − the other three). Applies to the main entry only; pet packs set their own weights in their kind files.',
-  'motion.idle': 'Idle',
-  'motion.turn': 'Turn',
-  'motion.move': 'Move',
-  'motion.action': 'Random action',
   uninstallCmd: 'dsh plugin --profile {profile} remove dsh-pet',
 };

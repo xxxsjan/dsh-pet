@@ -303,14 +303,16 @@ describe('setVoiceConfig —— 音量系数', () => {
     }
   });
 
-  test('越界与脏值收敛到 0–1：2 → 1、-1 → 0、非数值 → 1', async () => {
+  test('越界与脏值：>1 无 AudioContext 时 element.volume 封顶 1；负数归 0', async () => {
     const sink = { volumes: [] as number[] };
     const fetchStub = stubFetch();
     const restoreBrowser = stubBrowser(sink);
     try {
       setSurface('web');
+      // 测试桩没有 AudioContext：>1 只能把 element.volume 放到 1（增益路径走不了）
       const cases: ReadonlyArray<readonly [unknown, number]> = [
         [2, 1],
+        [1.5, 1],
         [-1, 0],
         ['不是数字', 1],
         [0, 0],
@@ -319,7 +321,7 @@ describe('setVoiceConfig —— 音量系数', () => {
         setVoiceConfig('', true, input);
         playSayVoice({ text: '说一句', voiceTo: 'web' });
         await flush();
-        assert.equal(sink.volumes[sink.volumes.length - 1], wanted, `音量 ${String(input)} 应收敛到 ${wanted}`);
+        assert.equal(sink.volumes[sink.volumes.length - 1], wanted, `音量 ${String(input)} 应落到 ${wanted}`);
       }
     } finally {
       restoreBrowser();

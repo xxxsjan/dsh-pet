@@ -291,9 +291,17 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /aria-live="polite"/);
   assert.match(settingsPage, /data-tab="config"/);
   assert.match(settingsPage, /data-tab="chat"/);
+  assert.match(settingsPage, /data-tab="voice"/);
+  assert.match(settingsPage, /data-tab="model"/);
   assert.match(settingsPage, /id="panel-config"/);
+  assert.match(settingsPage, /id="panel-voice"/);
+  assert.match(settingsPage, /id="panel-model"/);
+  assert.match(settingsPage, /id="panel-model"[\s\S]*id="settings"/);
+  assert.doesNotMatch(settingsPage, /id="panel-config"[\s\S]*id="settings"/);
   assert.match(settingsScript, /history\.replaceState/);
   assert.match(settingsScript, /X-DSH-Pet-Token/);
+  assert.match(settingsScript, /voice\/speak/);
+  assert.match(settingsScript, /试听/);
   assert.doesNotMatch(settingsScript, /localStorage|sessionStorage|document\.cookie|innerHTML/);
   assert.doesNotMatch(settingsPage, /https?:\/\/(?!example)/);
   assert.match(settingsStyle, /focus-visible/);

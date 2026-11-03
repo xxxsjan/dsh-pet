@@ -10,8 +10,10 @@
 
 /** 脚本片段需要的枚举与默认值，全部由装配入口从源码常量注入。 */
 export interface ScriptConsts {
-  /** 音色白名单（来自 host/voice/voices.ts）。 */
+  /** Edge 音色白名单（来自 host/voice/voices.ts）。 */
   readonly voices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
+  /** Fish Audio 内置音色（来自 host/voice/fish-voices.ts）。 */
+  readonly fishVoices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
   /** 字体预设 id（来自 shared/fonts.ts）。 */
   readonly fonts: readonly string[];
   /** 显示档（来自 shared/config.ts）。 */
@@ -22,8 +24,6 @@ export interface ScriptConsts {
   readonly physics: unknown;
   /** 字体默认值（来自 shared/fonts.ts）。 */
   readonly font: unknown;
-  /** 动作频率默认值（来自 shared/weights.ts）。 */
-  readonly weights: unknown;
 }
 
 /**
@@ -39,12 +39,12 @@ const TOKEN = new URLSearchParams(location.hash.slice(1)).get('token') || '';
 history.replaceState(null, '', location.pathname);
 const API = ${JSON.stringify(routePath)};
 const VOICES = ${JSON.stringify(consts.voices)};
+const FISH_VOICES = ${JSON.stringify(consts.fishVoices)};
 const FONT_IDS = ${JSON.stringify(consts.fonts)};
 const DISPLAYS = ${JSON.stringify(consts.displays)};
 const CORNERS = ${JSON.stringify(consts.corners)};
 const FALLBACK_PHYSICS = ${JSON.stringify(consts.physics)};
 const FALLBACK_FONT = ${JSON.stringify(consts.font)};
-const FALLBACK_WEIGHTS = ${JSON.stringify(consts.weights)};
 const FALLBACK_INTERVAL_SEC = 300;
 const state = { config: null, meta: null, globals: null, pets: {}, prompts: {}, entry: 'main', petIndex: 0, dirty: false };
 

@@ -14,10 +14,11 @@ import { flattenPetList, readAllConfig } from '../host/config.ts';
 import { dshHomeDir, packageRoot } from '../host/helper-process.ts';
 import { apply } from '../host/index.ts';
 import { defaultLog, setDefaultLogger } from '../host/log-file.ts';
+import { petUserRootForHome } from '../host/pet-user-root.ts';
 import { runCheck, packageVersion } from './check.ts';
 import { createStandaloneAi } from './ai-provider.ts';
 import { createRequestSecurity } from './request-security.ts';
-import { writeStandaloneRuntime } from './runtime-state.ts';
+import { cliRuntimeStateDir, writeStandaloneRuntime } from './runtime-state.ts';
 import { createStandaloneContext, type RegisteredRoute, type StandaloneLogger } from './context.ts';
 import { createStandaloneLogger } from './logger.ts';
 import { configPathsFor, describePets, isDesktopVisible, parseArgs, USAGE } from './options.ts';
@@ -75,7 +76,7 @@ async function run(logger: StandaloneLogger, options: { port: number }): Promise
   portRef.value = server.port;
   let releaseRuntime: () => void;
   try {
-    releaseRuntime = writeStandaloneRuntime(home, {
+    releaseRuntime = writeStandaloneRuntime(cliRuntimeStateDir(home), {
       port: server.port,
       token: security.token,
       settingsUrl: security.authenticatedUrl(`http://127.0.0.1:${server.port}`),
@@ -142,7 +143,7 @@ async function run(logger: StandaloneLogger, options: { port: number }): Promise
       : '  AI          未配置或未启用，不发送模型请求；右键“打开 AI 设置”后在本机填写',
     ai.getSettings().balanceProvider
       ? `  余额        已选 ${ai.getSettings().balanceProvider}，设置页点「查询余额」取数`
-      : '  余额        未选服务商；设置页「AI 服务商」→「余额查询服务商」里选一家',
+      : '  余额        未选服务商；设置页「模型」→「余额查询服务商」里选一家',
     '  不可用      会话工作状态 / DSH 系统通知',
     '  退出        Ctrl+C、POST /shutdown，或桌面托盘菜单的「退出」',
     '',
@@ -168,7 +169,7 @@ async function main(): Promise<number> {
     return 0;
   }
   // 独立模式常常没有终端，日志必须同时落盘；插件会复用同一个 logger。
-  const logger = createStandaloneLogger({ file: join(dshHomeDir(), 'dsh-pet', 'logs.txt') });
+  const logger = createStandaloneLogger({ file: join(petUserRootForHome(dshHomeDir()), 'logs.txt') });
   // 纯模块没有 ctx.logger，靠默认出口落盘。
   setDefaultLogger(logger);
   if (options.check) return runCheck(logger);

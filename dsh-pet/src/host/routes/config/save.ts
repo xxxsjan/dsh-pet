@@ -12,6 +12,7 @@ import {
   syncUserConfigFromDefault,
   userConfigUnparsable,
 } from '../../config.ts';
+import { redactConfigSecrets } from '../../config/public.ts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { type RouteResult } from '../../http.ts';
 import type { PetRouteDeps, RouteInput } from '../types.ts';
@@ -47,7 +48,7 @@ async function saveUserLayer(deps: PetRouteDeps, input: RouteInput): Promise<Rou
     if (!clean) {
       return failResult(
         'bad-request',
-        'invalid pet config: expected { pets:[{name?,id,size,sizePercent?,balanceEnabled,display,position:{corner,marginX,marginY}}] }（id 为非空字符串且去除首尾空白后唯一；sizePercent 可选，不小于 1 的数字；display 为 web/desktop/both/none 之一；可选顶层 notificationsEnabled / whisperImageEnabled / chatImageEnabled / chatAnimationEnabled / trayEnabled 布尔；可选宠物布尔 whisperEnabled / workStatusEnabled / fixedEnabled）',
+        'invalid pet config: expected { pets:[{name?,id,size,sizePercent?,balanceEnabled,display,position:{corner,marginX,marginY}}] }（id 为非空字符串且去除首尾空白后唯一；sizePercent 可选，不小于 1 的数字；display 为 web/desktop/both/none 之一；可选顶层 notificationsEnabled / whisperImageEnabled / chatImageEnabled / chatAnimationEnabled / trayEnabled / obsCaptureEnabled 布尔；可选宠物布尔 whisperEnabled / workStatusEnabled / fixedEnabled）',
       );
     }
     // 损坏预检：用户层存在但连 JSONC 都解析不了（真损坏）→ 先不写盘。
@@ -64,7 +65,7 @@ async function saveUserLayer(deps: PetRouteDeps, input: RouteInput): Promise<Rou
     void requestRestart(); // display/size 等可能变化：重解析桌面宠物并重启 Helper（异步，不阻塞保存响应）
     // 响应体 = 保存后的成品聚合（与 GET /config 同一份，字段已填满）：设置页直接交给
     // flattenConfigPets 拍平渲染，客户端的条目级字段只有这一处填充。
-    return okResult(readAllConfig(configPaths));
+    return okResult(redactConfigSecrets(readAllConfig(configPaths)));
   } catch (e) {
     ctx.logger?.warn?.(`[dsh-pet] config save failed: ${e instanceof Error ? e.message : String(e)}`);
     return failResult('generate-error', 'failed to save config');
@@ -86,5 +87,5 @@ function syncFromDefault(deps: PetRouteDeps): RouteResult {
     return failResult('generate-error', e instanceof Error ? e.message : String(e));
   }
   void requestRestart(); // 配置变了：重解析桌面宠物并重启 Helper（异步，不阻塞响应）
-  return okResult(readAllConfig(configPaths));
+  return okResult(redactConfigSecrets(readAllConfig(configPaths)));
 }

@@ -15,6 +15,7 @@ import { boundedRequest, MAX_REQUEST_BYTES, MAX_SETTINGS_BYTES } from '../standa
 import { rejectRequest, type RequestSecurity } from '../standalone/request-security.ts';
 import {
   balanceHandler,
+  DEFAULT_STANDALONE_PORT,
   modelsHandler,
   settingsHandler,
   testHandler,
@@ -25,6 +26,9 @@ import { readChatPanelScript } from '../standalone/chat-panel-asset.ts';
 import { readSettingsIcon } from '../standalone/icon.ts';
 import { settingsPage, settingsScript, settingsStyle } from '../standalone/settings-page.ts';
 
+/** 桌面应用本机 HTTP 的固定端口（与 CLI 默认一致）；占用即启动失败，不顺延。 */
+export const APP_HTTP_PORT = DEFAULT_STANDALONE_PORT;
+
 /** 路由依赖：安全校验、AI 处理器与两个页面的数据源，全部注入以脱离 Electron 测试。 */
 interface RouterDeps {
   security: RequestSecurity;
@@ -34,12 +38,18 @@ interface RouterDeps {
   landingPage(port: number): string;
   /** 对话面板脚本来源；缺省读包内 `lib/chat-panel.js`，测试可注入。 */
   chatPanelScript?: () => string | undefined;
+  /**
+   * 监听端口；缺省 {@link APP_HTTP_PORT}。
+   * 测试可传 `0` 让系统分配空闲端口，避免并行用例抢固定口。
+   */
+  port?: number;
 }
 
 /**
  * 启动本机服务并返回实际端口与关闭函数。
  *
- * 只监听 127.0.0.1 的随机端口；请求体在进入处理器前先按路由限长读取。
+ * 默认只绑 `127.0.0.1:{@link APP_HTTP_PORT}`；端口被占用时直接失败，不向后换口。
+ * 请求体在进入处理器前先按路由限长读取。
  */
 export function startRouter(
   routes: RegisteredRoute[],
@@ -160,9 +170,19 @@ export function startRouter(
   server.headersTimeout = 10000;
   server.on('clientError', (_error, socket) => socket.destroy());
 
+  const preferred = deps.port ?? APP_HTTP_PORT;
   return new Promise((resolvePromise, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
+    const fail = (error: NodeJS.ErrnoException): void => {
+      server.close();
+      if (error.code === 'EADDRINUSE' && preferred !== 0) {
+        reject(new Error(`本机端口 ${preferred} 已被占用，桌面应用不会换端口；请先关闭占用该端口的程序后重试。`));
+        return;
+      }
+      reject(error);
+    };
+    server.once('error', fail);
+    server.listen(preferred, '127.0.0.1', () => {
+      server.off('error', fail);
       boundPort = (server.address() as AddressInfo).port;
       resolvePromise({
         port: boundPort,

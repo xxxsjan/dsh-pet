@@ -6,7 +6,7 @@
  * @module dsh-pet/src/host/voice/cache
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { open, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** 缓存总量上限（字节）：超过后从最旧的开始删。 */
@@ -17,6 +17,16 @@ export const CACHE_MAX_FILES = 200;
 /** 缓存文件的完整路径：`<userRoot>/voice-cache/<key>.mp3`。 */
 export function cachePath(userRoot: string, key: string): string {
   return join(userRoot, 'voice-cache', `${key}.mp3`);
+}
+
+/**
+ * 判断是否像可播放的 MPEG/MP3（ID3 或帧同步）。
+ * 代理 chunked 解坏时文件头会变成 ASCII 十六进制，命中这种缓存会「当当」杂音。
+ */
+export function looksLikeMpegAudio(bytes: Uint8Array): boolean {
+  if (bytes.length < 2) return false;
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return true;
+  return bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0;
 }
 
 /**

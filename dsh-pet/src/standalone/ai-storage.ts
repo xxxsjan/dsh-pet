@@ -25,6 +25,8 @@ import {
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
+import { petUserRootForHome } from '../host/pet-user-root.ts';
+
 /** 配置文件的字节上限。 */
 const MAX_CONFIG_BYTES = 32_768;
 
@@ -50,7 +52,7 @@ function restrictFile(path: string): void {
 
 /** 解析并准备配置目录，拒绝符号链接。 */
 function configPath(home: string): string {
-  const directory = join(home, 'dsh-pet');
+  const directory = petUserRootForHome(home);
   if (!existsSync(directory)) mkdirSync(directory, { recursive: true, mode: 0o700 });
   const info = lstatSync(directory);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Unsafe settings directory');
