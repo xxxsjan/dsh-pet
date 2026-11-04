@@ -10,11 +10,7 @@ import { makeUiKit } from './ui.ts';
 
 /** 全局开关的键名，与成品配置的字段名一致。 */
 export type GlobalFlagKey =
-  | 'notificationsEnabled'
-  | 'clickSoundEnabled'
-  | 'confineToScreen'
-  | 'trayEnabled'
-  | 'obsCaptureEnabled';
+  'notificationsEnabled' | 'clickSoundEnabled' | 'confineToScreen' | 'trayEnabled' | 'obsCaptureEnabled';
 
 /** 全局开关的当前值。 */
 export type GlobalFlags = Record<GlobalFlagKey, boolean>;

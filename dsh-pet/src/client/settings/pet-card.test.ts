@@ -6,7 +6,7 @@
  *   2. 每个控件都改自己那个字段：名字 / 大小走顶层，角落 / 偏移走 position 子补丁（错位会静默写坏配置）；
  *   3. 表单忙时全部控件禁用，保存结果就近显示在卡片右上角。
  *
- * 用假的 `h` 记录节点树（不引 jsdom）；两个下拉是自绘组件，节点上直接存 `value` 与 `onChange(id)`。
+ * 用假的 `h` 记录节点树（不引 jsdom）；角落下拉是自绘组件，节点上直接存 `value` 与 `onChange(id)`。
  */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,7 +14,6 @@ import type { jsx } from 'react/jsx-runtime';
 
 import { makePetCard } from './pet-card.ts';
 import type { PetPatch } from './pet-card-parts.ts';
-import { PET_DISPLAYS } from '../../shared/config.ts';
 import { ROUTE_PATH } from '../../shared/constants.ts';
 import type { Pet } from '../../shared/types.ts';
 
@@ -114,19 +113,6 @@ describe('PetCard —— 宠物配置卡', () => {
     assert.deepEqual(patches, [{ sizePercent: 30 }]);
   });
 
-  test('显示位置下拉：改的是顶层 display', () => {
-    const patches: PetPatch[] = [];
-    const tree = render((patch) => patches.push(patch));
-    const display = picker(tree, 'both');
-    assert.deepEqual(
-      (display.props.options as { id: string }[]).map((option) => option.id),
-      [...PET_DISPLAYS],
-      '选项来自 PET_DISPLAYS，文案由 t 提供',
-    );
-    (display.props.onChange as (id: string) => void)('desktop');
-    assert.deepEqual(patches, [{ display: 'desktop' }]);
-  });
-
   test('角落与两个偏移走 position 子补丁', () => {
     const patches: PetPatch[] = [];
     const tree = render((patch) => patches.push(patch));
@@ -181,7 +167,7 @@ describe('PetCard —— 宠物配置卡', () => {
     assert.ok(controls.length > 0);
     for (const node of controls) assert.equal(node.props.disabled, true, `${node.tag} 应被禁用`);
     const pickers = flatten(tree).filter((node) => Array.isArray(node.props.options));
-    assert.equal(pickers.length, 2, '显示位置与角落两个下拉都要渲染');
+    assert.equal(pickers.length, 1, '只剩角落一个下拉要渲染');
     for (const node of pickers) assert.equal(node.props.disabled, true, '下拉应被禁用');
     assert.ok(
       flatten(tree).some(

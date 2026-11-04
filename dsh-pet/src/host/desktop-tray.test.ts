@@ -67,9 +67,7 @@ function harness(options: {
           body: JSON.stringify({
             main: {
               pets: options.pets ?? [],
-              ...(options.obsCaptureEnabled !== undefined
-                ? { obsCaptureEnabled: options.obsCaptureEnabled }
-                : {}),
+              ...(options.obsCaptureEnabled !== undefined ? { obsCaptureEnabled: options.obsCaptureEnabled } : {}),
             },
           }),
         };
@@ -108,9 +106,7 @@ describe('createTray —— 勾选与点击', () => {
       ],
     });
     await tray.start();
-    const petItems = lastMenu(menus).filter(
-      (item) => item.type === 'checkbox' && item.label !== '窗口模式',
-    );
+    const petItems = lastMenu(menus).filter((item) => item.type === 'checkbox' && item.label !== '窗口模式');
     assert.deepEqual(
       petItems.map((item) => item.checked),
       [true, false, true],

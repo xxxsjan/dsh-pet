@@ -53,6 +53,10 @@ const SETTINGS_CSS = [
   '.dsh-pet-cfg{container-type:inline-size;display:flex;flex-direction:column;gap:12px;color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px}',
   '.dsh-pet-cfg__title{display:flex;align-items:center;gap:6px;margin:0;font-size:16px;font-weight:500;line-height:24px}',
 
+  // 板块流：窄屏单列；容器够宽时两列网格，卡片按源顺序左→右、上→下，高度各随内容（不拉齐）。
+  '.dsh-pet-cfg__flow{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}',
+  '@container (min-width:720px){.dsh-pet-cfg__flow{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+
   '.dsh-pet-cfg__card{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px}',
   '.dsh-pet-cfg__cardHead{display:flex;align-items:center;gap:6px;min-height:20px}',
   '.dsh-pet-cfg__cardTitle{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary)}',

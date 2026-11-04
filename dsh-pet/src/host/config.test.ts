@@ -418,10 +418,10 @@ describe('saveUserConfig —— OBS 窗口捕获（obsCaptureEnabled）', () => 
   });
 
   test('请求体带了 → 以请求体为准', () => {
-    const out = saveUserConfig(
-      { pets: PETS, obsCaptureEnabled: true },
-      { obsCaptureEnabled: false },
-    ) as Record<string, unknown>;
+    const out = saveUserConfig({ pets: PETS, obsCaptureEnabled: true }, { obsCaptureEnabled: false }) as Record<
+      string,
+      unknown
+    >;
     assert.equal(out.obsCaptureEnabled, true);
   });
 });

@@ -4,9 +4,12 @@
  *
  * OBS / WGC 需要能枚举到普通顶层窗：去掉 WS_EX_TOOLWINDOW，并保证有 WS_EX_APPWINDOW。
  * 不引入 ffi 依赖：用一次性 PowerShell Add-Type 调 user32（仅在切换到捕获模式时调用）。
+ *
+ * **绝不能 sync 调 PowerShell**：`execFileSync` 会堵死 Electron 主进程，重载配置 / 建窗时
+ * 系统光标整机假死（现场日志：`spawnSync powershell.exe ETIMEDOUT`）。这里只走异步。
  * @module dsh-pet/runtime/electron-helper/main/win32-exstyle
  */
-const { execFileSync } = require('node:child_process');
+const { execFile } = require('node:child_process');
 
 const GWL_EXSTYLE = -20;
 const WS_EX_APPWINDOW = 0x00040000;
@@ -26,6 +29,8 @@ function hwndDecimal(handleBuf) {
 /**
  * 捕获模式：清 TOOLWINDOW、置 APPWINDOW（仍保持 LAYERED / NOACTIVATE 等既有位）。
  * 普通模式：不主动改样式，交给 Electron 的 skipTaskbar 路径。
+ *
+ * 异步执行：失败只打日志，不回传、不阻塞主进程。
  *
  * @param {import('electron').BrowserWindow} win
  * @param {boolean} captureListed - true = OBS 可枚举
@@ -56,18 +61,19 @@ public static class DshPetExStyle {
 "@
 [DshPetExStyle]::Apply(${hwnd})
 `;
-  try {
-    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-      windowsHide: true,
-      timeout: 5000,
-      stdio: 'ignore',
-    });
-  } catch (e) {
-    console.error(
-      '[dsh-pet-desktop-helper] win32 exstyle apply failed:',
-      String(e && e.message ? e.message : e),
-    );
-  }
+  execFile(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-Command', script],
+    { windowsHide: true, timeout: 5000 },
+    (error) => {
+      if (error) {
+        console.error(
+          '[dsh-pet-desktop-helper] win32 exstyle apply failed:',
+          String(error && error.message ? error.message : error),
+        );
+      }
+    },
+  );
 }
 
 module.exports = { applyLiveCaptureExStyle, hwndDecimal, WS_EX_APPWINDOW, WS_EX_TOOLWINDOW };

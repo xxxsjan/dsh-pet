@@ -240,11 +240,7 @@ export function createVoiceService(options: {
     const provider = registered;
     const engine = normalizeVoiceProvider(runtime.provider);
     const model = normalizeFishTtsModel(runtime.fishTtsModel);
-    const source = provider
-      ? provider.id
-      : engine === 'fish'
-        ? `fish:${model}`
-        : BUILTIN_VOICE_ID;
+    const source = provider ? provider.id : engine === 'fish' ? `fish:${model}` : BUILTIN_VOICE_ID;
     // 第三方没有音色概念，缓存键里把 voice 置空；来源进键，换实现 / 换模型不会命中旧音频
     const target = cachePath(userRoot, cacheKey(source, provider ? '' : voice, rate, text));
     const startedMs = Date.now();

@@ -258,9 +258,19 @@ describe('源码守卫 —— helper 的两个兜底必须在位', () => {
       (main.match(/setWindowIgnore\(/g) ?? []).length >= 3,
       '所有翻转必须走 setWindowIgnore（创建 / IPC / 兜底轮询），镜像状态才不失步',
     );
+    // setWindowIgnore = 日常穿透翻转（带 forward）；clearForwardMouseHook = 关窗前卸钩（不带 forward）。
+    // 两处之外不得再直接碰 setIgnoreMouseEvents，否则镜像与钩子生命周期会失步。
+    const withoutMouseHookOwners = main
+      .replace(/function setWindowIgnore[\s\S]*?\n}/, '')
+      .replace(/function clearForwardMouseHook[\s\S]*?\n}/, '');
     assert.ok(
-      !/win\.setIgnoreMouseEvents\(/.test(main.replace(/function setWindowIgnore[\s\S]*?\n}/, '')),
+      !/win\.setIgnoreMouseEvents\(/.test(withoutMouseHookOwners),
       '不得再有绕过出口的直接调用',
+    );
+    assert.ok(/function clearForwardMouseHook\(/.test(main), '关窗前必须能卸掉 forward 鼠标钩子');
+    assert.ok(
+      /clearAllForwardMouseHooks\(/.test(main) && /closeAllPetWindows[\s\S]*?clearAllForwardMouseHooks/.test(main),
+      'closeAll 必须先卸钩再 destroy（重载配置卡鼠标）',
     );
     assert.ok(/clearInterval\(pointerTimer\)/.test(main), '窗口关闭时必须停掉轮询');
   });

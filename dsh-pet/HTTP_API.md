@@ -6,14 +6,14 @@
 
 ## 基本信息
 
-| 项 | 值 |
-| --- | --- |
-| 端口（桌面应用） | 固定 **`3080`**；被占用则**启动失败**，不换端口 |
-| 端口（CLI 独立模式） | 首选 `3080`；被占用时向后顺延（最多约 25 个） |
-| 业务前缀 | `/dsh-pet-7340` |
-| 绑定 | 本机回环（`127.0.0.1` / `localhost`） |
-| 编码 | UTF-8 |
-| 请求体 | `Content-Type: application/json`（写接口） |
+| 项                   | 值                                              |
+| -------------------- | ----------------------------------------------- |
+| 端口（桌面应用）     | 固定 **`3080`**；被占用则**启动失败**，不换端口 |
+| 端口（CLI 独立模式） | 首选 `3080`；被占用时向后顺延（最多约 25 个）   |
+| 业务前缀             | `/dsh-pet-7340`                                 |
+| 绑定                 | 本机回环（`127.0.0.1` / `localhost`）           |
+| 编码                 | UTF-8                                           |
+| 请求体               | `Content-Type: application/json`（写接口）      |
 
 **Base URL 示例（桌面应用）**
 
@@ -41,13 +41,13 @@ http://127.0.0.1:3080/dsh-pet-7340/chat?pet=main
 
 ### 哪些路径要令牌
 
-| 类别 | 是否需要令牌 |
-| --- | --- |
-| `GET /`、`GET /health` | 否 |
-| `GET /dsh-pet-7340/state` 等多数只读 | 否 |
-| `GET/POST/DELETE /dsh-pet-7340/chat*` | **是** |
-| `POST /dsh-pet-7340/whisper` | **是** |
-| 其它所有写操作（含 `broadcast`） | **是** |
+| 类别                                  | 是否需要令牌 |
+| ------------------------------------- | ------------ |
+| `GET /`、`GET /health`                | 否           |
+| `GET /dsh-pet-7340/state` 等多数只读  | 否           |
+| `GET/POST/DELETE /dsh-pet-7340/chat*` | **是**       |
+| `POST /dsh-pet-7340/whisper`          | **是**       |
+| 其它所有写操作（含 `broadcast`）      | **是**       |
 
 鉴权失败时 HTTP 状态码为真实的 `403`/`400`，体类似：
 
@@ -59,10 +59,10 @@ http://127.0.0.1:3080/dsh-pet-7340/chat?pet=main
 
 启动后会写入运行状态文件（进程退出后删除），内含 `port`、`token`、`settingsUrl`。外部程序读此文件即可对接；**不要**依赖 `/health`（其中不含 token）。
 
-| 模式 | 运行状态路径 | 端口 |
-| --- | --- | --- |
-| 桌面应用 | `{用户主目录}/.blue-fish6/standalone-runtime.json` | 固定 `3080`（占用即无法启动） |
-| CLI 独立模式 | `{DSH_HOME}/blue-fish6/standalone-runtime.json` | 首选 `3080`，占用可顺延 |
+| 模式         | 运行状态路径                                       | 端口                          |
+| ------------ | -------------------------------------------------- | ----------------------------- |
+| 桌面应用     | `{用户主目录}/.blue-fish6/standalone-runtime.json` | 固定 `3080`（占用即无法启动） |
+| CLI 独立模式 | `{DSH_HOME}/blue-fish6/standalone-runtime.json`    | 首选 `3080`，占用可顺延       |
 
 Windows 常见示例：
 
@@ -79,12 +79,12 @@ Windows 常见示例：
 
 插件业务路由（`/dsh-pet-7340/...`）约定：
 
-| 情况 | HTTP 状态 | 响应体 |
-| --- | --- | --- |
-| 业务成功 | `200` | `{ "ok": true, ... }` |
-| 业务失败（缺参、未知宠物、模型不可用等） | **`200`** | `{ "ok": false, "reason": "...", "message": "..." }` |
-| 协议失败（非法 JSON、方法不对、体过大） | `400` / `405` / `413` 等 | 同上失败实体形状 |
-| 未预期内部错误 | `500` | `{ "ok": false, "reason": "internal-error", "message": "..." }` |
+| 情况                                     | HTTP 状态                | 响应体                                                          |
+| ---------------------------------------- | ------------------------ | --------------------------------------------------------------- |
+| 业务成功                                 | `200`                    | `{ "ok": true, ... }`                                           |
+| 业务失败（缺参、未知宠物、模型不可用等） | **`200`**                | `{ "ok": false, "reason": "...", "message": "..." }`            |
+| 协议失败（非法 JSON、方法不对、体过大）  | `400` / `405` / `413` 等 | 同上失败实体形状                                                |
+| 未预期内部错误                           | `500`                    | `{ "ok": false, "reason": "internal-error", "message": "..." }` |
 
 对接方请以 **`ok` 字段** 判断成败，不要只看 HTTP 状态码。
 
@@ -92,11 +92,11 @@ Windows 常见示例：
 
 ### 查询参数惯例
 
-| 参数 | 说明 |
-| --- | --- |
-| `pet` | 宠物 id，**多数动作接口必填**且必须在配置中真实存在 |
+| 参数      | 说明                                                                     |
+| --------- | ------------------------------------------------------------------------ |
+| `pet`     | 宠物 id，**多数动作接口必填**且必须在配置中真实存在                      |
 | `surface` | 可选：`web` / `desktop` 等；部分写接口用来校验显示面、决定语音由哪一端念 |
-| `lockId` | 占用锁场景；持锁期间其它调用方可能被拒 |
+| `lockId`  | 占用锁场景；持锁期间其它调用方可能被拒                                   |
 
 睡觉中的宠物会对一批「打扰类」写接口返回 `sleeping`（含 `POST /chat`、`broadcast`、`whisper` 等）。
 
@@ -125,9 +125,7 @@ GET http://127.0.0.1:3080/health
   "pid": 12345,
   "port": 3080,
   "configFile": "…",
-  "pets": [
-    { "id": "main", "name": "…", "display": "desktop" }
-  ]
+  "pets": [{ "id": "main", "name": "…", "display": "desktop" }]
 }
 ```
 
@@ -157,10 +155,10 @@ X-DSH-Pet-Token: <token>
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `text` | string | 是 | trim 后非空，最长 **2000** 字 |
-| `attachment` | object | 否 | 配图；**独立模式通常不支持**（缺附件服务会失败） |
+| 字段         | 类型   | 必填 | 说明                                             |
+| ------------ | ------ | ---- | ------------------------------------------------ |
+| `text`       | string | 是   | trim 后非空，最长 **2000** 字                    |
+| `attachment` | object | 否   | 配图；**独立模式通常不支持**（缺附件服务会失败） |
 
 `attachment` 形状（仅宿主提供附件服务时可用）：
 
@@ -184,10 +182,10 @@ X-DSH-Pet-Token: <token>
 }
 ```
 
-| 字段 | 说明 |
-| --- | --- |
-| `text` | 模型生成的回复正文（已开始显示流程） |
-| `image` | 可选，配图名 |
+| 字段    | 说明                                 |
+| ------- | ------------------------------------ |
+| `text`  | 模型生成的回复正文（已开始显示流程） |
+| `image` | 可选，配图名                         |
 
 生成超时量级约 **60s**，调用方请设置足够超时。
 
@@ -201,13 +199,13 @@ X-DSH-Pet-Token: <token>
 }
 ```
 
-| reason 示例 | 情况 |
-| --- | --- |
-| `bad-request` | 空消息、过长、图片参数非法等 |
-| `pet-required` / `unknown-pet` | 未传或找不到宠物 |
-| `provider-missing` | 未配置可用模型 |
-| `generate-error` | 生成/IO 失败 |
-| `sleeping` | 宠物在睡 |
+| reason 示例                    | 情况                         |
+| ------------------------------ | ---------------------------- |
+| `bad-request`                  | 空消息、过长、图片参数非法等 |
+| `pet-required` / `unknown-pet` | 未传或找不到宠物             |
+| `provider-missing`             | 未配置可用模型               |
+| `generate-error`               | 生成/IO 失败                 |
+| `sleeping`                     | 宠物在睡                     |
 
 非法 JSON → HTTP `400` + `invalid-json`。
 
@@ -222,9 +220,9 @@ GET http://127.0.0.1:3080/dsh-pet-7340/chat?pet=main&rounds=20
 X-DSH-Pet-Token: <token>
 ```
 
-| 查询 | 说明 |
-| --- | --- |
-| `pet` | 必填 |
+| 查询     | 说明                                                       |
+| -------- | ---------------------------------------------------------- |
+| `pet`    | 必填                                                       |
 | `rounds` | 可选，`0–200` 整数；不传则用配置里的记忆轮数；`0` = 空窗口 |
 
 #### 成功 `200`
@@ -263,10 +261,10 @@ DELETE http://127.0.0.1:3080/dsh-pet-7340/chat?pet=main
 X-DSH-Pet-Token: <token>
 ```
 
-| 查询 | 说明 |
-| --- | --- |
-| `pet` | 必填 |
-| `ts` | 可重复；只删命中的轮。不传 = 清空该宠物全部记忆 |
+| 查询  | 说明                                            |
+| ----- | ----------------------------------------------- |
+| `pet` | 必填                                            |
+| `ts`  | 可重复；只删命中的轮。不传 = 清空该宠物全部记忆 |
 
 #### 成功 `200`
 
@@ -288,9 +286,7 @@ X-DSH-Pet-Token: <token>
 ```json
 {
   "ok": true,
-  "orphans": [
-    { "entry": "main", "petId": "gone", "messages": 4, "lastTs": 1730000000000 }
-  ]
+  "orphans": [{ "entry": "main", "petId": "gone", "messages": 4, "lastTs": 1730000000000 }]
 }
 ```
 
@@ -325,13 +321,13 @@ X-DSH-Pet-Token: <token>
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `text` | string | 是 | trim 后非空；**不设服务端长度上限**（由调用方自控） |
-| `duration` | number | 否 | 气泡毫秒；缺省 **10000**；`0` = 不显示；负数非法 |
-| `anim` | boolean | 否 | 仅严格 `false` 关闭动画联动；缺省视为开启 |
-| `image` | string | 否 | 表情包池内名称（与 `url` 二选一） |
-| `url` | string | 否 | 外部图片 `http`/`https` 地址（与 `image` 二选一） |
+| 字段       | 类型    | 必填 | 说明                                                |
+| ---------- | ------- | ---- | --------------------------------------------------- |
+| `text`     | string  | 是   | trim 后非空；**不设服务端长度上限**（由调用方自控） |
+| `duration` | number  | 否   | 气泡毫秒；缺省 **10000**；`0` = 不显示；负数非法    |
+| `anim`     | boolean | 否   | 仅严格 `false` 关闭动画联动；缺省视为开启           |
+| `image`    | string  | 否   | 表情包池内名称（与 `url` 二选一）                   |
+| `url`      | string  | 否   | 外部图片 `http`/`https` 地址（与 `image` 二选一）   |
 
 可选查询：`surface=`、`lockId=`（有锁时仅持锁方可投喂）。
 
@@ -435,52 +431,52 @@ console.log(body.text); // 回复
 
 路径均相对于 `/dsh-pet-7340`（素材类除外说明）。独立模式下写操作普遍需要令牌。
 
-| 路径 | 方法 | 一句话 |
-| --- | --- | --- |
-| `/state` | GET | 轮询快照（气泡、动画、锁等叶子） |
-| `/models` | GET | 模型相关状态 |
-| `/work-status` | GET/相关 | 工作状态 |
-| `/balance` | GET/刷新相关 | 余额展示 |
-| `/config` | GET/PUT 等 | 读写配置 |
-| `/config/meta` | GET | 配置元信息 |
-| `/pet-display` | POST | 改单只宠物显示位置 |
-| `/pet-config` | POST | 写宠物层配置 |
-| `/obs-capture` | POST | OBS 窗口捕获开关 |
-| `/lock`、`/lock/release` | POST | 占用锁取锁/续期/释放 |
-| `/anim` | POST | 点播动画 |
-| `/position`、`/throw` | POST | 位置 / 抛掷 |
-| `/pose`、`/pose/report` | POST | 姿势 |
-| `/playback`、`/playback/...` | GET/POST | 点播回执与等待 |
-| `/sleep`、`/wake` | POST | 睡觉 / 叫醒 |
-| `/menu/item`、`/menu/events`、`/menu/click` | 各异 | 右键菜单 |
-| `/voice/voices`、`/voice/speak`、`/voice/hear` | GET/POST | 语音相关 |
-| `/todos` | GET/POST/DELETE | 待办 |
-| `/attachment` | GET 等 | 附件取回（宿主模式） |
-| `/pet-avatar` | POST | 上传头像 |
-| `/focus-session` | 相关 | 专注会话 |
-| `/reload`、`/quit` | POST | 重载 / 退出（桌面） |
-| `/logo`、`/pic/...` | GET | Logo / 通知图 / 表情包静态资源 |
+| 路径                                           | 方法            | 一句话                           |
+| ---------------------------------------------- | --------------- | -------------------------------- |
+| `/state`                                       | GET             | 轮询快照（气泡、动画、锁等叶子） |
+| `/models`                                      | GET             | 模型相关状态                     |
+| `/work-status`                                 | GET/相关        | 工作状态                         |
+| `/balance`                                     | GET/刷新相关    | 余额展示                         |
+| `/config`                                      | GET/PUT 等      | 读写配置                         |
+| `/config/meta`                                 | GET             | 配置元信息                       |
+| `/pet-display`                                 | POST            | 改单只宠物显示位置               |
+| `/pet-config`                                  | POST            | 写宠物层配置                     |
+| `/obs-capture`                                 | POST            | OBS 窗口捕获开关                 |
+| `/lock`、`/lock/release`                       | POST            | 占用锁取锁/续期/释放             |
+| `/anim`                                        | POST            | 点播动画                         |
+| `/position`、`/throw`                          | POST            | 位置 / 抛掷                      |
+| `/pose`、`/pose/report`                        | POST            | 姿势                             |
+| `/playback`、`/playback/...`                   | GET/POST        | 点播回执与等待                   |
+| `/sleep`、`/wake`                              | POST            | 睡觉 / 叫醒                      |
+| `/menu/item`、`/menu/events`、`/menu/click`    | 各异            | 右键菜单                         |
+| `/voice/voices`、`/voice/speak`、`/voice/hear` | GET/POST        | 语音相关                         |
+| `/todos`                                       | GET/POST/DELETE | 待办                             |
+| `/attachment`                                  | GET 等          | 附件取回（宿主模式）             |
+| `/pet-avatar`                                  | POST            | 上传头像                         |
+| `/focus-session`                               | 相关            | 专注会话                         |
+| `/reload`、`/quit`                             | POST            | 重载 / 退出（桌面）              |
+| `/logo`、`/pic/...`                            | GET             | Logo / 通知图 / 表情包静态资源   |
 
 独立应用根路径另有：
 
-| 路径 | 方法 | 一句话 |
-| --- | --- | --- |
-| `/`、`/health` | GET | 探活 / 状态 |
-| `/shutdown` | POST | 停机（需令牌） |
+| 路径               | 方法     | 一句话          |
+| ------------------ | -------- | --------------- |
+| `/`、`/health`     | GET      | 探活 / 状态     |
+| `/shutdown`        | POST     | 停机（需令牌）  |
 | `/standalone-ai/*` | GET/POST | AI 设置页与测试 |
 
 ---
 
 ## 与「蓝色大肥鱼」HTTP API 的差异（对接时注意）
 
-| 点 | 蓝色大肥鱼 | dsh-pet |
-| --- | --- | --- |
-| 端口 | 固定 `19265` | 桌面应用固定 `3080`（占用失败）；CLI 首选 `3080` 可顺延 |
-| 原样说话 | `POST /say` | `POST /dsh-pet-7340/broadcast?pet=` |
-| 模型对话 | `POST /chat` | `POST /dsh-pet-7340/chat?pet=` |
-| 宠物参数 | 单宠，无 `pet` | **几乎都要 `?pet=`** |
-| 业务失败 | 常 `400`/`503` | 常 **`200` + `ok:false`** |
-| 鉴权 | 文档以本机开放为主 | 独立模式写接口 / chat / whisper **要令牌** |
+| 点       | 蓝色大肥鱼         | dsh-pet                                                 |
+| -------- | ------------------ | ------------------------------------------------------- |
+| 端口     | 固定 `19265`       | 桌面应用固定 `3080`（占用失败）；CLI 首选 `3080` 可顺延 |
+| 原样说话 | `POST /say`        | `POST /dsh-pet-7340/broadcast?pet=`                     |
+| 模型对话 | `POST /chat`       | `POST /dsh-pet-7340/chat?pet=`                          |
+| 宠物参数 | 单宠，无 `pet`     | **几乎都要 `?pet=`**                                    |
+| 业务失败 | 常 `400`/`503`     | 常 **`200` + `ok:false`**                               |
+| 鉴权     | 文档以本机开放为主 | 独立模式写接口 / chat / whisper **要令牌**              |
 
 ---
 

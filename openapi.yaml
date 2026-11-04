@@ -2122,6 +2122,62 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
+  /dsh-pet-7340/obs-capture:
+    post:
+      tags: [Config]
+      operationId: setObsCapture
+      summary: OBS 窗口捕获开关（窗口模式）
+      description: |
+        写 main 条目的 `obsCaptureEnabled`（OBS「窗口捕获」需要宠物窗口进任务栏并去掉工具窗
+        样式），并返回改动后的成品聚合（与 `GET /config` 同一份）。
+
+        这是 `PUT /config` 的**单字段快捷形式**：托盘勾选「窗口模式」走它，调用方不必回传整段
+        `pets[]`。只写用户主配置层的顶层布尔，不解析、不触碰 `pets[]`。
+
+        写入语义与 `PUT /config` 一致：白名单重建 + 磁盘原值透传。写盘后**异步**重启桌面
+        Helper、不阻塞响应——发起者往往就是即将被换掉的桌面 Helper 进程，按 fire-and-forget
+        处理即可。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+                  description: "`true` 进任务栏（OBS 窗口捕获可列出）；`false` 藏回任务栏之外。"
+            examples:
+              enable:
+                summary: 开启窗口模式
+                value:
+                  enabled: true
+      responses:
+        "200":
+          description: |
+            **改动成功** → 改动后的成品聚合（与 `GET /config` 同一份）；
+            **业务失败** → `{ ok: false, reason, message }`（业务结论不用 400/404 表达）。
+
+            `reason` 取值：`bad-request`（缺 `enabled` / 非布尔 / 该层宠物配置非法）、
+            `generate-error`（配置读取失败 / 写盘失败 / 用户主配置文件找不到）。
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/PetConfigEntry"
+                  - $ref: "#/components/schemas/FailureResponse"
+        "400":
+          description: "请求体不是合法 JSON（`reason: invalid-json`）。"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+
   /dsh-pet-7340/config/meta:
     get:
       tags: [Config]

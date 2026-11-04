@@ -184,14 +184,14 @@ export const en: Record<Key, string> = {
   fishTtsModelLabel: 'Fish model',
   fishTtsModelHint: 'Sent as the model header; defaults to the free tier to avoid 402 when out of quota.',
   fishCustomVoiceLabel: 'Custom Voice ID',
-  fishCustomVoiceHint: 'Copy a Voice ID from Fish Audio (letters, digits, _ and - only). Built-in voices cannot be removed.',
+  fishCustomVoiceHint:
+    'Copy a Voice ID from Fish Audio (letters, digits, _ and - only). Built-in voices cannot be removed.',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: 'Display name (optional)',
   fishCustomVoiceAdd: 'Add',
   fishCustomVoiceRemove: 'Remove',
   voiceRateLabel: 'Speech rate',
-  voiceRateHint:
-    'Absolute multiplier 0.5–2 (1 = normal). Re-synthesizes audio; takes effect after save.',
+  voiceRateHint: 'Absolute multiplier 0.5–2 (1 = normal). Re-synthesizes audio; takes effect after save.',
   voiceVolumeLabel: 'Volume',
   voiceVolumeHint:
     'Playback volume 0–4: 1 = 100%, 4 = 400% (boosted via Web Audio above 1). Changes loudness only and never re-synthesizes. Has no effect while the master switch is off.',

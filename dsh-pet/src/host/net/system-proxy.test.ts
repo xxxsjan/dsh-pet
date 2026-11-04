@@ -13,10 +13,7 @@ describe('normalizeProxyUrl', () => {
   });
 
   test('解析 WinINET 多协议串，优先 https=', () => {
-    assert.equal(
-      normalizeProxyUrl('http=127.0.0.1:7890;https=127.0.0.1:7897'),
-      'http://127.0.0.1:7897',
-    );
+    assert.equal(normalizeProxyUrl('http=127.0.0.1:7890;https=127.0.0.1:7897'), 'http://127.0.0.1:7897');
   });
 
   test('socks 暂不支持', () => {

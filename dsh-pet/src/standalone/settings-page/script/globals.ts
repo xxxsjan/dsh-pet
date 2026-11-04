@@ -85,26 +85,33 @@ function voicePreviewRow() {
 /** 试听专用 AudioContext：音量 >100% 时复用，避免反复创建导致二次无声。 */
 let previewBoostCtx = null;
 
-async function applyPreviewVolume(audio, volume) {
-  const vol = volume < 0 ? 0 : volume > 4 ? 4 : volume;
-  if (!(vol > 1) || typeof AudioContext === 'undefined') {
-    audio.volume = vol > 1 ? 1 : vol;
-    return;
-  }
-  audio.volume = 1;
+async function ensurePreviewBoostContext() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) {
-    audio.volume = 1;
-    return;
-  }
+  if (!Ctx) return null;
   let ctx = previewBoostCtx;
   if (!ctx || ctx.state === 'closed') {
     ctx = new Ctx();
     previewBoostCtx = ctx;
   }
   if (ctx.state === 'suspended') {
-    try { await ctx.resume(); } catch (_) { /* ignore */ }
+    try { await ctx.resume(); } catch (_) { /* 点试听本身带手势，一般能起来 */ }
   }
+  // 未 running 时不要挂 MediaElementSource，否则元素输出被抢走又放不出声。
+  return ctx.state === 'running' ? ctx : null;
+}
+
+async function applyPreviewVolume(audio, volume) {
+  const vol = volume < 0 ? 0 : volume > 4 ? 4 : volume;
+  if (!(vol > 1)) {
+    audio.volume = vol;
+    return;
+  }
+  const ctx = await ensurePreviewBoostContext();
+  if (!ctx) {
+    audio.volume = 1;
+    return;
+  }
+  audio.volume = 1;
   try {
     const source = ctx.createMediaElementSource(audio);
     const gain = ctx.createGain();

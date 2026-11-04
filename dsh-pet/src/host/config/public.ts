@@ -6,9 +6,7 @@
  */
 
 /** 成品聚合里需要脱敏的密钥字段 → 对外布尔字段。 */
-const SECRET_FLAGS: ReadonlyArray<{ secret: string; flag: string }> = [
-  { secret: 'fishApiKey', flag: 'hasFishApiKey' },
-];
+const SECRET_FLAGS: ReadonlyArray<{ secret: string; flag: string }> = [{ secret: 'fishApiKey', flag: 'hasFishApiKey' }];
 
 /**
  * 去掉成品聚合里的密钥明文，改成 `hasXxx` 布尔。

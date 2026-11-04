@@ -94,9 +94,9 @@ function httpsThroughHttpProxy(targetUrl: string, proxyUrl: string, init: ProxyF
           ? {
               'Proxy-Authorization':
                 'Basic ' +
-                Buffer.from(
-                  `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`,
-                ).toString('base64'),
+                Buffer.from(`${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`).toString(
+                  'base64',
+                ),
             }
           : {}),
       },

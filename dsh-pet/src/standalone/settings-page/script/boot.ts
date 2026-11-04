@@ -64,6 +64,9 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
+  // 配置保存挂在顶栏标题旁，只在配置分区显示。
+  const petSave = byId('pet-save');
+  if (petSave) petSave.hidden = name !== 'config';
 }
 
 function wireTabs() {

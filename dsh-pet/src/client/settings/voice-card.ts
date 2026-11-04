@@ -134,18 +134,16 @@ export function makeVoiceCard(
             ),
             field(
               t('fishTtsModelLabel'),
-              h(
-                'select',
-                {
-                  className: INPUT_CLASS,
-                  disabled: props.busy,
-                  value: props.fishTtsModel,
-                  onChange: (e: { target: { value: string } }) => props.onFishModelChange(e.target.value),
-                },
-                props.fishModels.map((model) =>
+              h('select', {
+                className: INPUT_CLASS,
+                disabled: props.busy,
+                value: props.fishTtsModel,
+                onChange: (e: { target: { value: string } }) => props.onFishModelChange(e.target.value),
+                // h 是 jsx-runtime 的 jsx(type, props, key)：children 必须进 props，第三参是 key
+                children: props.fishModels.map((model) =>
                   h('option', { key: model.id, value: model.id, children: model.label }),
                 ),
-              ),
+              }),
               t('fishTtsModelHint'),
             ),
             field(
@@ -174,20 +172,17 @@ export function makeVoiceCard(
                       }),
                     ],
                   }),
-                  h(
-                    'button',
-                    {
-                      type: 'button',
-                      className: 'dsh-pet-cfg__btn',
-                      disabled: props.busy || draftId.trim() === '',
-                      onClick: () => {
-                        props.onAddFishVoice(draftId, draftLabel);
-                        setDraftId('');
-                        setDraftLabel('');
-                      },
-                      children: t('fishCustomVoiceAdd'),
+                  h('button', {
+                    type: 'button',
+                    className: 'dsh-pet-cfg__btn',
+                    disabled: props.busy || draftId.trim() === '',
+                    onClick: () => {
+                      props.onAddFishVoice(draftId, draftLabel);
+                      setDraftId('');
+                      setDraftLabel('');
                     },
-                  ),
+                    children: t('fishCustomVoiceAdd'),
+                  }),
                   props.fishCustomVoices.length > 0
                     ? h('ul', {
                         className: 'dsh-pet-cfg__list',
@@ -199,16 +194,13 @@ export function makeVoiceCard(
                               h('span', {
                                 children: voice.label === voice.id ? voice.id : `${voice.label}（${voice.id}）`,
                               }),
-                              h(
-                                'button',
-                                {
-                                  type: 'button',
-                                  className: 'dsh-pet-cfg__btn is-ghost is-sm',
-                                  disabled: props.busy,
-                                  onClick: () => props.onRemoveFishVoice(voice.id),
-                                  children: t('fishCustomVoiceRemove'),
-                                },
-                              ),
+                              h('button', {
+                                type: 'button',
+                                className: 'dsh-pet-cfg__btn is-ghost is-sm',
+                                disabled: props.busy,
+                                onClick: () => props.onRemoveFishVoice(voice.id),
+                                children: t('fishCustomVoiceRemove'),
+                              }),
                             ],
                           }),
                         ),
@@ -235,20 +227,18 @@ export function makeVoiceCard(
         }),
         field(
           t('voiceProviderLabel'),
-          h(
-            'select',
-            {
-              className: INPUT_CLASS,
-              disabled: props.busy,
-              value: props.provider,
-              onChange: (e: { target: { value: string } }) =>
-                props.onProviderChange(e.target.value === 'fish' ? 'fish' : 'edge'),
-            },
-            [
+          h('select', {
+            className: INPUT_CLASS,
+            disabled: props.busy,
+            value: props.provider,
+            onChange: (e: { target: { value: string } }) =>
+              props.onProviderChange(e.target.value === 'fish' ? 'fish' : 'edge'),
+            // h 是 jsx-runtime 的 jsx(type, props, key)：children 必须进 props，第三参是 key
+            children: [
               h('option', { key: 'edge', value: 'edge', children: t('voiceProviderEdge') }),
               h('option', { key: 'fish', value: 'fish', children: t('voiceProviderFish') }),
             ],
-          ),
+          }),
           t('voiceProviderHint'),
         ),
         ...fishBlocks,

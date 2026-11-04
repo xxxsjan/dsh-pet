@@ -150,9 +150,19 @@ test('转写抛错：归一成 generate-error，并保留原始说明', async ()
 test('转写超时：中断后回 generate-error，不会一直挂着', async () => {
   const speech = makeSpeech({
     // 永不兑现，只有 signal 能把它解开——验证超时真的接进了 provider。
+    // 保活定时器（不 unref）：withDeadline 的超时定时器是 unref 的，没有活跃句柄事件循环
+    // 会先排空、abort 永远等不到；abort 后清掉保活再拒绝。
     transcribe: (_spec, signal) =>
       new Promise((_resolve, reject) => {
-        signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+        const keepAlive = setTimeout(() => {}, 5_000);
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(keepAlive);
+            reject(new Error('aborted'));
+          },
+          { once: true },
+        );
       }),
   });
   const result = await hearWith(speech.service, { audio: encode(AUDIO) }, 10);
@@ -219,7 +229,17 @@ test('第三方超时：能被打断，不会一直挂着', async () => {
     name: '慢实现',
     transcribe: (_input, signal) =>
       new Promise((_resolve, reject) => {
-        signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+        // 保活定时器（不 unref）：本测试只等 abort，而 withDeadline 的超时定时器是 unref 的，
+        // 没有活跃句柄事件循环会先排空，abort 永远等不到。abort 后清掉保活再拒绝。
+        const keepAlive = setTimeout(() => {}, 5_000);
+        signal?.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(keepAlive);
+            reject(new Error('aborted'));
+          },
+          { once: true },
+        );
       }),
   });
   const result = await hearWith(makeSpeech().service, { audio: encode(AUDIO) }, 10);

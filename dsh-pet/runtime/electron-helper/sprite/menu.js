@@ -22,7 +22,7 @@ Object.assign(PetSprite.prototype, {
     this.stopMove(); // 菜单悬停期间宠物不漫游
     // 桌面专属工具根项 + 共享菜单树（动作 → 分类 → 具体动画）。碎碎念/对话无条件显示：手动触发
     // 不受 whisperEnabled 限制（该字段只影响自动轮询）。首项文案与去向随宿主形态变，见 OPEN_LABEL。
-    // 顺序：打开软件 / 余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 显示位置 / 重载配置 / 回到初始位置。
+    // 顺序：打开软件 / 余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
     const tools = [
       {
         label: OPEN_LABEL[OPEN_TARGET],
@@ -49,12 +49,9 @@ Object.assign(PetSprite.prototype, {
       if (this.sleeping) tools.push({ label: '起来', action: 'wake', hint: S.SLEEP_HOTKEY_HINT });
       else tools.push({ label: '睡觉', action: 'sleep', hint: S.SLEEP_HOTKEY_HINT });
     }
-    // 动作树之后是维护类：显示位置 → 重载配置 → 回到初始位置。
+    // 动作树之后是维护类：重载配置 → 回到初始位置。显示位置不进菜单（改用悬停快捷键 1-4，
+    // 见 input.js），设置页下拉框仍在；「都不」的单向门语义随之只留在设置页这一处。
     const tail = [
-      // 显示位置（仅网页/仅桌面/两者/都不）：改这只宠物的 display 配置，由宿主重载生效。
-      // 与浏览器端注入同一份子菜单，两端文案与取值不会漂移。不就地开关窗：窗口是进程启动时按
-      // DSH_PET_PETS 一次性建的，就地增删既改不了磁盘配置也改不了窗口数量。
-      S.displayMenuBranch(),
       // 重载配置：请宿主重启桌面 Helper，全部窗口按最新配置重建。维护动作，排在回到初始位置之前。
       { label: '重载配置', action: 'reload' },
       { label: '回到初始位置', action: 'home' },
@@ -137,10 +134,6 @@ Object.assign(PetSprite.prototype, {
     }
     if (leaf.action === 'home') {
       this.goHome(); // 停漫游/移动，清会话位置，回配置角落
-      return;
-    }
-    if (leaf.action === 'set-display') {
-      this.setPetDisplay(leaf.display); // 改这只宠物的显示位置：写 display 配置，由宿主重载生效
       return;
     }
     if (leaf.action === 'reload') {
@@ -376,9 +369,10 @@ Object.assign(PetSprite.prototype, {
     });
   },
 
-  // 「显示位置」菜单：改这一只宠物的 display，写它自己的配置，再由宿主重载生效。取值直接来自菜单项，
-  // 渲染端不做推导（当前状态以配置为准）。不就地开关窗：窗口是进程启动时按 DSH_PET_PETS 一次性建的。
-  // 与 reloadDesktop 同一处境：选「仅网页/都不」时本进程会在重载中被换掉，故不 await、不重试。
+  // 悬停快捷键 1-4（input.js）：改这一只宠物的 display，写它自己的配置，再由宿主重载生效。
+  // 取值直接来自按键映射，渲染端不做推导（当前状态以配置为准）。不就地开关窗：窗口是进程启动时
+  // 按 DSH_PET_PETS 一次性建的。与 reloadDesktop 同一处境：选「仅网页/都不」时本进程会在重载中
+  // 被换掉，故不 await、不重试。
   setPetDisplay(display) {
     if (!display) return;
     fetch(BASE + '/pet-display', {

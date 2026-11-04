@@ -6,7 +6,7 @@
  * @module dsh-pet/src/host/voice/cache
  */
 import { createHash } from 'node:crypto';
-import { open, mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** 缓存总量上限（字节）：超过后从最旧的开始删。 */

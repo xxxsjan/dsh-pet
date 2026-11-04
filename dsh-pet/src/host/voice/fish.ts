@@ -119,9 +119,7 @@ export async function synthesizeFish(input: FishSynthInput): Promise<void> {
       }
     }
     if (!looksLikeMpegAudio(bytes)) {
-      throw new VoiceSynthError(
-        `Fish Audio 返回内容不是 mp3（头字节 ${bytes.subarray(0, 8).toString('hex')}）`,
-      );
+      throw new VoiceSynthError(`Fish Audio 返回内容不是 mp3（头字节 ${bytes.subarray(0, 8).toString('hex')}）`);
     }
     await writeFile(staging, bytes);
     await rename(staging, input.target);

@@ -4,12 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { test } from 'node:test';
 
-import {
-  RUNTIME_STATE_FILE,
-  appRuntimeStateDir,
-  cliRuntimeStateDir,
-  writeStandaloneRuntime,
-} from './runtime-state.ts';
+import { RUNTIME_STATE_FILE, appRuntimeStateDir, cliRuntimeStateDir, writeStandaloneRuntime } from './runtime-state.ts';
 
 test('launcher runtime capability is private and only its owning process removes it', () => {
   const home = mkdtempSync(join(tmpdir(), 'pet-runtime-'));

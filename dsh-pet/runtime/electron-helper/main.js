@@ -245,7 +245,10 @@ const tray = createTray({
  */
 if (process.env.DSH_PET_IN_PROCESS === '1') {
   globalThis.__dshPetRebuildUi = async () => {
+    // closeAll 已暂停兜底泵并卸 forward 钩子；再让出一拍给 Windows 卸 WH_MOUSE_LL，
+    // 紧挨着再建窗容易叠钩子，重载配置时表现为光标整机变慢。
     petWindows.closeAll();
+    await new Promise((resolve) => setTimeout(resolve, 50));
     petWindows.create();
     await tray.refresh();
   };
@@ -319,6 +322,9 @@ app.whenReady().then(() => {
 // 退出时销毁托盘图标：不销毁会在 Windows 通知区留下「幽灵图标」（鼠标划过才消失）。
 // 宿主改 display 时是 SIGTERM/SIGKILL 硬杀，Windows 上拦不到，所以这条只覆盖优雅退出。
 app.on('before-quit', () => {
+  // 宿主 stopAndWait / 优雅退出：先卸 forward 钩子再让窗口跟着进程没，避免 Windows 光标假死。
+  petWindows.setPointerFallbackPaused(true);
+  petWindows.clearAllForwardMouseHooks();
   petWindows.stopTaskbarWatchdog();
   if (!tray.exists()) return;
   try {

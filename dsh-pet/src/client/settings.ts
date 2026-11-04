@@ -407,11 +407,11 @@ export function makePetConfigSection(
       return () => document.removeEventListener('keydown', onKey);
     }, []);
 
-    // 卡片顺序即阅读顺序：先编辑宠物，再改全局默认，最后是落盘位置与弹窗。
+    // 卡片顺序即阅读顺序：先编辑宠物，再改全局默认（宽屏两列），最后是落盘位置与弹窗。
     return h('section', {
       ref: rootRef,
       className: 'dsh-pet-cfg',
-      style: { maxWidth: '720px' },
+      style: { maxWidth: '1080px' },
       children: [
         // 标题：intro 与「额外宠物」说明都收进问号。
         h('h2', {
@@ -440,82 +440,87 @@ export function makePetConfigSection(
           onSave: () => void write.save(),
           onRemove: requestRemove,
         }),
-        h(GlobalCard, { busy, values: globalFlags, onChange: setGlobalFlag }),
-        h(VoiceCard, {
-          busy,
-          enabled: voiceEnabled,
-          provider: voiceProvider,
-          voiceName,
-          volume: voiceVolume,
-          rate: voiceRate,
-          voices: voiceOptions,
-          fishTtsModel,
-          fishModels,
-          hasFishApiKey,
-          fishApiKeyDraft,
-          clearFishApiKey,
-          fishCustomVoices,
-          whisperEnabled: voiceWhisperEnabled,
-          todoEnabled: voiceTodoEnabled,
-          onToggle: setVoiceEnabled,
-          onProviderChange: (next) => {
-            setVoiceProvider(next);
-            if (next === 'fish') {
-              const stillValid =
-                fishBuiltinVoices.some((voice) => voice.id === voiceName) ||
-                fishCustomVoices.some((voice) => voice.id === voiceName);
-              if (!stillValid) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
-            } else {
-              const stillValid = edgeVoices.some((voice) => voice.id === voiceName);
-              if (!stillValid) {
-                setVoiceName(
-                  edgeVoices.find((voice) => voice.id === 'zh-CN-XiaoyiNeural')?.id ??
-                    edgeVoices[0]?.id ??
-                    'zh-CN-XiaoyiNeural',
-                );
-              }
-            }
-          },
-          onVoiceChange: setVoiceName,
-          onVolumeChange: setVoiceVolume,
-          onRateChange: setVoiceRate,
-          onWhisperToggle: setVoiceWhisperEnabled,
-          onTodoToggle: setVoiceTodoEnabled,
-          onFishModelChange: setFishTtsModel,
-          onFishApiKeyDraftChange: setFishApiKeyDraft,
-          onClearFishApiKeyChange: setClearFishApiKey,
-          onAddFishVoice: (id, label) => {
-            const cleaned = id.trim().replace(/\s+/g, '');
-            if (!cleaned) return;
-            setFishCustomVoices((current) => {
-              if (current.some((voice) => voice.id === cleaned)) return current;
-              if (fishBuiltinVoices.some((voice) => voice.id === cleaned)) return current;
-              return [...current, { id: cleaned, label: label.trim() || cleaned }];
-            });
-            setVoiceName(cleaned);
-          },
-          onRemoveFishVoice: (id) => {
-            setFishCustomVoices((current) => current.filter((voice) => voice.id !== id));
-            if (voiceName === id) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
-          },
+        h('div', {
+          className: 'dsh-pet-cfg__flow',
+          children: [
+            h(GlobalCard, { busy, values: globalFlags, onChange: setGlobalFlag }),
+            h(VoiceCard, {
+              busy,
+              enabled: voiceEnabled,
+              provider: voiceProvider,
+              voiceName,
+              volume: voiceVolume,
+              rate: voiceRate,
+              voices: voiceOptions,
+              fishTtsModel,
+              fishModels,
+              hasFishApiKey,
+              fishApiKeyDraft,
+              clearFishApiKey,
+              fishCustomVoices,
+              whisperEnabled: voiceWhisperEnabled,
+              todoEnabled: voiceTodoEnabled,
+              onToggle: setVoiceEnabled,
+              onProviderChange: (next: 'edge' | 'fish') => {
+                setVoiceProvider(next);
+                if (next === 'fish') {
+                  const stillValid =
+                    fishBuiltinVoices.some((voice) => voice.id === voiceName) ||
+                    fishCustomVoices.some((voice) => voice.id === voiceName);
+                  if (!stillValid) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+                } else {
+                  const stillValid = edgeVoices.some((voice) => voice.id === voiceName);
+                  if (!stillValid) {
+                    setVoiceName(
+                      edgeVoices.find((voice) => voice.id === 'zh-CN-XiaoyiNeural')?.id ??
+                        edgeVoices[0]?.id ??
+                        'zh-CN-XiaoyiNeural',
+                    );
+                  }
+                }
+              },
+              onVoiceChange: setVoiceName,
+              onVolumeChange: setVoiceVolume,
+              onRateChange: setVoiceRate,
+              onWhisperToggle: setVoiceWhisperEnabled,
+              onTodoToggle: setVoiceTodoEnabled,
+              onFishModelChange: setFishTtsModel,
+              onFishApiKeyDraftChange: setFishApiKeyDraft,
+              onClearFishApiKeyChange: setClearFishApiKey,
+              onAddFishVoice: (id: string, label: string) => {
+                const cleaned = id.trim().replace(/\s+/g, '');
+                if (!cleaned) return;
+                setFishCustomVoices((current) => {
+                  if (current.some((voice) => voice.id === cleaned)) return current;
+                  if (fishBuiltinVoices.some((voice) => voice.id === cleaned)) return current;
+                  return [...current, { id: cleaned, label: label.trim() || cleaned }];
+                });
+                setVoiceName(cleaned);
+              },
+              onRemoveFishVoice: (id: string) => {
+                setFishCustomVoices((current) => current.filter((voice) => voice.id !== id));
+                if (voiceName === id) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+              },
+            }),
+            h(FontCard, { busy, font, onChange: patchFont }),
+            h(ModelCard, {
+              busy,
+              catalog,
+              failed: catalogFailed,
+              whisperModel,
+              chatModel,
+              onModelChange: setModel,
+              chatMemory,
+              chatImageLimit,
+              onChatMemoryChange: setChatMemory,
+              onChatImageLimitChange: setChatImageLimit,
+              values: chatFlags,
+              onFlagChange: setChatFlag,
+            }),
+            h(PhysicsCard, { busy, physics, onChange: patchPhysics }),
+            h(MobileCard, { busy, physics, onChange: patchPhysics }),
+          ],
         }),
-        h(FontCard, { busy, font, onChange: patchFont }),
-        h(ModelCard, {
-          busy,
-          catalog,
-          failed: catalogFailed,
-          whisperModel,
-          chatModel,
-          onModelChange: setModel,
-          chatMemory,
-          chatImageLimit,
-          onChatMemoryChange: setChatMemory,
-          onChatImageLimitChange: setChatImageLimit,
-          values: chatFlags,
-          onFlagChange: setChatFlag,
-        }),
-        h(PhysicsCard, { busy, physics, onChange: patchPhysics }),
-        h(MobileCard, { busy, physics, onChange: patchPhysics }),
         h(Actions, {
           busy,
           msg,
@@ -525,12 +530,16 @@ export function makePetConfigSection(
           onTestNotification: testNotification,
         }),
 
-        // 保存按钮以下是参考类卡片：只读说明，改不改都不用点保存。
-        h(ShortcutsCard, {}),
-
-        // 落盘位置两张卡都靠 meta，读不到就整块不出现。
-        paths ? h(ConfigMetaCard, { paths }) : null,
-        paths ? h(StorageCard, { paths }) : null,
+        // 保存按钮以下是参考类卡片：只读说明，改不改都不用点保存；宽屏同样两列排布。
+        h('div', {
+          className: 'dsh-pet-cfg__flow',
+          children: [
+            h(ShortcutsCard, {}),
+            // 落盘位置两张卡都靠 meta，读不到就整块不出现。
+            paths ? h(ConfigMetaCard, { paths }) : null,
+            paths ? h(StorageCard, { paths }) : null,
+          ],
+        }),
 
         dialog
           ? h(SettingsDialog, { dialog, selId, onDismiss: () => setDialog(null), onConfirm: write.confirmDialog })

@@ -61,6 +61,8 @@ function createWindows({
   const petStates = new Map();
   /** 冒烟期间暂停兜底泵：它按真实光标翻转，会干扰冒烟对渲染端通道的断言 */
   let pointerFallbackPaused = false;
+  /** 已对 HWND 打过 OBS 扩展样式的窗口：show / ready-to-show 都会进 listing，只允许打一次。 */
+  const obsExStyleApplied = new WeakSet();
 
   /** 把当前全量宠物状态广播给所有窗口（碰撞检测的共享站场）。 */
   function broadcastPetStates() {
@@ -84,6 +86,29 @@ function createWindows({
   function setWindowIgnore(win, ignore) {
     win.setIgnoreMouseEvents(ignore, { forward: true });
     windowIgnore.set(win.id, ignore);
+  }
+
+  /**
+   * 卸掉 `forward: true` 装上的底层鼠标钩子（Windows WH_MOUSE_LL）。
+   * 关窗 / 进程退出前必须先做：带着钩子 destroy 或被宿主杀掉时，系统光标会整机变慢甚至假死。
+   * 不带 forward 调一次 false，Electron 才会卸钩；与日常穿透翻转（setWindowIgnore）分开。
+   */
+  function clearForwardMouseHook(win) {
+    if (!win || win.isDestroyed()) return;
+    try {
+      win.setIgnoreMouseEvents(false);
+      windowIgnore.set(win.id, false);
+    } catch (e) {
+      console.error(
+        '[dsh-pet-desktop-helper] clearForwardMouseHook failed:',
+        String(e && e.message ? e.message : e),
+      );
+    }
+  }
+
+  /** 对当前全部宠物窗卸钩；重建 / before-quit 共用。 */
+  function clearAllForwardMouseHooks() {
+    for (const win of windows.values()) clearForwardMouseHook(win);
   }
 
   /** 桌面几何：逐屏工作区、外接矩形、主屏下标；边界判定必须走 areas 的并集而不是 hull。 */
@@ -236,6 +261,9 @@ function createWindows({
     if (!obsCaptureOn() || win.isDestroyed()) return;
     win.setTitle('dsh-pet');
     win.setSkipTaskbar(false);
+    // show 与 ready-to-show 都会进这里：同一窗口只异步打一次 PowerShell，避免叠请求。
+    if (obsExStyleApplied.has(win)) return;
+    obsExStyleApplied.add(win);
     applyLiveCaptureExStyle(win, true);
   }
 
@@ -315,6 +343,8 @@ function createWindows({
     const scale = dpi.petScale();
     for (const pet of petsFromEnv()) windows.set(pet.id, createPetWindow(pet, geo, scale));
     startTaskbarWatchdog();
+    // 重建结束后恢复兜底泵（closeAll / 重建钩子里会先暂停）。
+    pointerFallbackPaused = false;
   }
 
   /**
@@ -323,8 +353,13 @@ function createWindows({
    * 只给应用模式的重建用：同进程里没有「重启 helper 进程」这条路，改显示位置只能关窗再建；
    * 不先关掉的话旧窗口会留在桌面上（Map 里被覆盖的只是引用）。
    * 双进程模式靠重启进程达成同一目的，不调它。
+   *
+   * 关窗前先暂停兜底轮询并卸掉 forward 鼠标钩子，避免 Windows 上光标整机卡顿。
    */
   function closeAllPetWindows() {
+    pointerFallbackPaused = true;
+    stopTaskbarWatchdog();
+    clearAllForwardMouseHooks();
     for (const win of windows.values()) {
       try {
         win.destroy();
@@ -341,6 +376,7 @@ function createWindows({
     closeAll: closeAllPetWindows,
     geometry: deskGeometry,
     setWindowIgnore,
+    clearAllForwardMouseHooks,
     updatePetState,
     broadcastPetStates,
     keepOffTaskbar,

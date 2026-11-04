@@ -166,8 +166,7 @@ export const zh = {
   voiceProviderEdge: 'Edge（免费）',
   voiceProviderFish: 'Fish Audio',
   fishApiKeyLabel: 'Fish Audio API Key',
-  fishApiKeyHint:
-    '在 Fish Audio 控制台获取。密钥只写入本机用户配置，GET /config 不回传明文；留空保存会保留已有密钥。',
+  fishApiKeyHint: '在 Fish Audio 控制台获取。密钥只写入本机用户配置，GET /config 不回传明文；留空保存会保留已有密钥。',
   fishApiKeyPlaceholder: '粘贴 API Key',
   fishApiKeyKeepPlaceholder: '已保存密钥（留空保留）',
   fishApiKeyClear: '清除已保存的密钥',
@@ -180,8 +179,7 @@ export const zh = {
   fishCustomVoiceAdd: '添加',
   fishCustomVoiceRemove: '删除',
   voiceRateLabel: '语速',
-  voiceRateHint:
-    '绝对倍率 0.5–2：1 为原速。会重新合成（影响缓存键），保存后对后续播报生效。',
+  voiceRateHint: '绝对倍率 0.5–2：1 为原速。会重新合成（影响缓存键），保存后对后续播报生效。',
   voiceVolumeLabel: '音量',
   voiceVolumeHint:
     '播报音量 0–4：1 = 100%，4 = 400%（超过 1 用增益放大）。只改播放响度，不会重新合成。总开关关着时不起作用。',

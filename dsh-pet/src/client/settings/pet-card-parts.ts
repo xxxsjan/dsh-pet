@@ -6,8 +6,7 @@
  * @module dsh-pet/src/client/settings/pet-card-parts
  */
 import type { ChangeEvent } from 'react';
-import type { Corner, Pet, PetDisplay } from '../../shared/types.ts';
-import { PET_DISPLAYS } from '../../shared/config.ts';
+import type { Corner, Pet } from '../../shared/types.ts';
 import { SIZE_PERCENT_DEFAULT, SIZE_PERCENT_MIN } from '../../shared/pet-size.ts';
 import type { SettingsRuntime } from './runtime.ts';
 import { INPUT_CLASS, makeUiKit, numberInputProps } from './ui.ts';
@@ -92,7 +91,7 @@ export function makePetAvatarCell(rt: Pick<SettingsRuntime, 'h' | 't'>) {
 }
 
 /**
- * 造「名字 / 大小 / 屏幕宽度上限 / 显示位置」四格（2×2）。
+ * 造「名字 / 大小 / 屏幕宽度上限」三格（一排三列）。
  *
  * @param rt - 注入的 react 能力与翻译。
  * @returns 身份字段组件。
@@ -100,7 +99,6 @@ export function makePetAvatarCell(rt: Pick<SettingsRuntime, 'h' | 't'>) {
 export function makePetIdentityFields(rt: SettingsRuntime) {
   const { h, t } = rt;
   const { field } = makeUiKit({ h, t });
-  const Select = makeSelect(rt);
 
   /** 宠物数值输入（大小）；宽度交给栅格。 */
   const sizeInput = (value: number, disabled: boolean, setter: (v: number) => void) =>
@@ -136,22 +134,11 @@ export function makePetIdentityFields(rt: SettingsRuntime) {
         percentInput(pet.sizePercent ?? SIZE_PERCENT_DEFAULT, busy, (v) => onChange({ sizePercent: v })),
         t('sizePercentHint'),
       ),
-      field(
-        t('displayLabel'),
-        h(Select, {
-          label: t('displayLabel'),
-          value: pet.display,
-          options: PET_DISPLAYS.map((d) => ({ id: d, label: t('display.' + d) })),
-          disabled: busy,
-          onChange: (id: string) => onChange({ display: id as PetDisplay }),
-        }),
-        t('displayHint'),
-      ),
     ];
   };
 
   return function PetIdentityFields(props: PetFieldsProps) {
-    return h('div', { className: 'dsh-pet-cfg__grid2', children: cells(props) });
+    return h('div', { className: 'dsh-pet-cfg__grid3', children: cells(props) });
   };
 }
 

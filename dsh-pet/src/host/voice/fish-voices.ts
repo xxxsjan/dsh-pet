@@ -89,9 +89,12 @@ export function normalizeFishCustomVoices(raw: unknown): FishCustomVoice[] {
  * @param custom - 已规范化的自定义列表；缺省当空。
  */
 export function listFishVoices(custom: readonly FishCustomVoice[] = []): readonly VoiceInfo[] {
-  const customs = custom.map(
-    (voice): VoiceInfo => ({ id: voice.id, name: voice.label, tag: 'Fish · 自定义', default: false }),
-  );
+  const customs = custom.map((voice): VoiceInfo => ({
+    id: voice.id,
+    name: voice.label,
+    tag: 'Fish · 自定义',
+    default: false,
+  }));
   return [...FISH_BUILTIN_VOICES, ...customs];
 }
 

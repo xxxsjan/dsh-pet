@@ -171,25 +171,33 @@ export function setVoiceConfig(name: unknown, enabled: unknown, volume?: unknown
   voiceVolume = clampVoiceVolume(volume);
   voiceRate = clampVoiceRate(rate);
   configLoaded = true;
+  // >100% 依赖 AudioContext：配置一到就预热，避免第一句自动播时还卡在 suspended。
+  if (voiceVolume > 1) void unlockVoiceAudio();
+}
+
+/** 取页面里的 AudioContext 构造器；旧内核只有 webkit 前缀。 */
+function audioContextConstructor(): typeof AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const fromWindow =
+    window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (fromWindow) return fromWindow;
+  // 有的环境构造器挂在全局而不是 window 上。
+  const fromGlobal =
+    typeof AudioContext !== 'undefined'
+      ? AudioContext
+      : typeof (globalThis as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext !== 'undefined'
+        ? (globalThis as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        : null;
+  return fromGlobal;
 }
 
 /**
- * 按配置音量播放：≤1 用 `audio.volume`；>1 用 GainNode（与弹幕机同口径）。
- * @param audio - 即将 play 的元素。
- * @param volume - 0–4。
+ * 把增益用的 AudioContext 拉到 `running`。
+ * 未 running 时不要挂 MediaElementSource——元素输出会被抢走，上下文又静音，听感比「退回 100%」更糟。
  */
-async function applyPlaybackVolume(audio: HTMLAudioElement, volume: number): Promise<void> {
-  const vol = clampVoiceVolume(volume);
-  if (!(vol > 1) || typeof AudioContext === 'undefined') {
-    audio.volume = Math.min(1, vol);
-    return;
-  }
-  audio.volume = 1;
-  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) {
-    audio.volume = 1;
-    return;
-  }
+async function ensureBoostContext(): Promise<AudioContext | null> {
+  const Ctx = audioContextConstructor();
+  if (!Ctx) return null;
   let ctx = boostCtx;
   if (!ctx || ctx.state === 'closed') {
     ctx = new Ctx();
@@ -199,9 +207,39 @@ async function applyPlaybackVolume(audio: HTMLAudioElement, volume: number): Pro
     try {
       await ctx.resume();
     } catch {
-      /* 忽略：下面连增益失败会回落 */
+      /* 手势未解锁时 resume 会失败：交给调用方退回 element.volume */
     }
   }
+  return ctx.state === 'running' ? ctx : null;
+}
+
+/**
+ * 尽量解锁语音增益用的 AudioContext。
+ * 桌面 Helper 开机或首次点击时调用；自动播报没有用户手势时，靠 Electron 的
+ * `autoplay-policy=no-user-gesture-required` 与这次预热把上下文拉起来。
+ */
+export async function unlockVoiceAudio(): Promise<void> {
+  await ensureBoostContext();
+}
+
+/**
+ * 按配置音量播放：≤1 用 `audio.volume`；>1 用 GainNode（与弹幕机同口径）。
+ * Context 起不来时绝不挂 MediaElementSource，只把 element 放到上限 1，避免「增益失败 → 更小声/无声」。
+ * @param audio - 即将 play 的元素。
+ * @param volume - 0–4。
+ */
+async function applyPlaybackVolume(audio: HTMLAudioElement, volume: number): Promise<void> {
+  const vol = clampVoiceVolume(volume);
+  if (!(vol > 1)) {
+    audio.volume = vol;
+    return;
+  }
+  const ctx = await ensureBoostContext();
+  if (!ctx) {
+    audio.volume = 1;
+    return;
+  }
+  audio.volume = 1;
   try {
     const source = ctx.createMediaElementSource(audio);
     const gain = ctx.createGain();
@@ -227,6 +265,7 @@ async function loadConfigOnce(): Promise<void> {
     // 只有成功才置位：拉不到（bridge 还没就绪 / 瞬时故障）留给下一句重试——
     // 否则一次失败就把这一端永久静音了。
     configLoaded = true;
+    if (voiceVolume > 1) void unlockVoiceAudio();
   } catch {
     /* 拉不到就保持关闭：宁可没声音，也不乱播 */
   }
@@ -250,6 +289,8 @@ export function playSayVoice(say: { readonly text: string; readonly voiceTo?: Vo
     setVoiceState('idle');
     return;
   }
+  // 在调用栈尚有用户手势时预热增益上下文（合成是异步的，回来时手势往往已过期）。
+  void unlockVoiceAudio();
   void speakIfEnabled(say.text); // 不 await：播放是旁路，不能挡住气泡与动画
 }
 
@@ -324,6 +365,8 @@ let manualSeq = 0;
  */
 export function speakText(text: string, onPhase?: (phase: SpeakPhase) => void): void {
   if (!text) return;
+  // 喇叭点击当下预热 AudioContext：等 /voice/speak 返回后再 resume，浏览器常已收回手势，>1 增益会掉回 100%。
+  void unlockVoiceAudio();
   void playManual(text, onPhase);
 }
 

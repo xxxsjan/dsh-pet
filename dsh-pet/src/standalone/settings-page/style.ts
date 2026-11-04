@@ -63,6 +63,7 @@ a{color:var(--dsw-static-blue-500)}
 .sideFoot{flex:none;margin-top:10px;padding:9px 10px 2px;border-top:1px solid var(--dsw-alias-border-l1);font-size:11px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .topbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 30px;background:var(--dsw-alias-bg-layer-2);border-bottom:1px solid var(--dsw-alias-border-l1)}
+.topbarLead{display:flex;align-items:center;gap:12px;min-width:0}
 .pageTitle{margin:0;font-size:15px;font-weight:600;line-height:24px;color:var(--dsw-alias-label-primary)}
 .dirty{font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .options{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}
@@ -71,6 +72,10 @@ a{color:var(--dsw-static-blue-500)}
 .scroll>*{width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
 /* 对话面板自己管内边距与滚动，这里只负责给它一个确定高度的容器；宽度与配置页对齐。 */
 .pet-chat-host{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
+/* 配置页多列瀑布流：按卡片高度填列；条目 tabs / 空态通栏。窄屏见下方 media 回落单列。 */
+#pet-cards{column-count:2;column-gap:14px}
+#pet-cards>.card{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid}
+#pet-cards>.tabs,#pet-cards>.empty{column-span:all}
 .card{background:var(--dsw-alias-settings-card-fill);border:1px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-lg);padding:18px 20px;margin-bottom:14px}
 .card:first-child{margin-top:2px}
 .cardHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 4px}
@@ -165,6 +170,7 @@ input:disabled,select:disabled,textarea:disabled{background:var(--dsw-static-neu
   .topbar{height:48px;padding:0 16px}
   .scroll{padding:16px 16px 4px}
   .grid2,.grid3{grid-template-columns:1fr}
+  #pet-cards{column-count:1}
 }
 @media(prefers-reduced-motion:no-preference){.navCell,.btn,.tab{transition:background-color .1s ease}}
 ${PANEL_CSS}

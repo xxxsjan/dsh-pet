@@ -68,6 +68,15 @@ async function boot() {
     S.setVoiceBase(BASE);
     S.setSurface('desktop');
     S.setVoiceConfig(cfg.voiceName, cfg.voiceEnabled, cfg.voiceVolume);
+    // >100% 音量靠 AudioContext 增益：开机预热一次；若仍 suspended，首次点击再解锁。
+    void S.unlockVoiceAudio();
+    const unlockVoiceOnce = () => {
+      void S.unlockVoiceAudio();
+      window.removeEventListener('pointerdown', unlockVoiceOnce, true);
+      window.removeEventListener('keydown', unlockVoiceOnce, true);
+    };
+    window.addEventListener('pointerdown', unlockVoiceOnce, true);
+    window.addEventListener('keydown', unlockVoiceOnce, true);
     bootFailures = 0;
     hideError();
     // 字体族进 documentElement：对话窗/得分弹窗挂在 body 下、继承不到宠物根容器，只能走全局变量。
