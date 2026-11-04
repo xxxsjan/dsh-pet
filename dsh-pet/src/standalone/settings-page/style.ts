@@ -72,12 +72,14 @@ a{color:var(--dsw-static-blue-500)}
 .scroll>*{width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
 /* 对话面板自己管内边距与滚动，这里只负责给它一个确定高度的容器；宽度与配置页对齐。 */
 .pet-chat-host{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
-/* 配置页多列瀑布流：按卡片高度填列；条目 tabs / 空态通栏。窄屏见下方 media 回落单列。 */
+/* 配置页多列瀑布流：语音卡、模型连接表单与桌宠/全局卡同列填；条目 tabs / 空态通栏。
+   窄屏 1 列、常态 2 列；视口够宽时放宽内容区并升到 3 列（见下方 media）。 */
 #pet-cards{column-count:2;column-gap:14px}
-#pet-cards>.card{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid}
+#pet-cards>.card,#pet-cards>#settings{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
+#pet-cards>#settings>.card{margin-bottom:0}
 #pet-cards>.tabs,#pet-cards>.empty{column-span:all}
 .card{background:var(--dsw-alias-settings-card-fill);border:1px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-lg);padding:18px 20px;margin-bottom:14px}
-.card:first-child{margin-top:2px}
+#pet-cards>.card:first-child,#pet-cards>#settings:first-child{margin-top:2px}
 .cardHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 4px}
 .cardTitle{margin:0;font-size:15px;font-weight:600;line-height:22px}
 .cardHint{margin:0 0 12px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}
@@ -158,6 +160,11 @@ input:disabled,select:disabled,textarea:disabled{background:var(--dsw-static-neu
 .btn.danger:hover{opacity:.9}
 .petBar .select{flex:1;min-width:0}
 .empty{padding:16px 0;font-size:13px;color:var(--dsw-alias-label-tertiary)}
+/* 宽屏：内容区加宽到约三列舒适宽度，瀑布升 3 列（侧栏约 208 + 内边距后，视口 ≥1400 才够用）。 */
+@media(min-width:1400px){
+  :root{--dsh-content-width:1240px}
+  #pet-cards{column-count:3}
+}
 @media(max-width:767px){
   .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .side{padding:10px 8px 8px;border-right:0;border-bottom:1px solid var(--dsw-alias-border-l2)}

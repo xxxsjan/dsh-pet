@@ -24,7 +24,7 @@ import {
 import { sendIcon } from '../standalone/server/respond.ts';
 import { readChatPanelScript } from '../standalone/chat-panel-asset.ts';
 import { readSettingsIcon } from '../standalone/icon.ts';
-import { settingsPage, settingsScript, settingsStyle } from '../standalone/settings-page.ts';
+import { readSettingsAssets } from '../standalone/settings-assets.ts';
 
 /** 桌面应用本机 HTTP 的固定端口（与 CLI 默认一致）；占用即启动失败，不顺延。 */
 export const APP_HTTP_PORT = DEFAULT_STANDALONE_PORT;
@@ -92,11 +92,6 @@ export function startRouter(
     }
 
     const dispatch = async (request: IncomingMessage): Promise<void> => {
-      const assets: Record<string, readonly [string, string]> = {
-        '/standalone-ai/': [settingsPage, 'text/html'],
-        '/standalone-ai/settings.js': [settingsScript, 'text/javascript'],
-        '/standalone-ai/settings.css': [settingsStyle, 'text/css'],
-      };
       if (url.pathname === '/standalone-ai/icon.png') {
         if (method !== 'GET' && method !== 'HEAD') {
           rejectRequest(res, 405, '仅支持 GET');
@@ -124,14 +119,22 @@ export function startRouter(
         sendText(res, 200, 'text/javascript', chatPanel);
         return;
       }
-      const asset = assets[url.pathname];
-      if (asset || url.pathname === '/health' || url.pathname === '/') {
+      const shellPaths: Record<string, 'page' | 'script' | 'style'> = {
+        '/standalone-ai/': 'page',
+        '/standalone-ai/settings.js': 'script',
+        '/standalone-ai/settings.css': 'style',
+      };
+      const shellKey = shellPaths[url.pathname];
+      if (shellKey || url.pathname === '/health' || url.pathname === '/') {
         if (method !== 'GET' && method !== 'HEAD') {
           rejectRequest(res, 405, '仅支持 GET');
           return;
         }
-        if (asset) sendText(res, 200, asset[1], asset[0]);
-        else if (url.pathname === '/health')
+        if (shellKey) {
+          const assets = await readSettingsAssets();
+          const types = { page: 'text/html', script: 'text/javascript', style: 'text/css' } as const;
+          sendText(res, 200, types[shellKey], assets[shellKey]);
+        } else if (url.pathname === '/health')
           sendText(res, 200, 'application/json', JSON.stringify(deps.status(boundPort)));
         else sendText(res, 200, 'text/html', deps.landingPage(boundPort));
         return;

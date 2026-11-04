@@ -40,6 +40,7 @@ function harness(options: {
   const bodies: string[] = [];
   const quits: string[] = [];
   const menus: MenuItem[][] = [];
+  const shows: string[] = [];
 
   class FakeTray {
     setToolTip(): void {}
@@ -83,10 +84,11 @@ function harness(options: {
     petRoute: '/dsh-pet-7340',
     platform: { templateImage: false, leftClickPopsMenu: false },
     helperDir: '.',
+    showPets: () => shows.push('showPets'),
   };
 
   const tray = createTray(deps);
-  return { tray, requests, bodies, quits, menus };
+  return { tray, requests, bodies, quits, menus, shows };
 }
 
 /** 取最后一次构建出来的菜单模板。 */
@@ -97,6 +99,18 @@ function lastMenu(menus: MenuItem[][]): MenuItem[] {
 }
 
 describe('createTray —— 勾选与点击', () => {
+  test('菜单第一项是「显示宠物」，点一下调用 showPets', async () => {
+    const { tray, menus, shows } = harness({
+      pets: [{ label: 'a', id: 'a', display: 'both' }],
+    });
+    await tray.start();
+    const menu = lastMenu(menus);
+    assert.equal(menu[0]?.label, '显示宠物');
+    assert.ok(menu[0]?.click, '显示宠物必须可点');
+    menu[0].click!();
+    assert.deepEqual(shows, ['showPets']);
+  });
+
   test('勾选状态来自配置：含 desktop / both 的两只被打勾', async () => {
     const { tray, menus } = harness({
       pets: [
@@ -200,11 +214,12 @@ describe('createTray —— 重建后刷新', () => {
     const pets: Array<Record<string, unknown>> = [{ label: 'a', id: 'a', display: 'both' }];
     const { tray, menus } = harness({ pets });
     await tray.start();
-    assert.equal(lastMenu(menus)[0].checked, true);
+    const petItem = (menu: MenuItem[]) => menu.find((item) => item.label === 'a');
+    assert.equal(petItem(lastMenu(menus))?.checked, true);
     pets[0] = { label: 'a', id: 'a', display: 'web' };
     await tray.refresh();
     assert.equal(menus.length, 2, 'refresh 应重新设置一次菜单');
-    assert.equal(lastMenu(menus)[0].checked, false, '配置变了勾选要跟着变');
+    assert.equal(petItem(lastMenu(menus))?.checked, false, '配置变了勾选要跟着变');
   });
 
   test('没建托盘时 refresh 什么都不做（托盘开关关掉的情况）', async () => {

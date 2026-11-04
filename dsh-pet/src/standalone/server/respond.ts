@@ -30,6 +30,8 @@ export function sendAsset(res: ServerResponse, body: string, type: string): void
   res.writeHead(200, {
     'content-type': `${type}; charset=utf-8`,
     'content-length': Buffer.byteLength(body),
+    // 开发期 watch 重建后刷新设置页必须拿到新内容，禁止浏览器把 shell/js/css 长缓存。
+    'cache-control': 'no-store',
     // blob: 只给头像预览与语音播放用：图片走带令牌的 fetch 再转 blob，不能直接放进 img src（同源 img 不带 Origin，会被判成文件来源）。
     // media-src 必须显式放行 blob:：语音是合成后转 blob URL 再交给 <audio> 的，缺这条会落回
     // default-src 'none'，表现是 NotSupportedError「no supported source」而不是 403。

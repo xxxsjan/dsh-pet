@@ -86,14 +86,24 @@ function entryTabs(keys) {
 
 function packNote() {
   return card('条目说明', null, [
-    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与外观在「默认条目」里改，语音在左侧「语音」分区。' }),
+    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与外观在「默认条目」里改。语音与模型连接仍在本页瀑布流中，可直接改。' }),
   ]);
 }
 
 function renderPetsPanel() {
   const host = byId('pet-cards');
   if (!host) return;
+  // 模型连接表单要保留 DOM（已挂的协议/余额选择器与监听），先拆下来再清瀑布。
+  const settings = byId('settings');
+  if (settings) settings.remove();
   host.textContent = '';
+  if (!state.globals) {
+    host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
+    if (settings) host.append(settings);
+    return;
+  }
+  host.append(voiceCard());
+  if (settings) host.append(settings);
   const keys = Object.keys(state.pets);
   if (keys.length > 1) host.append(entryTabs(keys));
   host.append(petCard());
@@ -102,7 +112,6 @@ function renderPetsPanel() {
   } else {
     host.append(packNote());
   }
-  renderVoicePanel();
 }
 
 /** 提交用的 physics 段：原配置没写过的可选键不带出去，避免保存时凭空补键。 */
@@ -147,20 +156,13 @@ function petsBody() {
 
 async function savePets() {
   const status = byId('pet-status');
-  const voiceStatus = byId('voice-status');
   const saveBtn = byId('pet-save');
-  const voiceSave = byId('voice-save');
-  const report = (message, kind) => {
-    setStatus(status, message, kind);
-    setStatus(voiceStatus, message, kind);
-  };
   if (state.entry === 'main' && currentPets().length === 0) {
-    report('默认条目至少要保留一只宠物，否则宿主会拒绝保存。', 'error');
+    setStatus(status, '默认条目至少要保留一只宠物，否则宿主会拒绝保存。', 'error');
     return;
   }
   if (saveBtn) saveBtn.disabled = true;
-  if (voiceSave) voiceSave.disabled = true;
-  report('正在保存…');
+  setStatus(status, '正在保存…');
   try {
     let merged;
     if (state.entry === 'main') {
@@ -174,7 +176,7 @@ async function savePets() {
           danger: true,
         });
         if (!confirmed) {
-          report('已取消保存。', 'error');
+          setStatus(status, '已取消保存。', 'error');
           return;
         }
         merged = await callApi('PUT', '/config?force=1', petsBody());
@@ -183,18 +185,17 @@ async function savePets() {
       merged = await callApi('POST', '/pet-config', { entry: state.entry, pets: currentPets() });
     }
     if (!merged || merged.ok === false) {
-      report((merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
+      setStatus(status, (merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
       return;
     }
     initDrafts(merged);
     markDirty(false);
     renderPetsPanel();
-    report('已保存到本机。', 'ok');
+    setStatus(status, '已保存到本机。', 'ok');
   } catch (error) {
-    report(error && error.message ? error.message : String(error), 'error');
+    setStatus(status, error && error.message ? error.message : String(error), 'error');
   } finally {
     if (saveBtn) saveBtn.disabled = false;
-    if (voiceSave) voiceSave.disabled = false;
   }
 }
 `;

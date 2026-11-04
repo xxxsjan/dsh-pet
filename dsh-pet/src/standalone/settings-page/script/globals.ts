@@ -1,8 +1,8 @@
 /**
- * 「桌宠配置」面板的全局部分：开关、外观、物理、对话上下文与落盘位置；语音 / 模型各自在左侧独立分区。
+ * 「桌宠配置」面板的全局部分：开关、外观、物理、对话上下文与落盘位置。
  *
  * 全部读写 state.globals（main 条目的全局字段），由 ./pets 的保存一并提交。
- * 配置页卡片按 builder 数组返回；语音页由 {@link renderVoicePanel} 自己找容器。
+ * 配置页卡片按 builder 数组返回；语音卡由 {@link renderPetsPanel} 直接挂进瀑布流。
  * @module dsh-pet/src/standalone/settings-page/script/globals
  */
 
@@ -15,17 +15,6 @@ function globalCards() {
 
 function setGlobal(key, value) {
   state.globals[key] = value;
-}
-
-function renderVoicePanel() {
-  const host = byId('voice-cards');
-  if (!host) return;
-  host.textContent = '';
-  if (!state.globals) {
-    host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
-    return;
-  }
-  host.append(voiceCard());
 }
 
 function globalFlagsCard() {
@@ -218,7 +207,7 @@ function voiceCard() {
       setGlobal('voiceProvider', next);
       const opts = voiceOptionsForProvider(next);
       if (!opts.some((opt) => opt.value === g.voiceName)) setGlobal('voiceName', defaultVoiceForProvider(next));
-      renderVoicePanel();
+      renderPetsPanel();
     }),
     ...fishRows,
     selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '切换引擎、模型或 Key 后请先保存再试听；只换音色可直接试。'),
@@ -257,7 +246,7 @@ function physicsCard() {
 
 function modelCard() {
   const g = state.globals;
-  return card('对话上下文', '模型与接入方式在左侧「模型」分区配置；这里只管对话保留多少上下文。', [
+  return card('对话上下文', '模型接入在本页「模型连接」卡；这里只管对话保留多少上下文。', [
     make('div', { class: 'grid2' }, [
       numberField('g-memory', '对话记忆轮数', g.chatMemoryRounds, (value) => setGlobal('chatMemoryRounds', Math.round(clampNumber(value, 0, 100, 0))), { min: 0, max: 100, step: 1, hint: '0 表示不带历史。' }),
       numberField('g-image-limit', '配图张数上限', g.chatImageLimit, (value) => setGlobal('chatImageLimit', Math.round(clampNumber(value, 0, 50, 0))), { min: 0, max: 50, step: 1, hint: '0 表示不限制。' }),

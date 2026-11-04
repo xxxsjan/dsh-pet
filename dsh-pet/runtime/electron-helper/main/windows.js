@@ -259,7 +259,7 @@ function createWindows({
   /** 窗口模式：进任务栏 + 清 TOOLWINDOW，让 OBS/WGC 能枚举（仍保持透明）。 */
   function applyObsCaptureListing(win) {
     if (!obsCaptureOn() || win.isDestroyed()) return;
-    win.setTitle('dsh-pet');
+    win.setTitle('蓝色大肥鱼');
     win.setSkipTaskbar(false);
     // show 与 ready-to-show 都会进这里：同一窗口只异步打一次 PowerShell，避免叠请求。
     if (obsExStyleApplied.has(win)) return;
@@ -270,7 +270,7 @@ function createWindows({
   /** 一只宠物一个窗口；返回窗口，泵与清理都在这里装好。 */
   function createPetWindow(pet, geo, scale) {
     const win = new BrowserWindow(windowOptions(petWindowSize(pet.size * scale), geo.hull));
-    if (obsCaptureOn()) win.setTitle('dsh-pet');
+    if (obsCaptureOn()) win.setTitle('蓝色大肥鱼');
     win.setAlwaysOnTop(true, topmostLevel(process.platform));
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // 被遮挡的窗口默认暂停渲染，表现成「消失」；关掉后台节流让它持续渲染
@@ -370,10 +370,32 @@ function createWindows({
     windows.clear();
   }
 
+  /**
+   * 把所有宠物窗重新亮出来：托盘「显示宠物」用。
+   * 被任务栏/系统点藏或最小化后，还原 + showInactive（不抢键盘焦点）+ 再钉一次置顶。
+   */
+  function showAllPetWindows() {
+    for (const win of windows.values()) {
+      if (!win || win.isDestroyed()) continue;
+      try {
+        if (typeof win.isMinimized === 'function' && win.isMinimized()) win.restore();
+        win.showInactive();
+        win.setAlwaysOnTop(true, topmostLevel(process.platform));
+        keepOffTaskbar(win);
+      } catch (e) {
+        console.error(
+          '[dsh-pet-desktop-helper] showAllPetWindows failed:',
+          String(e && e.message ? e.message : e),
+        );
+      }
+    }
+  }
+
   return {
     state: { windows, lastRequestedBounds, winMargins, windowIgnore, inputBusy, inputRegions, offBodyMs, petStates },
     create: createPetWindows,
     closeAll: closeAllPetWindows,
+    showAll: showAllPetWindows,
     geometry: deskGeometry,
     setWindowIgnore,
     clearAllForwardMouseHooks,

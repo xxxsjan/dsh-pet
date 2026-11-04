@@ -125,4 +125,14 @@ export default defineConfig([
     // 与 client 同理：设置页刷新会重跑脚本，包一层 IIFE 免得顶层声明重复触发 SyntaxError。
     outputOptions: { banner: ';(()=>{', footer: '})();' },
   },
+  {
+    ...shared,
+    // 设置页 HTML/CSS/JS 外壳（lib/settings-shell.js）：与 app/standalone 解耦，
+    // watch 只更新本文件时本机服务按 mtime 热读，刷新设置页即可，不必重启 Electron。
+    target: 'es2022',
+    entry: {
+      'settings-shell': 'src/standalone/settings-shell.ts',
+    },
+    external: [/^node:/],
+  },
 ]);

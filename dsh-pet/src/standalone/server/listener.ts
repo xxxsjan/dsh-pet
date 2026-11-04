@@ -8,7 +8,7 @@
 import { createRequestSecurity, rejectRequest, secureResponse, type RequestSecurity } from '../request-security.ts';
 import { createServer, type IncomingMessage, type Server as HttpServer, type ServerResponse } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { settingsPage, settingsScript, settingsStyle } from '../settings-page.ts';
+import { readSettingsAssets } from '../settings-assets.ts';
 import { readChatPanelScript } from '../chat-panel-asset.ts';
 import { readSettingsIcon } from '../icon.ts';
 import { MAX_REQUEST_BYTES, MAX_SETTINGS_BYTES, boundedRequest } from '../request-body.ts';
@@ -62,11 +62,6 @@ function dispatch(
       queueMicrotask(() => options.onShutdown?.());
       return;
     }
-    const assets: Record<string, readonly [string, string]> = {
-      '/standalone-ai/': [settingsPage, 'text/html'],
-      '/standalone-ai/settings.js': [settingsScript, 'text/javascript'],
-      '/standalone-ai/settings.css': [settingsStyle, 'text/css'],
-    };
     if (pathname === '/standalone-ai/icon.png') {
       if (method !== 'GET' && method !== 'HEAD') {
         rejectRequest(res, 405, '仅支持 GET');
@@ -94,13 +89,21 @@ function dispatch(
       sendAsset(res, chatPanel, 'text/javascript');
       return;
     }
-    const asset = assets[pathname];
-    if (asset) {
+    const shellPaths: Record<string, 'page' | 'script' | 'style'> = {
+      '/standalone-ai/': 'page',
+      '/standalone-ai/settings.js': 'script',
+      '/standalone-ai/settings.css': 'style',
+    };
+    const shellKey = shellPaths[pathname];
+    if (shellKey) {
       if (method !== 'GET' && method !== 'HEAD') {
         rejectRequest(res, 405, '仅支持 GET');
         return;
       }
-      sendAsset(res, asset[0], asset[1]);
+      const types = { page: 'text/html', script: 'text/javascript', style: 'text/css' } as const;
+      void readSettingsAssets()
+        .then((assets) => sendAsset(res, assets[shellKey], types[shellKey]))
+        .catch((error: unknown) => fail(res, error, options.logger));
       return;
     }
     if (pathname === '/standalone-ai/settings') {

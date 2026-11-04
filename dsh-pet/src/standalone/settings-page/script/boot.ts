@@ -1,7 +1,7 @@
 /**
  * 设置页启动：分区切换、初次加载与保存按钮接线。
  *
- * 配置 / 语音 / 模型：桌宠读 /config（配置与语音共用草稿与保存），模型读 /standalone-ai/settings。
+ * 配置面板瀑布流含语音、模型连接与桌宠卡：桌宠/语音读 /config（共用顶栏保存），模型读 /standalone-ai/settings。
  * 缺令牌时只提示、不发任何请求——本页所有写操作都依赖那次运行有效的凭证。
  * @module dsh-pet/src/standalone/settings-page/script/boot
  */
@@ -97,14 +97,10 @@ async function loadPets() {
     initDrafts(config);
     renderPetsPanel();
     byId('pet-save').disabled = false;
-    const voiceSave = byId('voice-save');
-    if (voiceSave) voiceSave.disabled = false;
     setStatus(status, '');
-    setStatus(byId('voice-status'), '');
   } catch (error) {
     const message = (error && error.message) || String(error);
     setStatus(status, message, 'error');
-    setStatus(byId('voice-status'), message, 'error');
   }
 }
 
@@ -128,8 +124,6 @@ function boot() {
   mountBalanceSelect();
   wireAiPanel();
   byId('pet-save').addEventListener('click', savePets);
-  const voiceSave = byId('voice-save');
-  if (voiceSave) voiceSave.addEventListener('click', savePets);
   window.addEventListener('beforeunload', (event) => {
     if (!state.dirty) return;
     event.preventDefault();
