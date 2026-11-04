@@ -1,6 +1,7 @@
 /**
  * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
- * 分区为对话 / 配置；配置页里语音卡、模型连接表单与桌宠卡同进 `#pet-cards` 两列瀑布流。
+ * 分区为对话 / 配置；侧栏另有外链「抖音弹幕」跳到 `/dsh-pet-7340/danmaku/`。
+ * 配置页里语音卡、模型连接表单与桌宠卡同进 `#pet-cards` 两列瀑布流。
  * 模型接入仍用独立表单保存（/standalone-ai/settings）；语音与桌宠共用顶栏「保存」。
  *
  * 页面只在本机回环上由 ./server 提供；CSP 是 `style-src 'self'`，所以这里不许出现内联样式，
@@ -22,6 +23,7 @@ export const settingsPage = `<!doctype html>
 <nav class="nav" aria-label="设置分区"><div class="navList" role="tablist">
 <button type="button" class="navCell" role="tab" id="tab-chat" data-tab="chat" data-title="对话" aria-controls="panel-chat" aria-selected="true"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="navLabel">对话</span></button>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
+<a class="navCell navExt" href="/dsh-pet-7340/danmaku/" id="link-danmaku" data-title="抖音弹幕"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></a>
 </div></nav>
 <div class="sideFoot">独立模式</div>
 </aside>

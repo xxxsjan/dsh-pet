@@ -22,6 +22,8 @@ import { createWorkStatusBridge } from './plugin/work-status-bridge.ts';
 import { registerTodoReminders } from './plugin/todo-reminders.ts';
 import { createVoiceService, voiceRuntimeFromMain } from './voice/speak.ts';
 import { createHearService } from './voice/hear.ts';
+import { createDouyinMonitor } from './danmaku/douyin/monitor.ts';
+import { VOICE_UTTERANCE_WAIT_MS } from './voice/utterance.ts';
 import { TODO_FILE_NAME, TodoStore } from './todo/store.ts';
 import { join } from 'node:path';
 import type { PetRouteDeps } from './routes/types.ts';
@@ -45,6 +47,7 @@ export function apply(ctx: any): void {
     standaloneAiBalance,
     state,
     playback,
+    voiceUtterances,
     workStatus,
     EXTERNAL_WORK_SESSION,
     nextExternalWorkSeq,
@@ -73,7 +76,16 @@ export function apply(ctx: any): void {
     notifyActivityTimers,
     scheduleCompletionNotify,
   } = sessionNotify;
-  const chatMemory = createChatMemory({ ctx, configPaths, log, memeDirsFor, playback, state, userRoot });
+  const chatMemory = createChatMemory({
+    ctx,
+    configPaths,
+    log,
+    memeDirsFor,
+    playback,
+    voiceUtterances,
+    state,
+    userRoot,
+  });
   const { lastWhisperAt, publishWhisper, publishSleepTalk, chatWithPet, getActivePetId, setActivePetId } = chatMemory;
 
   const balancePoll = createBalancePoll({ ctx, configPaths, getActivePetId, log, state, standaloneAiBalance });
@@ -93,7 +105,25 @@ export function apply(ctx: any): void {
     // 惰性取用：handlePetRoute 在下方装配，Helper 只在启动/收请求时才真正调用它
     getHandlePetRoute: () => httpRoute.handlePetRoute,
   });
-  const { startHelper, stopHelper, markDisposed } = desktopHelper;
+  const { startHelper, stopHelper, markDisposed, getDouyinSignBaseUrl } = desktopHelper;
+
+  const douyinDanmaku = createDouyinMonitor({
+    log,
+    getSignBaseUrl: getDouyinSignBaseUrl,
+    resolvePetId: () => {
+      const id = String(resolveActivePetId() || '').trim();
+      return id || 'main';
+    },
+    // 等回复写完、且朗读真正结束（或跳过/失败/超时）后再放行队列下一条
+    chatWithPet: async (petId, text) => {
+      const r = await chatWithPet(petId, text);
+      if (!r.ok) return { ok: false, message: r.message || r.reason };
+      if (r.voiceUtteranceId) {
+        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
+      }
+      return { ok: true };
+    },
+  });
 
   const deps: PetRouteDeps = {
     ...setup,
@@ -105,6 +135,7 @@ export function apply(ctx: any): void {
     ...sessionNotify,
     ctx,
     todos,
+    douyinDanmaku,
     // 语音合成：缓存落 userRoot；引擎 / Key / 模型每次现读成品 main（保存后立刻生效）
     voice: createVoiceService({
       userRoot,
@@ -173,10 +204,12 @@ export function apply(ctx: any): void {
     lock,
     markDisposed,
     playback,
+    voiceUtterances,
     state,
     stopDownloadSlotTimer,
     stopHelper,
     stopWorkStatusFlush,
+    stop: douyinDanmaku.stop,
   });
 
   // 路由就绪后拉起桌面 Helper（Electron 缺失时仅告警，不影响 DSH 与浏览器 overlay）

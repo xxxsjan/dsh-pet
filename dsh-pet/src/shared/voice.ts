@@ -276,10 +276,17 @@ async function loadConfigOnce(): Promise<void> {
  *
  * 三个门依次是：叶子有没有点名本端 → 网页端页面是否可见 → 成品配置的总开关。
  * 任何一道没过都只把状态归回 `idle`，气泡照常显示，不打断渲染。
+ * 叶子带了 `voiceUtteranceId` 时，本端（点名端）必须向宿主上报读完 / 跳过 / 失败——
+ * 弹幕队列靠这条回执决定能不能进下一条；另一端看到 id 也不报（只有点名端知道真相）。
  *
- * @param say - 要念的那一句：`text` 正文，`voiceTo` 该由哪一端念。
+ * @param say - 要念的那一句：`text` 正文，`voiceTo` 该由哪一端念，可选 `voiceUtteranceId` 回执编号。
  */
-export function playSayVoice(say: { readonly text: string; readonly voiceTo?: VoiceTarget }): void {
+export function playSayVoice(say: {
+  readonly text: string;
+  readonly voiceTo?: VoiceTarget;
+  readonly voiceUtteranceId?: string;
+}): void {
+  const utteranceId = say.voiceUtteranceId;
   const isMine = say.voiceTo !== undefined && say.voiceTo === surface;
   if (!say.text || !isMine) {
     setVoiceState('idle');
@@ -287,33 +294,55 @@ export function playSayVoice(say: { readonly text: string; readonly voiceTo?: Vo
   }
   if (surface === 'web' && typeof document !== 'undefined' && document.hidden) {
     setVoiceState('idle');
+    if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'hidden');
     return;
   }
   // 在调用栈尚有用户手势时预热增益上下文（合成是异步的，回来时手势往往已过期）。
   void unlockVoiceAudio();
-  void speakIfEnabled(say.text); // 不 await：播放是旁路，不能挡住气泡与动画
+  void speakIfEnabled(say.text, utteranceId); // 不 await：播放是旁路，不能挡住气泡与动画
+}
+
+/** 把一句朗读的终态报给宿主；失败静默——宿主侧有超时兜底，报不上也不能拖垮渲染。 */
+function reportVoiceUtterance(
+  utteranceId: string,
+  status: 'ended' | 'skipped' | 'failed',
+  reason?: string,
+): void {
+  void fetch(voiceBase + '/voice/utterance/' + encodeURIComponent(utteranceId) + '/report', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
+  }).catch(() => undefined);
 }
 
 /** 确认配置后再播；桌面端首次调用会顺手拉一次 `/config`。 */
-async function speakIfEnabled(text: string): Promise<void> {
+async function speakIfEnabled(text: string, utteranceId?: string): Promise<void> {
   await loadConfigOnce();
   if (!voiceEnabled) {
     setVoiceState('idle');
+    if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'disabled');
     return;
   }
   const seq = ++utteranceSeq;
   // 先报开始再置 loading：气泡要靠这条事件挂起收起计时，晚一步它就可能已经收了。
   emitUtterance({ kind: 'start', seq, text });
   setVoiceState('loading');
+  let failed = false;
   try {
     await speak(speechSlice(text));
+    // speak 内部失败会置 failed，这里再读一次：合成失败也要给宿主回执，否则弹幕队列会干等到超时
+    failed = getVoiceState() === 'failed';
   } finally {
     // 成功、失败、超时都走这里：气泡在等这个收尾，漏一次就永远挂着。
     emitUtterance({ kind: 'end', seq, text });
+    if (utteranceId) {
+      reportVoiceUtterance(utteranceId, failed ? 'failed' : 'ended', failed ? 'speak-failed' : undefined);
+    }
   }
 }
 
-/** 请求合成并播放；任何一步失败都落到 `failed`（气泡上留一个静音喇叭，而不是干脆没图标）。 */
+/** 请求合成并播放；任何一步失败都落到 `failed`（气泡上留一个静音喇叭，而不是干脆没图标）。
+ *  成功路径要等到 `onended`（或出错）才返回——调用方靠它判断「真正读完」，不能在 `play()` 一兑现就收尾。 */
 async function speak(text: string): Promise<void> {
   try {
     const response = await fetch(voiceBase + '/voice/speak', {
@@ -332,13 +361,23 @@ async function speak(text: string): Promise<void> {
     }
     const objectUrl = URL.createObjectURL(await response.blob());
     const audio = new Audio(objectUrl);
-    // 播完或出错都要释放，否则每句留一个 blob 引用
-    audio.onended = () => URL.revokeObjectURL(objectUrl);
-    audio.onerror = () => URL.revokeObjectURL(objectUrl);
     await applyPlaybackVolume(audio, voiceVolume);
     // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
     setVoiceState('ready');
-    await audio.play();
+    // 播完 / 出错 / play 被拒都要释放 blob，并让 await 真正等到读完（或失败）
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = (ok: boolean): void => {
+        if (settled) return;
+        settled = true;
+        if (!ok) setVoiceState('failed');
+        URL.revokeObjectURL(objectUrl);
+        resolve();
+      };
+      audio.onended = () => finish(true);
+      audio.onerror = () => finish(false);
+      void audio.play().catch(() => finish(false));
+    });
   } catch {
     /* 含超时：气泡已经显示，失败也不能反过来打断渲染，只把图标换成静音喇叭 */
     setVoiceState('failed');

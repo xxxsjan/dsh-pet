@@ -13,6 +13,7 @@ import { handleAvatarRoutes } from './avatar.ts';
 import { handleBalanceRoutes } from './balance.ts';
 import { handleChatRoutes } from './chat.ts';
 import { handleConfigRoutes } from './config/index.ts';
+import { handleDanmakuRoutes } from './danmaku.ts';
 import { handleDesktopRoutes } from './desktop.ts';
 import { handleInteractionRoutes } from './interaction.ts';
 import { handleMenuRoutes } from './menu.ts';
@@ -41,6 +42,7 @@ const HANDLERS: readonly RouteHandler[] = [
   handleAttachmentRoutes,
   handleTodoRoutes,
   handleVoiceRoutes,
+  handleDanmakuRoutes,
   handleAvatarRoutes,
   handleAssetsRoutes,
 ];

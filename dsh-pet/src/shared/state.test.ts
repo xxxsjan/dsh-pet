@@ -294,6 +294,7 @@ describe('readSay —— 说话叶子（弹气泡 / 清空 两种形态）', () 
       duration: undefined,
       anim: undefined,
       voiceTo: undefined,
+      voiceUtteranceId: undefined,
     });
   });
 

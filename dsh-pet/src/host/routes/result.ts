@@ -41,6 +41,7 @@ export type ResultReason =
   | 'unknown-owner'
   | 'unknown-pet'
   | 'unknown-playback'
+  | 'unknown-utterance'
   | 'unsupported'
   | 'user-config-unparsable'
   | 'voice-busy';

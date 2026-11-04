@@ -19,8 +19,10 @@ import type { SleepStore } from '../sleep.ts';
 import type { PollStateStore } from '../state.ts';
 import type { VoiceTarget } from '../surface.ts';
 import type { TodoStore } from '../todo/store.ts';
+import type { DouyinMonitor } from '../danmaku/douyin/monitor.ts';
 import type { HearService } from '../voice/hear.ts';
 import type { VoiceService } from '../voice/speak.ts';
+import type { VoiceUtteranceStore } from '../voice/utterance.ts';
 import type { WorkStatusStore } from '../work-status.ts';
 
 /** 一次路由调用的输入：URL 已解析，`rest` 是去掉前缀并解码后的路径。 */
@@ -39,7 +41,7 @@ export interface RouteInput {
 
 /** 碎碎念与对话共用的生成结果。 */
 export type GeneratedReply =
-  | { ok: true; text: string; image?: string }
+  | { ok: true; text: string; image?: string; voiceUtteranceId?: string }
   | {
       ok: false;
       reason: 'provider-missing' | 'generate-error' | 'unknown-pet' | 'unknown-image';
@@ -99,6 +101,8 @@ export interface PetRouteDeps {
   ) => PetLookup;
   /** 播放记录表。 */
   readonly playback: PlaybackStore;
+  /** 语音播报回执表（对话回复「真正读完」）。 */
+  readonly voiceUtterances: VoiceUtteranceStore;
   /** 用户数据根。 */
   readonly userRoot: string;
   /** 占用锁。 */
@@ -162,4 +166,6 @@ export interface PetRouteDeps {
   readonly voice: VoiceService;
   /** 语音识别服务（音频转文字；宿主没启用语音输入时由它自己回 unsupported）。 */
   readonly speech: HearService;
+  /** 抖音弹幕监听（进房 + 签名桥 + WSS 聊天日志）。 */
+  readonly douyinDanmaku: DouyinMonitor;
 }

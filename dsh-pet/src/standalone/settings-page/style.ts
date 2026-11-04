@@ -56,6 +56,7 @@ a{color:var(--dsw-static-blue-500)}
 .nav{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}
 .navList{display:flex;flex-direction:column;gap:2px;min-height:0;overflow-y:auto}
 .navCell{display:flex;align-items:center;gap:9px;height:36px;padding:0 10px;border:0;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:pointer}
+a.navCell{text-decoration:none;color:inherit;box-sizing:border-box}
 .navCell:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .navCell[aria-selected=true]{background:var(--dsw-specific-sidebar-nav-item-active);color:var(--dsw-alias-label-primary);font-weight:500}
 .navGlyph{flex:none;width:16px;height:16px;display:block}

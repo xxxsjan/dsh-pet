@@ -176,6 +176,7 @@ export function readBalance(leaf: StateLeaf): { state: BalanceState; manual: boo
  *  配图两种形态并列、由字段名区分：image = 表情包池内的名称（消费端拼图片路径），url = 第三方给的完整地址。
  *  不做「一个中性字段装两种值」：消费端必须知道该不该拼路径，靠 startsWith('http') 嗅探在名字像 URL 时会出错。
  *  voiceTo：宿主指定这一句该由哪一端念（目前只有周期碎碎念与待办提醒写入）；缺省 = 谁都不念。
+ *  voiceUtteranceId：朗读回执编号（对话回复需要「真正读完」才进下一条时写入）；缺省 = 不报回执。
  */
 export type SayCue =
   | {
@@ -186,6 +187,7 @@ export type SayCue =
       duration?: number;
       anim?: boolean;
       voiceTo?: VoiceTarget;
+      voiceUtteranceId?: string;
     }
   | { kind: 'clear' };
 
@@ -204,6 +206,7 @@ export function readSay(leaf: StateLeaf): SayCue | null {
     duration?: unknown;
     anim?: unknown;
     voiceTo?: unknown;
+    voiceUtteranceId?: unknown;
     clear?: unknown;
   };
   // 清空指令优先：它不带 text，所以必须排在文本校验前面
@@ -221,6 +224,9 @@ export function readSay(leaf: StateLeaf): SayCue | null {
     anim: typeof d.anim === 'boolean' ? d.anim : undefined,
     // 只认两个合法字面量：写错的一端名等于「不指定」，消费端据此不念
     voiceTo: d.voiceTo === 'web' || d.voiceTo === 'desktop' ? d.voiceTo : undefined,
+    // 非空字符串才认：宿主写入的 vu-… 编号；脏值当没给，消费端不报回执
+    voiceUtteranceId:
+      typeof d.voiceUtteranceId === 'string' && d.voiceUtteranceId !== '' ? d.voiceUtteranceId : undefined,
   };
 }
 

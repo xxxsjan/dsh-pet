@@ -293,6 +293,8 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /aria-live="polite"/);
   assert.match(settingsPage, /data-tab="config"/);
   assert.match(settingsPage, /data-tab="chat"/);
+  assert.match(settingsPage, /href="\/dsh-pet-7340\/danmaku\/"/);
+  assert.match(settingsPage, /id="link-danmaku"/);
   assert.doesNotMatch(settingsPage, /data-tab="voice"/);
   assert.doesNotMatch(settingsPage, /data-tab="model"/);
   assert.match(settingsPage, /id="panel-config"/);

@@ -106,6 +106,9 @@
     "@electron-internal/extract-zip": "^1.0.5",
     "@electron/get": "^5.1.0",
     "openai": "7.39.0",
+    "pako": "^3.0.3",
+    "protobufjs": "^8.8.1",
+    "ws": "^8.22.1",
     "zod": "4.6.7"
   },
   "dsh": {
@@ -143,8 +146,10 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
+    "@types/pako": "^3.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@types/ws": "^8.18.2",
     "electron-builder": "^26.15.3",
     "eslint": "^10.9.0",
     "eslint-plugin-jsdoc": "^65.4.2",

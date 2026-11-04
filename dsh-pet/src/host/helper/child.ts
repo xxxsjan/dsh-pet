@@ -7,7 +7,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-import { BRIDGE_PREFIX } from './bridge.ts';
+import { BRIDGE_PREFIX, DOUYIN_SIGN_PREFIX } from './bridge.ts';
 import type { BridgeHandler, BridgeRequest, BridgeResponse } from './bridge.ts';
 import { defaultHelperMain, defaultLaunch, dshHomeDir, readElectronVersion } from './electron.ts';
 import {
@@ -102,6 +102,8 @@ export class HelperProcess {
   declare private hasSandboxFallbackApplied: boolean;
   /** 当前子进程有没有写过 stdout/stderr：有输出说明 JS 已经跑过，秒退就不能赖沙箱 */
   declare private hasChildOutput: boolean;
+  /** Helper 抖音签名桥基址（本机 HTTP）；子进程退出后清空。 */
+  declare private douyinSignBaseUrl: string;
 
   constructor(options: HelperOptions = {}, logger: Logger = console) {
     this.options = options;
@@ -115,6 +117,12 @@ export class HelperProcess {
     this.launchIdentity = '';
     this.hasSandboxFallbackApplied = false;
     this.hasChildOutput = false;
+    this.douyinSignBaseUrl = '';
+  }
+
+  /** 当前 Helper 宣告的抖音签名桥基址；未就绪或已退出时为空串。 */
+  getDouyinSignBaseUrl(): string {
+    return this.douyinSignBaseUrl;
   }
 
   /** 拉起子进程；已有子进程在跑或正在停止时直接返回现有句柄。 */
@@ -171,6 +179,7 @@ export class HelperProcess {
     child.once('exit', (code, signal) => {
       if (this.child !== child) return;
       this.child = undefined;
+      this.douyinSignBaseUrl = '';
       clearTimeout(stableTimer);
       if (!this.stopping) {
         // 沙箱初始化失败的特殊形态：秒退、无输出、退出码 0x80000003 → 换 --no-sandbox 立刻重试一次。
@@ -210,6 +219,14 @@ export class HelperProcess {
       if (!trimmed) continue;
       if (trimmed.startsWith(BRIDGE_PREFIX)) {
         void this.handleBridgeLine(trimmed);
+        continue;
+      }
+      if (trimmed.startsWith(DOUYIN_SIGN_PREFIX)) {
+        const url = trimmed.slice(DOUYIN_SIGN_PREFIX.length).trim();
+        if (/^https?:\/\//.test(url)) {
+          this.douyinSignBaseUrl = url.replace(/\/$/, '');
+          this.logger.info?.(`[dsh-pet] douyin sign bridge: ${this.douyinSignBaseUrl}`);
+        }
         continue;
       }
       this.logger.debug?.(`[dsh-pet desktop helper] ${trimmed}`);

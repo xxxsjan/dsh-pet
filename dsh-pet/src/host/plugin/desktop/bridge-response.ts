@@ -27,7 +27,12 @@ export function toBridgeResponse(id: number, result: RouteResult): BridgeRespons
     return { id, status: 200, contentType: result.contentType, file: result.file };
   }
   if (result.kind === 'text') {
-    return { id, status: result.status, contentType: TEXT_UTF8, body: result.body };
+    return {
+      id,
+      status: result.status,
+      contentType: result.contentType ?? TEXT_UTF8,
+      body: result.body,
+    };
   }
   if (result.kind === 'none') {
     // 无需应答：管道侧不传 abort signal，正常到不了这里；保底给个空 204。

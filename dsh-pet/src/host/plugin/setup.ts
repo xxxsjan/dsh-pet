@@ -20,6 +20,7 @@ import { PACKAGE_MEMES_DIR, PACKAGE_ROOT } from '../paths.ts';
 import { PlaybackStore } from '../playback.ts';
 import { resolveAsset } from '../http.ts';
 import { PollStateStore } from '../state.ts';
+import { VoiceUtteranceStore } from '../voice/utterance.ts';
 import { WorkStatusStore } from '../work-status.ts';
 import type { StandaloneWhisperPolicy } from '../whisper-policy.ts';
 
@@ -71,6 +72,8 @@ export interface HostSetup {
   readonly menuRegistry: MenuRegistry;
   /** 播放记录表 */
   readonly playback: PlaybackStore;
+  /** 语音播报回执表（对话回复「真正读完」） */
+  readonly voiceUtterances: VoiceUtteranceStore;
   /** 工作状态快照 */
   readonly workStatus: WorkStatusStore;
   /** 外部写入的固定会话 id */
@@ -213,6 +216,10 @@ export function createHostSetup(ctx: HostSetupContext): HostSetup {
   // 塞进 1s 全局广播会让每个窗口为每个功能付流量。
   const playback = new PlaybackStore();
 
+  // 语音播报回执：对话写 say 时可选挂 utteranceId；渲染端真正读完（或跳过/失败）后上报。
+  // 弹幕队列据此串行「回复完且读完」再进下一条；与 playback 一样不进 1s 全局广播。
+  const voiceUtterances = new VoiceUtteranceStore();
+
   // 工作状态联动快照（/work-status 端点响应，浏览器 1s 轮询）：state = 当前活动状态（null = 空闲），
   // task = 当前任务详情。state 与 task 都按会话存——全局单值会让一次任务详情跟着此后所有会话活动
   // 一直显示（issue #59）。气泡文案不在此：浏览器读配置 events.workStatusTexts。
@@ -242,6 +249,7 @@ export function createHostSetup(ctx: HostSetupContext): HostSetup {
     state,
     menuRegistry,
     playback,
+    voiceUtterances,
     workStatus,
     EXTERNAL_WORK_SESSION,
     nextExternalWorkSeq,

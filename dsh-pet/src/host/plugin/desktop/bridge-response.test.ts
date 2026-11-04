@@ -19,9 +19,20 @@ describe('toBridgeResponse —— 路由结果 → 管道应答', () => {
     assert.deepEqual(res, { id: 7, status: 200, contentType: 'video/webm', file: '/tmp/a.webm' });
   });
 
-  test('文本：状态码与正文原样带回，类型固定 text/plain', () => {
+  test('文本：状态码与正文原样带回，缺省类型 text/plain', () => {
     const res = toBridgeResponse(2, { kind: 'text', status: 404, body: 'not found' });
     assert.deepEqual(res, { id: 2, status: 404, contentType: 'text/plain; charset=utf-8', body: 'not found' });
+  });
+
+  test('文本：显式 contentType 原样带回（HTML 控制页）', () => {
+    const res = toBridgeResponse(8, {
+      kind: 'text',
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: '<html></html>',
+    });
+    assert.equal(res.contentType, 'text/html; charset=utf-8');
+    assert.equal(res.body, '<html></html>');
   });
 
   test('JSON：业务失败体原样透传（200 + ok:false 不在这一层改成 5xx）', () => {

@@ -28,6 +28,7 @@ export function createDesktopHelper(deps: DesktopHelperDeps) {
     assetRootFor: spawn.assetRootFor,
     userRootFor: spawn.userRootFor,
     markDisposed: spawn.markDisposed,
+    getDouyinSignBaseUrl: spawn.getDouyinSignBaseUrl,
   };
 }
 

@@ -52,6 +52,7 @@ const { createWindows } = require('./main/windows.js');
 const { registerIpc } = require('./main/ipc.js');
 const { createDisplaySync } = require('./main/displays.js');
 const { dshHomeDir, resolveUserDataDir } = require('./main/user-data.js');
+const { startDouyinSignBridge } = require('./main/douyin-sign.js');
 
 /** Linux 指针提供者：仅在 Linux 创建；查询失败时 get() 返回 null（调用方回退 Electron 原生 API） */
 const linuxPointer = process.platform === 'linux' ? createLinuxPointer() : null;
@@ -307,6 +308,19 @@ app.whenReady().then(() => {
 
   registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE });
   createDisplaySync({ screen, petWindows, dpi });
+
+  // 抖音弹幕签名桥：隐藏窗跑 webmssdk，本机 HTTP 给宿主半侧签 X-Bogus（与进房/WSS 监听配套）。
+  const douyinSign = startDouyinSignBridge({ BrowserWindow, helperDir: __dirname });
+  app.once('before-quit', () => {
+    try {
+      douyinSign.stop();
+    } catch (e) {
+      console.error(
+        '[dsh-pet-desktop-helper] douyin sign stop failed:',
+        String(e && e.message ? e.message : e),
+      );
+    }
+  });
 
   // 冒烟自检（默认关闭）：DSH_PET_SMOKE=1 时延时截图到 DSH_PET_SMOKE_OUT 后退出，
   // 用于验证窗口/渲染/动画链路。

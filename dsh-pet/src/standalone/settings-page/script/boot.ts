@@ -70,7 +70,8 @@ function selectTab(name) {
 }
 
 function wireTabs() {
-  const cells = Array.prototype.slice.call(document.querySelectorAll('.navCell'));
+  // 只绑分区 tab；侧栏外链（如抖音弹幕）无 data-tab，交给浏览器跳转。
+  const cells = Array.prototype.slice.call(document.querySelectorAll('.navCell[data-tab]'));
   cells.forEach((cell, index) => {
     cell.addEventListener('click', () => selectTab(cell.dataset.tab));
     cell.addEventListener('keydown', (event) => {

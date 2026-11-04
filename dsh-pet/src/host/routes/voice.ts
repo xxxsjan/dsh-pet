@@ -1,5 +1,6 @@
 /**
- * 语音领域：`/voice/speak` 合成、`/voice/hear` 识别与 `/voice/voices` 音色列表。
+ * 语音领域：`/voice/speak` 合成、`/voice/hear` 识别、`/voice/voices` 音色列表，
+ * 以及 `/voice/utterance/{id}/report` 朗读回执。
  *
  * 校验、排队与缓存都在语音服务里；这里只判定方法与 JSON，并把结论映射成路由应答。
  * 契约见 openapi.yaml，本模块不重复描述字段。
@@ -9,9 +10,38 @@ import type { RouteResult } from '../http.ts';
 import type { PetRouteDeps, RouteInput } from './types.ts';
 import { failResult, invalidJson, methodNotAllowed, okResult } from './result.ts';
 
+/** `voice/utterance/<id>/report` → utteranceId；其它形态 → undefined。 */
+function parseUtteranceReportPath(rest: string): string | undefined {
+  const m = /^voice\/utterance\/([^/]+)\/report$/.exec(rest);
+  if (!m) return undefined;
+  try {
+    return decodeURIComponent(m[1] ?? '');
+  } catch {
+    return undefined;
+  }
+}
+
 /** 语音领域：未命中返回 undefined，命中返回应答。 */
 export async function handleVoiceRoutes(deps: PetRouteDeps, input: RouteInput): Promise<RouteResult | undefined> {
   const { body, method, rest, signal } = input;
+
+  // 朗读回执：渲染端真正读完 / 跳过 / 失败后上报；弹幕队列靠它串行下一条。
+  const utteranceId = parseUtteranceReportPath(rest);
+  if (utteranceId !== undefined) {
+    if (method !== 'POST') return methodNotAllowed();
+    if (!utteranceId) return failResult('bad-request', 'invalid utterance id');
+    let reported: unknown;
+    try {
+      reported = JSON.parse(body ?? 'null');
+    } catch {
+      return invalidJson();
+    }
+    const o = reported && typeof reported === 'object' ? (reported as Record<string, unknown>) : {};
+    const outcome = deps.voiceUtterances.report(utteranceId, o.status, o.reason);
+    if (outcome === 'unknown') return failResult('unknown-utterance', 'unknown utterance');
+    if (outcome === 'invalid') return failResult('bad-request', 'invalid status');
+    return okResult({ ok: true });
+  }
 
   if (rest === 'voice/voices') {
     if (method !== 'GET') return methodNotAllowed();

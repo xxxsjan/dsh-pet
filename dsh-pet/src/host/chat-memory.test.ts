@@ -76,6 +76,10 @@ function createMemory(
     memeDirsFor: () => (memeDir === undefined ? [] : [memeDir]),
     // 播放回执表只用到 create：编号带宠物与动作名，测试据此断言写进叶子的是哪一个动作
     playback: { create: (petId: string, name: string) => ({ playbackId: 'pb-' + petId + '-' + name }) },
+    // 语音回执：对话写 say 时 create；测试只断言叶子是否带了 utteranceId
+    voiceUtterances: {
+      create: (petId: string) => ({ utteranceId: 'vu-' + petId + '-1' }),
+    },
     state: {
       writePet: (petId: string, leaf: string, data: Record<string, unknown>) => {
         collect?.writes?.push(petId + '.' + leaf);
@@ -267,6 +271,8 @@ describe('createChatMemory —— 对话回复的 voiceTo', () => {
       const r = await createMemory('在的', ws, undefined, { records }).chatWithPet('main', '在吗');
       assert.equal(r.ok, true);
       assert.equal(records[0]?.data.voiceTo, 'desktop', '默认宠物 display=both，桌面优先');
+      assert.equal(records[0]?.data.voiceUtteranceId, 'vu-main-1', '要念的回复挂回执编号');
+      assert.equal(r.ok && r.voiceUtteranceId, 'vu-main-1');
     } finally {
       rmSync(ws.dir, { recursive: true, force: true });
     }

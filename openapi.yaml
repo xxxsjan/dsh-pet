@@ -96,6 +96,8 @@ tags:
     description: 字体、通知图标、表情包、动画素材
   - name: Voice
     description: 语音合成——参数校验、排队与缓存都在宿主，成功时直接返回 mp3 文件
+  - name: Danmaku
+    description: 直播弹幕监听（当前仅抖音）——进房 + 签名桥 + WSS，聊天只打宿主日志，不接 UI/LLM
 
 paths:
   /dsh-pet-7340/state:
@@ -2460,6 +2462,61 @@ paths:
         "405":
           description: 方法不是 POST。
 
+  /dsh-pet-7340/voice/utterance/{id}/report:
+    post:
+      tags: [Voice]
+      operationId: reportVoiceUtterance
+      summary: 上报朗读状态（内部通道：渲染端 → 宿主）
+      description: |
+        宿主写 `say` 时可选挂 `voiceUtteranceId`；渲染端真正读完、跳过或失败后调本接口。
+        弹幕回复队列靠这条回执决定能不能进下一条——`/chat` 返回只代表生成完，不等于念完。
+
+        第三方调用方不需要调它。终态之后的上报幂等忽略仍回 200。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: '`voiceUtteranceId`。'
+          schema:
+            type: string
+          example: vu-mfh2k1-1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ended, skipped, failed]
+                  description: 'ended=真正读完；skipped=本端不念（关开关/后台页等）；failed=合成或播放失败。'
+                reason:
+                  type: string
+                  description: 可选原因（自由字符串）。
+      responses:
+        "200":
+          description: |
+            成功或幂等忽略：`{ ok: true }`；未知编号 / 非法 status 仍是业务失败：
+            `{ ok: false, reason, message }`（reason = `unknown-utterance` / `bad-request`）。
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                  reason:
+                    type: string
+                  message:
+                    type: string
+        "400":
+          description: 请求体不是合法 JSON。
+        "405":
+          description: 方法不是 POST。
+
   /dsh-pet-7340/voice/speak:
     post:
       tags: [Voice]
@@ -2558,6 +2615,128 @@ paths:
                           type: string
                         default:
                           type: boolean
+        "405":
+          description: 方法不是 GET。
+
+  /dsh-pet-7340/danmaku:
+    get:
+      tags: [Danmaku]
+      operationId: getDouyinDanmakuPage
+      summary: 抖音弹幕监听控制页
+      description: |
+        返回自包含 HTML：填写直播间、开始/停止、轮询 status。
+        也可访问带尾斜杠的 `/dsh-pet-7340/danmaku/`。
+      responses:
+        "200":
+          description: HTML 控制页。
+          content:
+            text/html:
+              schema:
+                type: string
+        "405":
+          description: 方法不是 GET/HEAD。
+
+  /dsh-pet-7340/danmaku/douyin/start:
+    post:
+      tags: [Danmaku]
+      operationId: startDouyinDanmaku
+      summary: 开始监听抖音直播弹幕（聊天只打日志）
+      description: |
+        进房拿 room_id / ttwid，经桌面 Helper 签名桥签 X-Bogus，再连 WSS。
+        当前只处理 `WebcastChatMessage`，写入宿主日志 `[dsh-pet][douyin] chat ...`，不弹气泡、不调 LLM。
+        需要桌面 Helper 已启动（独立应用或桌面宠物模式），否则签名桥不可用。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  description: "https://live.douyin.com/数字 或纯数字房间号。"
+                cookie:
+                  type: string
+                  description: "可选浏览器登录 Cookie（纯聊天可不传；礼物建议粘贴登录 Cookie）。"
+                replyChat:
+                  type: boolean
+                  description: 是否把弹幕交给活跃宠物 /chat。
+                thankGift:
+                  type: boolean
+                  description: 是否把礼物感谢交给活跃宠物 /chat。
+      responses:
+        "200":
+          description: 启动结论（业务失败也是 200 + FailureResponse）。
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
+                  - $ref: '#/components/schemas/FailureResponse'
+        "400":
+          description: 请求体不是合法 JSON。
+        "405":
+          description: 方法不是 POST。
+
+  /dsh-pet-7340/danmaku/douyin/options:
+    post:
+      tags: [Danmaku]
+      operationId: setDouyinDanmakuOptions
+      summary: 热更新回复弹幕 / 感谢礼物开关
+      description: 监听中也可改；字段缺省表示不改这一项。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                replyChat:
+                  type: boolean
+                thankGift:
+                  type: boolean
+      responses:
+        "200":
+          description: 更新后的状态快照。
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
+                  - $ref: '#/components/schemas/FailureResponse'
+        "400":
+          description: 请求体不是合法 JSON。
+        "405":
+          description: 方法不是 POST。
+
+  /dsh-pet-7340/danmaku/douyin/stop:
+    post:
+      tags: [Danmaku]
+      operationId: stopDouyinDanmaku
+      summary: 停止抖音弹幕监听
+      responses:
+        "200":
+          description: 停止后的状态快照。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
+        "405":
+          description: 方法不是 POST。
+
+  /dsh-pet-7340/danmaku/douyin/status:
+    get:
+      tags: [Danmaku]
+      operationId: getDouyinDanmakuStatus
+      summary: 查询抖音弹幕监听状态
+      responses:
+        "200":
+          description: 当前监听快照。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
         "405":
           description: 方法不是 GET。
 
@@ -3297,6 +3476,88 @@ components:
       description: |
         生成成功。文本**仍然**照旧写进 `pets.<id>.say`——其它消费端（网页、桌面、第三方监听）
         继续从 `/state` 读；返回值只是让发起的这一方省一次往返，不改变任何现有展示链路。
+
+    DouyinDanmakuStatusResponse:
+      type: object
+      required:
+        [
+          ok,
+          listening,
+          url,
+          roomId,
+          title,
+          anchor,
+          chatCount,
+          giftCount,
+          lastError,
+          startedAt,
+          replyChat,
+          thankGift,
+          recent,
+        ]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        listening:
+          type: boolean
+          description: 当前 WSS 是否已连接；断线重连间隙为 false。
+        url:
+          type: string
+          description: 最近一次 start 传入的直播间 URL / 房间号。
+        roomId:
+          type: string
+          description: 进房解析到的真实 room_id；未进房成功时为空串。
+        title:
+          type: string
+        anchor:
+          type: string
+        chatCount:
+          type: integer
+          minimum: 0
+          description: 本次监听累计写入日志的聊天条数。
+        giftCount:
+          type: integer
+          minimum: 0
+          description: 本次监听累计定稿的礼物条数。
+        lastError:
+          type: string
+          description: 最近一次错误文案；无错误时为空串。
+        startedAt:
+          type: [integer, "null"]
+          description: 首次成功建连的 epoch ms；尚未连上时为 null。
+        replyChat:
+          type: boolean
+          description: 是否把弹幕发给活跃宠物 /chat。
+        thankGift:
+          type: boolean
+          description: 是否把礼物感谢发给活跃宠物 /chat。
+        recent:
+          type: array
+          maxItems: 50
+          description: 最近聊天与礼物（按时间升序，最多 50 条）；控制页轮询展示。
+          items:
+            type: object
+            required: [id, at, kind, nick, text, count]
+            properties:
+              id:
+                type: integer
+                description: 本次监听内递增序号。
+              at:
+                type: integer
+                description: 收到时刻 epoch ms。
+              kind:
+                type: string
+                enum: [chat, gift]
+              nick:
+                type: string
+              text:
+                type: string
+                description: 弹幕正文，或礼物名称。
+              count:
+                type: integer
+                minimum: 0
+                description: 礼物件数；聊天为 0。
 
     FailureResponse:
       type: object

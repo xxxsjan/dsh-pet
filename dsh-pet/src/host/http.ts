@@ -208,16 +208,21 @@ export function sendJson(
   res.end(body);
 }
 
-/** 发送纯文本响应（素材 404/400 等显式错误文案） */
-export function sendText(res: ServerResponse, status: number, body: string): void {
-  res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+/** 发送文本响应（默认纯文本；HTML 控制页等可显式传 contentType）。 */
+export function sendText(
+  res: ServerResponse,
+  status: number,
+  body: string,
+  contentType = 'text/plain; charset=utf-8',
+): void {
+  res.writeHead(status, { 'content-type': contentType });
   res.end(body);
 }
 
 /** 单次业务路由的应答（WebServer 注册与桌面 Helper 管道共用的同一契约；消费方各自落盘） */
 export type RouteResult =
   | { kind: 'json'; status: number; obj: unknown; headers?: Record<string, string> }
-  | { kind: 'text'; status: number; body: string }
+  | { kind: 'text'; status: number; body: string; contentType?: string }
   | { kind: 'file'; file: string; contentType: string }
   /** 无需应答：调用方在挂起等待期间已断开（见 /playback 的等待分支）——消费方直接收尾，不写 */
   | { kind: 'none' };

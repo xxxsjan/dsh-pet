@@ -254,7 +254,26 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
     disposed = true;
   };
 
-  return { startHelper, stopHelper, stopHelperAndWait, markDisposed, assetRootFor, userRootFor };
+  /** 抖音签名桥基址：子进程 Helper 优先，同进程应用模式读 globalThis。 */
+  const getDouyinSignBaseUrl = (): string | undefined => {
+    const fromHelper = helper?.getDouyinSignBaseUrl()?.trim();
+    if (fromHelper) return fromHelper;
+    const g = globalThis as { __dshPetDouyinSignBaseUrl?: unknown };
+    const inProcess = g.__dshPetDouyinSignBaseUrl;
+    return typeof inProcess === 'string' && /^https?:\/\//.test(inProcess)
+      ? inProcess.replace(/\/$/, '')
+      : undefined;
+  };
+
+  return {
+    startHelper,
+    stopHelper,
+    stopHelperAndWait,
+    markDisposed,
+    assetRootFor,
+    userRootFor,
+    getDouyinSignBaseUrl,
+  };
 }
 
 /** DesktopSpawn的产出。 */

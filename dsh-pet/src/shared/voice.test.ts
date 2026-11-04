@@ -59,8 +59,12 @@ function stubBrowser(sink?: { volumes: number[] }): () => void {
   (globalThis as { Audio?: unknown }).Audio = class {
     /** 与真实 Audio 同名的音量字段：被测代码写它，这里在 play 时取出。 */
     volume = 1;
+    onended: (() => void) | null = null;
+    onerror: (() => void) | null = null;
     play(): Promise<void> {
       sink?.volumes.push(this.volume);
+      // speak() 现在要等 onended 才返回；测试桩在下一拍模拟播完，否则用例会挂死。
+      queue.microtask(() => this.onended?.());
       return Promise.resolve();
     }
   };

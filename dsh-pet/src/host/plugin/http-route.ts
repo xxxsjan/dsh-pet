@@ -88,7 +88,8 @@ export function registerHttpRoute(ctx: HostContext, handlePetRoute: HttpRouteHan
             const result = await handlePetRoute(req.url ?? '/', req.method ?? 'GET', body, abort.signal);
             res.off('close', onClose);
             if (result.kind === 'json') sendJson(res, result.status, result.obj, result.headers);
-            else if (result.kind === 'text') sendText(res, result.status, result.body);
+            else if (result.kind === 'text')
+              sendText(res, result.status, result.body, result.contentType ?? 'text/plain; charset=utf-8');
             else if (result.kind === 'none') {
               /* 调用方已断开：不再写（写了会抛） */
             } else sendFile(req, res, result.file, result.contentType); // 非 async：流在 open 后自己 pipe，错误内部收口

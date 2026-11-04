@@ -34,6 +34,7 @@ export type ChatMemoryInput = {
   Pick<HostSetup, 'log'> &
   Pick<HostSetup, 'memeDirsFor'> &
   Pick<HostSetup, 'playback'> &
+  Pick<HostSetup, 'voiceUtterances'> &
   Pick<HostSetup, 'state'> &
   Pick<HostSetup, 'userRoot'>;
 
@@ -41,7 +42,7 @@ export type ChatMemoryInput = {
  * 创建对话与记忆。
  */
 export function createChatMemory(deps: ChatMemoryInput) {
-  const { ctx, configPaths, log, memeDirsFor, playback, state, userRoot } = deps;
+  const { ctx, configPaths, log, memeDirsFor, playback, voiceUtterances, state, userRoot } = deps;
   // 命令「当前桌宠」（/pet 选择、/chat 使用）：全局单值不分会话；进程内内存，重启回默认第一只
   let activePetId = '';
 
@@ -224,7 +225,7 @@ export function createChatMemory(deps: ChatMemoryInput) {
     text: string,
     image?: PetImageRef,
   ): Promise<
-    | { ok: true; text: string; image?: string }
+    | { ok: true; text: string; image?: string; voiceUtteranceId?: string }
     | { ok: false; reason: 'provider-missing' | 'generate-error' | 'unknown-pet'; message?: string }
   > =>
     withMemoryLock(async () => {
@@ -300,18 +301,27 @@ export function createChatMemory(deps: ChatMemoryInput) {
       // 回复写进 S（与碎碎念同一个叶子：前端本来就是同一条展示链路）。
       // 该由哪一端念按这只宠物的 display 推：对话请求带的是 surface=any，本来就没有具体的一端可用。
       const replyVoiceTo = voiceTargetFor(found.pet);
+      // 需要念的时候挂回执编号：渲染端真正读完（或跳过/失败）后上报，弹幕队列据此串行。
+      let voiceUtteranceId: string | undefined;
       // 只有动作没有正文（模型只写了标记）→ 不写 say，避免弹一个空气泡。
       if (generated.text !== '') {
+        if (replyVoiceTo) voiceUtteranceId = voiceUtterances.create(petId).utteranceId;
         state.writePet(petId, 'say', {
           text: generated.text,
           ...(generated.image ? { image: generated.image } : {}),
           // 带动作时显式关掉碎碎念动画：气泡照弹，但不把刚点播的动作顶掉
           ...(generated.action !== undefined ? { anim: false } : {}),
           ...(replyVoiceTo ? { voiceTo: replyVoiceTo } : {}),
+          ...(voiceUtteranceId ? { voiceUtteranceId } : {}),
         });
       }
       // 同一份文本随返回值带出（叶子照写，不是二选一）
-      return { ok: true as const, text: generated.text, ...(generated.image ? { image: generated.image } : {}) };
+      return {
+        ok: true as const,
+        text: generated.text,
+        ...(generated.image ? { image: generated.image } : {}),
+        ...(voiceUtteranceId ? { voiceUtteranceId } : {}),
+      };
     });
 
   /** 删除某只宠物的对话记忆：`ts` 缺省 = 清空全部，给了 ts = 只删命中的轮（一轮两条共享 ts，成对删）。

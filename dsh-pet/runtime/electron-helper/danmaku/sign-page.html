@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>dsh-pet douyin sign</title>
+  </head>
+  <body>
+    <script src="./webmssdk.js"></script>
+    <script src="./vFun.js"></script>
+    <script>
+      window.__dshPetDySignReady = !!(
+        typeof window.creatSignature === 'function' &&
+        window.byted_acrawler &&
+        typeof window.byted_acrawler.frontierSign === 'function'
+      );
+    </script>
+  </body>
+</html>
