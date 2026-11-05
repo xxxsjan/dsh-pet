@@ -370,32 +370,10 @@ function createWindows({
     windows.clear();
   }
 
-  /**
-   * 把所有宠物窗重新亮出来：托盘「显示宠物」用。
-   * 被任务栏/系统点藏或最小化后，还原 + showInactive（不抢键盘焦点）+ 再钉一次置顶。
-   */
-  function showAllPetWindows() {
-    for (const win of windows.values()) {
-      if (!win || win.isDestroyed()) continue;
-      try {
-        if (typeof win.isMinimized === 'function' && win.isMinimized()) win.restore();
-        win.showInactive();
-        win.setAlwaysOnTop(true, topmostLevel(process.platform));
-        keepOffTaskbar(win);
-      } catch (e) {
-        console.error(
-          '[blue-fish-desktop-helper] showAllPetWindows failed:',
-          String(e && e.message ? e.message : e),
-        );
-      }
-    }
-  }
-
   return {
     state: { windows, lastRequestedBounds, winMargins, windowIgnore, inputBusy, inputRegions, offBodyMs, petStates },
     create: createPetWindows,
     closeAll: closeAllPetWindows,
-    showAll: showAllPetWindows,
     geometry: deskGeometry,
     setWindowIgnore,
     clearAllForwardMouseHooks,

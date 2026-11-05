@@ -1,9 +1,9 @@
 'use strict';
 /**
- * 系统托盘：把藏起来的宠物亮出来、桌面显示开关、「窗口模式」与「退出」。
+ * 系统托盘：桌面显示开关、「窗口模式」与「退出」。
  *
  * 托盘是桌面模式唯一不进浏览器的入口——某只宠物改成 web/none 后窗口与右键菜单一起消失，
- * 只有托盘还能把它切回来；点任务栏把窗藏掉后，也靠这里的「显示宠物」再 show 出来。
+ * 只有托盘还能把它切回来。
  * 菜单是静态的：切换 display 后宿主会重启本进程，新进程按新配置重建。
  * @module dsh-pet/runtime/electron-helper/main/tray
  */
@@ -24,7 +24,6 @@ const path = require('node:path');
  * @param deps.petRoute - 宠物路由前缀。
  * @param deps.platform - 托盘平台差异（tray-platform.js 的判定结果）。
  * @param deps.helperDir - runtime/electron-helper 的绝对目录（图标在包的 assets/ 下）。
- * @param deps.showPets - 把已建的宠物窗重新显示出来（托盘「显示宠物」）。
  */
 function createTray({
   app,
@@ -38,7 +37,6 @@ function createTray({
   petRoute,
   platform,
   helperDir,
-  showPets,
 }) {
   const isDesktopDisplay = (display) => display === 'desktop' || display === 'both';
 
@@ -129,20 +127,6 @@ function createTray({
     };
     const obsCapture = !!(merged && merged.main && merged.main.obsCaptureEnabled === true);
     return Menu.buildFromTemplate([
-      {
-        label: '显示宠物',
-        click: () => {
-          try {
-            showPets?.();
-          } catch (e) {
-            console.error(
-              '[blue-fish-desktop-helper] tray showPets failed:',
-              String(e && e.message ? e.message : e),
-            );
-          }
-        },
-      },
-      { type: 'separator' },
       ...pets.map((pet) => ({
         label: pet.name || pet.id,
         type: 'checkbox',

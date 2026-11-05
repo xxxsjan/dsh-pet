@@ -40,7 +40,6 @@ function harness(options: {
   const bodies: string[] = [];
   const quits: string[] = [];
   const menus: MenuItem[][] = [];
-  const shows: string[] = [];
 
   class FakeTray {
     setToolTip(): void {}
@@ -84,11 +83,10 @@ function harness(options: {
     petRoute: '/blue-fish',
     platform: { templateImage: false, leftClickPopsMenu: false },
     helperDir: '.',
-    showPets: () => shows.push('showPets'),
   };
 
   const tray = createTray(deps);
-  return { tray, requests, bodies, quits, menus, shows };
+  return { tray, requests, bodies, quits, menus };
 }
 
 /** 取最后一次构建出来的菜单模板。 */
@@ -99,18 +97,6 @@ function lastMenu(menus: MenuItem[][]): MenuItem[] {
 }
 
 describe('createTray —— 勾选与点击', () => {
-  test('菜单第一项是「显示宠物」，点一下调用 showPets', async () => {
-    const { tray, menus, shows } = harness({
-      pets: [{ label: 'a', id: 'a', display: 'both' }],
-    });
-    await tray.start();
-    const menu = lastMenu(menus);
-    assert.equal(menu[0]?.label, '显示宠物');
-    assert.ok(menu[0]?.click, '显示宠物必须可点');
-    menu[0].click!();
-    assert.deepEqual(shows, ['showPets']);
-  });
-
   test('勾选状态来自配置：含 desktop / both 的两只被打勾', async () => {
     const { tray, menus } = harness({
       pets: [

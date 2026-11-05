@@ -237,7 +237,6 @@ const tray = createTray({
   petRoute: PET_ROUTE,
   platform: TRAY_PLATFORM,
   helperDir: __dirname,
-  showPets: () => petWindows.showAll(),
 });
 
 /**
