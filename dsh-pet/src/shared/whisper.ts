@@ -28,7 +28,7 @@ export function whisperBubbleView(state: WhisperState): WhisperBubbleRow[] {
 /** 表情包图片 URL，与视频同一套拼法：`<base>/pic/memes/<素材根>/<名称>.png`（素材根与名称都需编码）。
  *  带素材根是为了表达这张图属于哪只宠物：`pet/<素材根>-memes/` 存在时该种类只认自己的目录，
  *  否则走用户目录与包内 assets/memes；assetRoot 为空则退回两段形式，未打标的宠物与老宿主仍能取到图。
- *  base 已含 /dsh-pet-7340 前缀（与视频的 assetBase 一致），函数内不得再拼一次，否则桌面端图裂。
+ *  base 已含 /pet-233 前缀（与视频的 assetBase 一致），函数内不得再拼一次，否则桌面端图裂。
  *  桌面页面是 file:// 加载的，相对路径会解析成 file:/// 而必然失败，所以桌面传绝对基址。 */
 export function memeImageUrl(name: string, base = ROUTE_PATH, assetRoot = ''): string {
   const root = String(assetRoot ?? '').trim();
@@ -79,7 +79,7 @@ export function injectMemeBubbleCss(): void {
 
 /** 生成气泡配图节点（两端共用同一份渲染）；返回 null 表示本次不配图，调用方走纯文本路径。
  *  @param name - 配图名称（配置 memes 的键），缺省或空白 → null。
- *  @param base - 已含 /dsh-pet-7340 的宿主基址（与视频同规则）：浏览器缺省，桌面传 BASE。
+ *  @param base - 已含 /pet-233 的宿主基址（与视频同规则）：浏览器缺省，桌面传 BASE。
  *  @param assetRoot - 素材根（= 该宠物的条目 key），决定图片去哪个表情包目录链取。 */
 export function createMemeImage(name?: string, base = ROUTE_PATH, assetRoot = ''): HTMLImageElement | null {
   const key = String(name ?? '').trim();

@@ -5,7 +5,7 @@
  * 纯函数无副作用：帧形状不匹配或不认识的类型一律返回 null，不弹也不报错。
  * @module dsh-pet/src/shared/notify
  */
-/** 通知图标文件名（不含扩展名）；浏览器半侧拼完整 URL：/dsh-pet-7340/pic/<name>.png。 */
+/** 通知图标文件名（不含扩展名）；浏览器半侧拼完整 URL：/pet-233/pic/<name>.png。 */
 export const NOTIFY_ICONS = {
   done: 'notify-done',
   error: 'notify-error',

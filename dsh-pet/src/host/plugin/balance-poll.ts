@@ -122,7 +122,7 @@ export function createBalancePoll(deps: BalancePollInput) {
     }
   };
 
-  /** 当前交互桌宠 id：/dsh-pet-7340 已选且仍存在 → 该宠物；未选/已失效 → 有效宠物列表第一只（进程内，重启回默认） */
+  /** 当前交互桌宠 id：/pet-233 已选且仍存在 → 该宠物；未选/已失效 → 有效宠物列表第一只（进程内，重启回默认） */
   const resolveActivePetId = (): string => {
     try {
       const eff = effectivePetList();

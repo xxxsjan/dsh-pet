@@ -39,7 +39,7 @@ function isPageActive(): boolean {
   return pageVisible && pageFocused;
 }
 
-/** 图标 URL；pic 路由由宿主提供（`assets/pic` → `/dsh-pet-7340/pic/<file>`）。 */
+/** 图标 URL；pic 路由由宿主提供（`assets/pic` → `/pet-233/pic/<file>`）。 */
 const PIC = (name: string): string => `${ROUTE_PATH}/pic/${name}.png`;
 
 /** 图标 URL 表；文件名以 shared 为单一来源，设置页的测试通知也用它。 */

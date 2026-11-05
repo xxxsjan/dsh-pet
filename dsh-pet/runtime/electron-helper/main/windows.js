@@ -318,7 +318,7 @@ function createWindows({
   /** 渲染端首帧需要的全部参数：几何逐屏注入，运行期变化再经 pet:displays 推送。 */
   function windowQuery(pet, geo, scale) {
     return {
-      configUrl: process.env.DSH_PET_CONFIG_URL || 'http://127.0.0.1:3080/dsh-pet-7340/config',
+      configUrl: process.env.DSH_PET_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config',
       bridge: isBridge ? '1' : '0',
       openTarget,
       scale: String(scale),

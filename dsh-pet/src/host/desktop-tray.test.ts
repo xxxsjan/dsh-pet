@@ -81,7 +81,7 @@ function harness(options: {
     callbackUrl: () => 'http://127.0.0.1:1/bridge',
     isBridge: options.isBridge ?? false,
     appMode: options.appMode ?? false,
-    petRoute: '/dsh-pet-7340',
+    petRoute: '/pet-233',
     platform: { templateImage: false, leftClickPopsMenu: false },
     helperDir: '.',
     showPets: () => shows.push('showPets'),
@@ -140,7 +140,7 @@ describe('createTray —— 勾选与点击', () => {
       const item = lastMenu(menus).find((entry) => entry.type === 'checkbox' && entry.label !== '窗口模式');
       assert.ok(item?.click, '每只宠物都应有可点的开关项');
       item.click();
-      assert.ok(requests.includes('POST /dsh-pet-7340/pet-display'), `display=${from} 时应把新值写回宿主`);
+      assert.ok(requests.includes('POST /pet-233/pet-display'), `display=${from} 时应把新值写回宿主`);
       assert.equal(
         (JSON.parse(bodies[0] ?? '{}') as { display?: string }).display,
         to,
@@ -159,7 +159,7 @@ describe('createTray —— 勾选与点击', () => {
     assert.ok(item?.type === 'checkbox' && item.click, '必须有窗口模式开关');
     assert.equal(item.checked, true);
     item.click();
-    assert.ok(requests.includes('POST /dsh-pet-7340/obs-capture'));
+    assert.ok(requests.includes('POST /pet-233/obs-capture'));
     assert.equal((JSON.parse(bodies[0] ?? '{}') as { enabled?: boolean }).enabled, false);
   });
 });
@@ -192,7 +192,7 @@ describe('createTray —— 退出项的分支', () => {
     assert.ok(quit?.click, '宿主允许时应有退出项');
     quit.click();
     assert.deepEqual(quits, [], 'bridge 下不得自己退');
-    assert.ok(requests.includes('POST /dsh-pet-7340/quit'), '必须把退出请求交给宿主');
+    assert.ok(requests.includes('POST /pet-233/quit'), '必须把退出请求交给宿主');
   });
 
   test('bridge 且宿主不允许：不出现退出项', async () => {

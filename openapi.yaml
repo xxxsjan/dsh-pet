@@ -5,7 +5,7 @@ info:
   version: 0.4.1
   summary: DSH 桌宠插件的宿主 HTTP 接口
   description: |
-    dsh-pet 的宿主（host）半侧通过 DSH 的 `webServer` 服务注册**一条前缀路由** `/dsh-pet-7340`，
+    dsh-pet 的宿主（host）半侧通过 DSH 的 `webServer` 服务注册**一条前缀路由** `/pet-233`，
     浏览器半侧、桌面 Electron 半侧、以及设置页全都消费同一份实现（`handlePetRoute`）。
     本文件是该路由的公开契约：任何第三方插件 / 脚本都可以按此访问桌宠能力。
 
@@ -24,7 +24,7 @@ info:
     ## 两分钟上手
 
     ```bash
-    BASE=http://127.0.0.1:3080/dsh-pet-7340
+    BASE=http://127.0.0.1:3080/pet-233
 
     # 1. 拉一次统一状态（只读、零副作用，可以随便轮询）
     curl -s $BASE/state
@@ -79,7 +79,7 @@ servers:
   - url: http://127.0.0.1:{port}
     description: |
       本机 DSH Web 服务。`{port}` = `ctx.webServer.port`（`dsh web` 默认 3080）。
-      路由前缀固定为 `/dsh-pet-7340`。
+      路由前缀固定为 `/pet-233`。
     variables:
       port:
         default: "3080"
@@ -100,7 +100,7 @@ tags:
     description: 直播弹幕监听（当前仅抖音）——进房 + 签名桥 + WSS，聊天只打宿主日志，不接 UI/LLM
 
 paths:
-  /dsh-pet-7340/state:
+  /pet-233/state:
     get:
       tags: [State]
       operationId: getState
@@ -222,7 +222,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/work-status:
+  /pet-233/work-status:
     post:
       tags: [Action]
       operationId: setWorkStatus
@@ -293,7 +293,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/balance:
+  /pet-233/balance:
     post:
       tags: [Action]
       operationId: refreshBalance
@@ -319,7 +319,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/focus-session:
+  /pet-233/focus-session:
     post:
       tags: [Action]
       operationId: focusSession
@@ -353,7 +353,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/whisper:
+  /pet-233/whisper:
     post:
       tags: [Action]
       operationId: whisper
@@ -408,7 +408,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/broadcast:
+  /pet-233/broadcast:
     post:
       tags: [Action]
       operationId: broadcast
@@ -543,7 +543,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/bubble/clear:
+  /pet-233/bubble/clear:
     post:
       tags: [Action]
       operationId: clearBubble
@@ -588,7 +588,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/anim:
+  /pet-233/anim:
     post:
       tags: [Action]
       operationId: playAnimation
@@ -600,7 +600,7 @@ paths:
           菜单动作处理函数（浏览器 `handleMenuAction` / 桌面 `sprite.onMenuAction`），所以镜像修正
           （文字类朝右时先强制朝左）、移动类走真实位移、其余播一遍这些语义天然一致。
           名字写进 `pets.<id>.anim`，消费端在 1 秒内轮询发现 `counter` 变化后换源播放。
-          **动画名即素材文件名**（`/dsh-pet-7340/thumb/<素材根>/<名字>.webm`），所以名字必须是
+          **动画名即素材文件名**（`/pet-233/thumb/<素材根>/<名字>.webm`），所以名字必须是
           该宠物 `animations` 配置里菜单能点到的名字之一——播放端对不存在的名字没有兜底
           （404 → 加载失败 → 表现为"点了没反应"），因此由宿主在写入前拦下。
         - **`url`（第三方自带的素材地址）**：完整 URL，**不查动画池**——素材在调用方手里，
@@ -742,7 +742,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/position:
+  /pet-233/position:
     post:
       tags: [Action]
       operationId: setPetPosition
@@ -878,7 +878,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/throw:
+  /pet-233/throw:
     post:
       tags: [Action]
       operationId: throwPet
@@ -966,7 +966,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/lock:
+  /pet-233/lock:
     post:
       tags: [Action]
       operationId: acquireLock
@@ -1087,7 +1087,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/lock/release:
+  /pet-233/lock/release:
     post:
       tags: [Action]
       operationId: releaseLock
@@ -1160,7 +1160,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/sleep:
+  /pet-233/sleep:
     post:
       tags: [Action]
       operationId: putPetToSleep
@@ -1195,7 +1195,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/wake:
+  /pet-233/wake:
     post:
       tags: [Action]
       summary: 叫醒睡着的桌宠
@@ -1220,7 +1220,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/pose:
+  /pet-233/pose:
     get:
       tags: [Action]
       operationId: getPetPose
@@ -1293,7 +1293,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/pose/report:
+  /pet-233/pose/report:
     post:
       tags: [Action]
       operationId: reportPetPose
@@ -1358,7 +1358,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/playback/{id}:
+  /pet-233/playback/{id}:
     get:
       tags: [Action]
       operationId: getPlayback
@@ -1430,7 +1430,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/playback/{id}/report:
+  /pet-233/playback/{id}/report:
     post:
       tags: [Action]
       operationId: reportPlayback
@@ -1514,7 +1514,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/attachment:
+  /pet-233/attachment:
     get:
       tags: [Assets]
       operationId: getAttachmentImage
@@ -1561,7 +1561,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/chat:
+  /pet-233/chat:
     get:
       tags: [Action]
       operationId: getChatMemory
@@ -1749,7 +1749,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/chat/memory:
+  /pet-233/chat/memory:
     get:
       tags: [Action]
       operationId: listOrphanChatMemory
@@ -1822,7 +1822,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/config:
+  /pet-233/config:
     get:
       tags: [Config]
       operationId: getConfig
@@ -1966,7 +1966,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/pet-display:
+  /pet-233/pet-display:
     post:
       tags: [Config]
       operationId: setPetDisplay
@@ -2035,7 +2035,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/pet-config:
+  /pet-233/pet-config:
     post:
       tags: [Config]
       operationId: savePetLayer
@@ -2124,7 +2124,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/obs-capture:
+  /pet-233/obs-capture:
     post:
       tags: [Config]
       operationId: setObsCapture
@@ -2180,7 +2180,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/config/meta:
+  /pet-233/config/meta:
     get:
       tags: [Config]
       operationId: getConfigMeta
@@ -2228,7 +2228,7 @@ paths:
                       DSH profile 名，用于拼接卸载命令
                       `dsh plugin --profile <名> remove dsh-pet`。反推不出时为空串。
 
-  /dsh-pet-7340/models:
+  /pet-233/models:
     get:
       tags: [Config]
       operationId: listModels
@@ -2264,7 +2264,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/reload:
+  /pet-233/reload:
     post:
       tags: [Action]
       operationId: reload
@@ -2291,7 +2291,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/quit:
+  /pet-233/quit:
     get:
       tags: [Action]
       operationId: probeQuit
@@ -2346,7 +2346,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  "/dsh-pet-7340/thumb/{petId}/{file}":
+  "/pet-233/thumb/{petId}/{file}":
     get:
       tags: [Assets]
       operationId: getAnimation
@@ -2401,7 +2401,7 @@ paths:
               schema:
                 type: string
 
-  /dsh-pet-7340/voice/hear:
+  /pet-233/voice/hear:
     post:
       tags: [Voice]
       operationId: transcribeVoice
@@ -2462,7 +2462,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/voice/utterance/{id}/report:
+  /pet-233/voice/utterance/{id}/report:
     post:
       tags: [Voice]
       operationId: reportVoiceUtterance
@@ -2517,7 +2517,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/voice/speak:
+  /pet-233/voice/speak:
     post:
       tags: [Voice]
       operationId: synthesizeVoice
@@ -2583,7 +2583,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/voice/voices:
+  /pet-233/voice/voices:
     get:
       tags: [Voice]
       operationId: getVoices
@@ -2618,14 +2618,14 @@ paths:
         "405":
           description: 方法不是 GET。
 
-  /dsh-pet-7340/danmaku:
+  /pet-233/danmaku:
     get:
       tags: [Danmaku]
       operationId: getDouyinDanmakuPage
       summary: 抖音弹幕监听控制页
       description: |
         返回自包含 HTML：填写直播间、开始/停止、轮询 status。
-        也可访问带尾斜杠的 `/dsh-pet-7340/danmaku/`。
+        也可访问带尾斜杠的 `/pet-233/danmaku/`。
       responses:
         "200":
           description: HTML 控制页。
@@ -2636,7 +2636,7 @@ paths:
         "405":
           description: 方法不是 GET/HEAD。
 
-  /dsh-pet-7340/danmaku/douyin/start:
+  /pet-233/danmaku/douyin/start:
     post:
       tags: [Danmaku]
       operationId: startDouyinDanmaku
@@ -2679,7 +2679,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/danmaku/douyin/options:
+  /pet-233/danmaku/douyin/options:
     post:
       tags: [Danmaku]
       operationId: setDouyinDanmakuOptions
@@ -2710,7 +2710,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/danmaku/douyin/stop:
+  /pet-233/danmaku/douyin/stop:
     post:
       tags: [Danmaku]
       operationId: stopDouyinDanmaku
@@ -2725,7 +2725,7 @@ paths:
         "405":
           description: 方法不是 POST。
 
-  /dsh-pet-7340/danmaku/douyin/status:
+  /pet-233/danmaku/douyin/status:
     get:
       tags: [Danmaku]
       operationId: getDouyinDanmakuStatus
@@ -2740,7 +2740,7 @@ paths:
         "405":
           description: 方法不是 GET。
 
-  /dsh-pet-7340/logo:
+  /pet-233/logo:
     get:
       tags: [Assets]
       operationId: getLogo
@@ -2800,7 +2800,7 @@ paths:
         "404":
           description: 包内没有 logo（安装损坏，`text/plain`）。
 
-  /dsh-pet-7340/pet-avatar:
+  /pet-233/pet-avatar:
     post:
       tags: [Assets]
       operationId: uploadPetAvatar
@@ -2878,7 +2878,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  "/dsh-pet-7340/sound/{file}":
+  "/pet-233/sound/{file}":
     get:
       tags: [Assets]
       operationId: getSound
@@ -2901,7 +2901,7 @@ paths:
               schema:
                 type: string
 
-  "/dsh-pet-7340/font/{file}":
+  "/pet-233/font/{file}":
     get:
       tags: [Assets]
       operationId: getFont
@@ -2924,7 +2924,7 @@ paths:
               schema:
                 type: string
 
-  "/dsh-pet-7340/pic/{file}":
+  "/pet-233/pic/{file}":
     get:
       tags: [Assets]
       operationId: getPic
@@ -2932,8 +2932,8 @@ paths:
       description: |
         静态图，两种形式：
 
-        - `/dsh-pet-7340/pic/<名>.png` → **包内** `assets/pic/`（方形 png，系统通知图标用）。
-        - `/dsh-pet-7340/pic/memes/<素材根>/<名>.png` → 表情包（碎碎念/对话配图用的图），
+        - `/pet-233/pic/<名>.png` → **包内** `assets/pic/`（方形 png，系统通知图标用）。
+        - `/pet-233/pic/memes/<素材根>/<名>.png` → 表情包（碎碎念/对话配图用的图），
           按素材根决定**素材归属**，与动画（`/thumb`）同一套语义：
           1. `pet/<素材根>-memes/` 存在（种类自带表情包）：**只查该目录**，查不到即 `404` 显式报错，
              **绝不回落**别的目录；
@@ -2941,7 +2941,7 @@ paths:
              与 `main-animation/<ext> → 包内 assets/<ext>` 的主素材链同构）。
 
           素材根 = 该宠物的条目 key（`assetRoot`：主配置宠物为 `main`，文件宠物为配置文件前缀）。
-          旧的两段形式 `/dsh-pet-7340/pic/memes/<名>.png` 仍然可用，等价于素材根 `main` 的回落链
+          旧的两段形式 `/pet-233/pic/memes/<名>.png` 仍然可用，等价于素材根 `main` 的回落链
           （未升级的客户端照常取到包内表情包）。
 
           `素材根` 是**标识符**（不是路径片段）：含分隔符 / 保留字符即 `400`，早于任何路径拼接判定。
@@ -2981,7 +2981,7 @@ paths:
               schema:
                 type: string
 
-  /dsh-pet-7340/menu/item:
+  /pet-233/menu/item:
     post:
       tags: [Action]
       operationId: registerMenuItems
@@ -3095,7 +3095,7 @@ paths:
         "405":
           description: 方法不允许（只接受 POST / DELETE）
 
-  /dsh-pet-7340/menu/events:
+  /pet-233/menu/events:
     get:
       tags: [State]
       operationId: pollMenuEvents
@@ -3152,7 +3152,7 @@ paths:
         "405":
           description: 方法不允许（只接受 GET）
 
-  /dsh-pet-7340/menu/click:
+  /pet-233/menu/click:
     post:
       tags: [Action]
       operationId: reportMenuClick
@@ -3194,7 +3194,7 @@ paths:
         "405":
           description: 方法不允许（只接受 POST）
 
-  /dsh-pet-7340/todos:
+  /pet-233/todos:
     get:
       tags: [Action]
       operationId: listTodos
@@ -3264,7 +3264,7 @@ paths:
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
 
-  /dsh-pet-7340/todos/{id}:
+  /pet-233/todos/{id}:
     patch:
       tags: [Action]
       operationId: updateTodo
@@ -3335,7 +3335,7 @@ components:
         没给 / 空串 / 全空白 → `ok: false` + `reason: pet-required`；
         给了但配置里没有这只宠物 → `ok: false` + `reason: unknown-pet`。
         **没有缺省值**：绝不退到"当前桌宠"或列表第一只（issue #122 第 1 条），
-        所以同一句请求的落点不会随用户 `/dsh-pet-7340` 的选择而变。
+        所以同一句请求的落点不会随用户 `/pet-233` 的选择而变。
         允许包含点号与中文；**不要**按 `.` 解析由 `/state` 返回的路径键来取它。
       schema:
         type: string
@@ -4406,7 +4406,7 @@ components:
           description: |
             可选配图**名称**（不是 URL）：配置 `memes` 的键，也就是该图文件的文件名（不含扩展名）。
             仅在配置开启了 `whisperImageEnabled` / `chatImageEnabled` 且命中池内图片时出现。
-            消费端（浏览器 / 桌面）按素材根拼成 `/dsh-pet-7340/pic/memes/<素材根>/<名>.png`
+            消费端（浏览器 / 桌面）按素材根拼成 `/pet-233/pic/memes/<素材根>/<名>.png`
             取图，素材根 = 该宠物的条目 key（`assetRoot`）。
             与 `url` 并列、**由字段名区分**；**只有 `POST /broadcast` 会写 url 形态**。
         url:

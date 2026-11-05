@@ -36,7 +36,7 @@ function makeDeps(sink?: PetImageSink): PetRouteDeps {
 
 /** 一次取图请求；id 缺省时连查询参数都不带。 */
 function request(id: string | undefined, method = 'GET'): RouteInput {
-  const url = new URL('http://127.0.0.1/dsh-pet-7340/attachment');
+  const url = new URL('http://127.0.0.1/pet-233/attachment');
   if (id !== undefined) url.searchParams.set('id', id);
   return { url, rest: 'attachment', method };
 }

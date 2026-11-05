@@ -8,7 +8,7 @@
  * @module dsh-cordis-probe/toggle-route
  */
 
-/** 语音合成开关的路径（与 dsh-pet 的 `/dsh-pet-7340` 并列，互不干扰）。 */
+/** 语音合成开关的路径（与 dsh-pet 的 `/pet-233` 并列，互不干扰）。 */
 export const VOICE_ROUTE = '/cordis-probe-voice';
 /** 语音识别开关的路径。 */
 export const SPEECH_ROUTE = '/cordis-probe-speech';

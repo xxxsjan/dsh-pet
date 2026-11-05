@@ -1,7 +1,7 @@
 /**
  * 余额「不可用」路径的契约测试：必须有可见反馈，且两端（浏览器 overlay / 桌面外壳）只走一份判定。
  *
- * 背景：`/dsh-pet-7340/balance` 对未登记的服务商返回 `{ ok:false, reason:'unsupported' }`（HTTP 200）。
+ * 背景：`/pet-233/balance` 对未登记的服务商返回 `{ ok:false, reason:'unsupported' }`（HTTP 200）。
  * 若客户端在渲染处硬性要求 `balance.ok`、气泡只由「拉取成功」的 tick 驱动，页面上就完全没有任何反应：
  * 不播动画、不弹气泡、连 console 都不打。现在由 src/shared 的 decideBalanceNotice 统一判定弹不弹
  * （显式请求必弹；自动轮询仅在原因变化时弹一次），两端各自只负责把行数据画出来。

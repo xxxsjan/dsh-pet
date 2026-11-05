@@ -1,7 +1,7 @@
 /**
  * 抖音弹幕监听控制页：房间号 / Cookie / 开始停止 / 状态轮询 / 打开直播间。
  *
- * 自包含 HTML，由 `/dsh-pet-7340/danmaku/` 返回；不接气泡与 LLM。
+ * 自包含 HTML，由 `/pet-233/danmaku/` 返回；不接气泡与 LLM。
  * @module dsh-pet/src/host/danmaku/douyin/page
  */
 import { ROUTE_SEGMENT } from '../../../shared/constants.ts';

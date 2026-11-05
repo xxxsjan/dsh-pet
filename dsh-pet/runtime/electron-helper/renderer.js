@@ -115,7 +115,7 @@ async function boot() {
   }
 }
 
-// 注入打字资源：气泡字体 + 点击/拖拽光标图标（与浏览器同一套素材，host 经 /dsh-pet-7340/ 提供）
+// 注入打字资源：气泡字体 + 点击/拖拽光标图标（与浏览器同一套素材，host 经 /pet-233/ 提供）
 function injectAssets() {
   const style = document.createElement('style');
   style.textContent =

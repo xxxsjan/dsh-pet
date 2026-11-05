@@ -21,7 +21,7 @@ function harness(whisper: (petId: string, image?: string) => Promise<GeneratedRe
   } as unknown as PetRouteDeps;
   const call = (query: string) =>
     handleInteractionRoutes(deps, {
-      url: new URL('http://127.0.0.1/dsh-pet-7340/whisper' + query),
+      url: new URL('http://127.0.0.1/pet-233/whisper' + query),
       rest: 'whisper',
       method: 'POST',
     } as RouteInput);

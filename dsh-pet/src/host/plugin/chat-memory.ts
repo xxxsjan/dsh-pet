@@ -43,7 +43,7 @@ export type ChatMemoryInput = {
  */
 export function createChatMemory(deps: ChatMemoryInput) {
   const { ctx, configPaths, log, memeDirsFor, playback, voiceUtterances, state, userRoot } = deps;
-  // 命令「当前桌宠」（/dsh-pet-7340 选择、/chat 使用）：全局单值不分会话；进程内内存，重启回默认第一只
+  // 命令「当前桌宠」（/pet-233 选择、/chat 使用）：全局单值不分会话；进程内内存，重启回默认第一只
   let activePetId = '';
 
   // 碎碎念周期调度的「上次生成时刻」（按宠物）：调度拍据此判断到没到点。

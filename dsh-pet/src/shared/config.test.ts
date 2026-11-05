@@ -120,7 +120,7 @@ describe('flattenConfigPets —— 成品 → 渲染列表的唯一填充点', (
 
     // ① 旧的手抄填充（mc.<字段> 映射）、以及"设置页回推列表"这条旁路，都不得复活
     assert.ok(
-      !/dsh-pet-7340Bridge\.sync/.test(clientPet + clientSettings),
+      !/pet-233Bridge\.sync/.test(clientPet + clientSettings),
       'petBridge.sync 已删除：设置页不得再把"可编辑的裸实例列表"回推给容器（那正是漏吹 physics 的来源）',
     );
     for (const field of ENTRY_FIELDS) {

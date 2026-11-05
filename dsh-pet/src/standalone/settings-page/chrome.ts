@@ -1,6 +1,6 @@
 /**
  * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
- * 分区为对话 / 配置 / 模型 / 语音；侧栏另有外链「抖音弹幕」跳到 `/dsh-pet-7340/danmaku/`。
+ * 分区为对话 / 配置 / 模型 / 语音；侧栏另有外链「抖音弹幕」跳到 `/pet-233/danmaku/`。
  * 配置页瀑布流只放桌宠与全局卡；模型、语音各占侧栏分区。语音与桌宠共用顶栏「保存」（/config）；
  * 模型「保存」也在顶栏（form=settings → `/standalone-ai/settings`）。
  *
@@ -25,7 +25,7 @@ export const settingsPage = `<!doctype html>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
 <button type="button" class="navCell" role="tab" id="tab-model" data-tab="model" data-title="模型" aria-controls="panel-model" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x="2.6" y="3.2" width="10.8" height="9.6" rx="1.2"/><path d="M5.2 6.4h5.6M5.2 9.2h3.8" stroke-linecap="round"/></g></svg><span class="navLabel">模型</span></button>
 <button type="button" class="navCell" role="tab" id="tab-voice" data-tab="voice" data-title="语音" aria-controls="panel-voice" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.8v10.4"/><path d="M5.2 5.2v5.6M10.8 5.2v5.6"/><path d="M3.2 6.8v2.4M12.8 6.8v2.4"/></g></svg><span class="navLabel">语音</span></button>
-<a class="navCell navExt" href="/dsh-pet-7340/danmaku/" id="link-danmaku" data-title="抖音弹幕"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></a>
+<a class="navCell navExt" href="/pet-233/danmaku/" id="link-danmaku" data-title="抖音弹幕" target="_blank" rel="noopener noreferrer"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></a>
 </div></nav>
 <div class="sideFoot">独立模式</div>
 </aside>

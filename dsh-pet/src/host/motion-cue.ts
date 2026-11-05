@@ -1,5 +1,5 @@
 /**
- * 位置 / 抛掷指令（`POST /dsh-pet-7340/position`、`POST /dsh-pet-7340/throw`）的纯决策层。
+ * 位置 / 抛掷指令（`POST /pet-233/position`、`POST /pet-233/throw`）的纯决策层。
  *
  * 与 ./anim 同一分工：只判定该不该受理、受理成什么，不碰 HTTP、不碰 S，可完全离线单测。
  * 不负责运动学：抛掷复用渲染端既有的 startThrow，位置的三条路也都是既有运动学，本层只剩参数

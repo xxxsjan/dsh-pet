@@ -123,9 +123,9 @@ describe('hearAudio', () => {
   test('成功：请求体只有 audio，文字原样返回（含空串）', async () => {
     const stub = stubFetch(() => json({ ok: true, text: '你好' }));
     try {
-      const outcome = await hearAudio('http://127.0.0.1/dsh-pet-7340/voice/hear', 'AAAA');
+      const outcome = await hearAudio('http://127.0.0.1/pet-233/voice/hear', 'AAAA');
       assert.deepEqual(outcome, { ok: true, text: '你好' });
-      assert.equal(stub.urls[0], 'http://127.0.0.1/dsh-pet-7340/voice/hear');
+      assert.equal(stub.urls[0], 'http://127.0.0.1/pet-233/voice/hear');
       assert.deepEqual(JSON.parse(stub.bodies[0]), { audio: 'AAAA' }, '不许顺手多发 language 之类字段');
     } finally {
       stub.restore();

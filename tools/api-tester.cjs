@@ -46,7 +46,7 @@ const NO_OPEN = argv.includes('--no-open');
 let hostPort = Number(argOf('--port', '3080'));
 
 /** 路由前缀：与 src/host/index.ts 的 ROUTE_PREFIX 一致（7340 是名字，不是端口） */
-const PREFIX = '/dsh-pet-7340';
+const PREFIX = '/pet-233';
 
 /** 这一跳要补的 CORS 头。注意：**只给本机测试代理补**，不改宿主行为。 */
 const CORS = {
