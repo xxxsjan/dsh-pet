@@ -38,7 +38,7 @@ function makeDeps(): { deps: PetRouteDeps; calls: DeleteCall[] } {
 /** 一次 DELETE /chat；`query` 直接拼在 `?pet=main` 之后（如 `&ts=1&ts=2`）。 */
 function del(query = '', surface = 'web'): RouteInput {
   return {
-    url: new URL(`http://127.0.0.1/pet-233/chat?pet=main&surface=${surface}${query}`),
+    url: new URL(`http://127.0.0.1/blue-fish/chat?pet=main&surface=${surface}${query}`),
     rest: 'chat',
     method: 'DELETE',
   };
@@ -103,7 +103,7 @@ describe('DELETE /chat —— 删除对话记忆', () => {
 describe('/chat/memory —— 已删宠物的残留历史', () => {
   /** 一次 /chat/memory 请求；不需要 pet 参数。 */
   const memory = (method = 'GET'): RouteInput => ({
-    url: new URL('http://127.0.0.1/pet-233/chat/memory'),
+    url: new URL('http://127.0.0.1/blue-fish/chat/memory'),
     rest: 'chat/memory',
     method,
   });

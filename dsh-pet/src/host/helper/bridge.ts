@@ -12,7 +12,7 @@ export const BRIDGE_PREFIX = 'blue-fish-bridge:';
 /** Helper 抖音签名桥基址宣告前缀（本机 HTTP，形如 `blue-fish-douyin-sign:http://127.0.0.1:PORT`）。 */
 export const DOUYIN_SIGN_PREFIX = 'blue-fish-douyin-sign:';
 
-/** 渲染端（经 main.js 转发）的一次请求：URL 是 /pet-233/... 路径 + 查询串；
+/** 渲染端（经 main.js 转发）的一次请求：URL 是 /blue-fish/... 路径 + 查询串；
  *  cb = main.js 本地回调服务器地址（宿主把应答 POST 回去；Electron 主进程读不到 piped stdin，
  *  故应答不走 0 号管道 —— electron#4218） */
 export interface BridgeRequest {

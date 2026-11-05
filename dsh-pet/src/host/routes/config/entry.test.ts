@@ -82,7 +82,7 @@ function makeHarness(): Harness {
 
 /** 造一次请求；`body` 传字符串时原样发送（用于坏 JSON）。 */
 const input = (body: unknown, method = 'POST'): RouteInput => ({
-  url: new URL('http://localhost/pet-233/pet-config'),
+  url: new URL('http://localhost/blue-fish/pet-config'),
   rest: 'pet-config',
   method,
   body: typeof body === 'string' ? body : JSON.stringify(body),

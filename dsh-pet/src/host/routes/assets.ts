@@ -34,7 +34,7 @@ export async function handleAssetsRoutes(deps: PetRouteDeps, input: RouteInput):
   // main 不查自定义文件：pet/ 只归 pet pack，内置条目永远用包内 logo。
   // 参数叫 root 而不是 pet：这里要的是素材根（目录前缀），不是 pets[].id。
   if (scope === 'logo') {
-    if (restParts.length > 0) return { kind: 'text', status: 400, body: 'blue-fish: expected /pet-233/logo' };
+    if (restParts.length > 0) return { kind: 'text', status: 400, body: 'blue-fish: expected /blue-fish/logo' };
     const assetRoot = (url.searchParams.get('root') ?? '').trim();
     if (assetRoot !== '' && assetRoot !== 'main') {
       // 素材根是标识符不是路径片段：含分隔符/保留字符即显式 400，早于任何路径拼接。
@@ -86,7 +86,7 @@ export async function handleAssetsRoutes(deps: PetRouteDeps, input: RouteInput):
     return { kind: 'file', file: picFile, contentType: MIME[ext] ?? 'application/octet-stream' };
   }
 
-  // 点击音效：/pet-233/sound/<file> → 包内 assets/sound（当前只有 click-duck.wav）。
+  // 点击音效：/blue-fish/sound/<file> → 包内 assets/sound（当前只有 click-duck.wav）。
   // 与 font 同一种扁平形式（<scope>/<file>）：只有包内一份，不做用户目录覆盖。
   if (scope === 'sound') {
     const soundRoot = join(PACKAGE_ROOT, 'assets', 'sound');
@@ -97,14 +97,14 @@ export async function handleAssetsRoutes(deps: PetRouteDeps, input: RouteInput):
   }
 
   if (scope !== 'thumb') {
-    return { kind: 'text', status: 400, body: 'blue-fish: expected /pet-233/thumb/<petId>/<file>' };
+    return { kind: 'text', status: 400, body: 'blue-fish: expected /blue-fish/thumb/<petId>/<file>' };
   }
 
   // thumb 是三段式：/<scope>/<petId>/<file>——从这里再拆宠物 id 与文件名
   const [petId, ...nameParts] = restParts;
 
   if (!petId || nameParts.length === 0) {
-    return { kind: 'text', status: 400, body: 'blue-fish: expected /pet-233/thumb/<petId>/<file>' };
+    return { kind: 'text', status: 400, body: 'blue-fish: expected /blue-fish/thumb/<petId>/<file>' };
   }
 
   // petId 是标识符（= pet/<名>-animation/ 的 <名>，来源是 pet/ 下的文件名前缀），不是路径片段：

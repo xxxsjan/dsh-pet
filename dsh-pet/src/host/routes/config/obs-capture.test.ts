@@ -51,7 +51,7 @@ function makeHarness(): { deps: PetRouteDeps; userFile: string; restarts: { n: n
 }
 
 const input = (body: unknown, method = 'POST'): RouteInput => ({
-  url: new URL('http://localhost/pet-233/obs-capture'),
+  url: new URL('http://localhost/blue-fish/obs-capture'),
   rest: 'obs-capture',
   method,
   body: typeof body === 'string' ? body : JSON.stringify(body),

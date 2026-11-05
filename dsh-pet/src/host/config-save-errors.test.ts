@@ -45,7 +45,7 @@ after(async () => {
 });
 
 async function put(body: string, query = '') {
-  const response = await fetch(`http://127.0.0.1:${server.port}/pet-233/config${query}`, {
+  const response = await fetch(`http://127.0.0.1:${server.port}/blue-fish/config${query}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body,

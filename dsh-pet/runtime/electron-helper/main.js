@@ -203,8 +203,8 @@ if (BRIDGE) {
 // 数据不新增通道：读写都走渲染端在用的同一条 bridge。菜单是静态的——每次切换 display 宿主都会重启
 // 本进程（syncDesktop），新进程按新配置重建菜单，所以不需要「重建菜单刷新勾选」的逻辑。
 
-const PET_ROUTE = '/pet-233';
-const ORIGIN = new URL(process.env.BLUE_FISH_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config').origin;
+const PET_ROUTE = '/blue-fish';
+const ORIGIN = new URL(process.env.BLUE_FISH_CONFIG_URL || 'http://127.0.0.1:3080/blue-fish/config').origin;
 const TRAY_PLATFORM = trayPlatform(process.platform);
 
 /** 与宿主的通道：bridge 走管道 + 本地回调，否则 HTTP 直连。 */

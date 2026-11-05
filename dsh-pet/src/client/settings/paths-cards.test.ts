@@ -35,7 +35,7 @@ const meta: ConfigMeta = {
   default: 'D:/p/assets/config.jsonc',
   animations: 'D:/u/animations',
   memes: 'D:/u/memes',
-  logs: 'D:/u/pet-233.log',
+  logs: 'D:/u/blue-fish.log',
   profile: 'default',
   storage: [
     { key: 'config', path: 'D:/u/config.jsonc', exists: true },

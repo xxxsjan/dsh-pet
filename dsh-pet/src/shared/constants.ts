@@ -23,7 +23,7 @@ export const PET_REF_WIDTH = 462;
  * 宿主注册的路由段：服务端路径，永远不带浏览器挂载前缀。
  * 路由注册、匹配与桌面/独立模式拼地址都用它；带了前缀的地址在服务端是错的路由。
  */
-export const ROUTE_SEGMENT = '/pet-233';
+export const ROUTE_SEGMENT = '/blue-fish';
 
 /**
  * 从文档基准地址取出挂载前缀（baseURI 的目录部分）。
@@ -49,7 +49,7 @@ export function mountPrefixOf(baseURI: string | undefined): string {
  * 一处算出浏览器侧地址：挂载前缀 + 路由段，供模块加载与单测共用。
  *
  * @param baseURI - 文档基准地址；缺省时按无前缀处理。
- * @returns 请求与素材的公共前缀，形如 `/app/x/pet-233`。
+ * @returns 请求与素材的公共前缀，形如 `/app/x/blue-fish`。
  */
 export function routePathOf(baseURI: string | undefined): string {
   return mountPrefixOf(baseURI) + ROUTE_SEGMENT;

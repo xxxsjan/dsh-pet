@@ -122,8 +122,8 @@ describe('buildMemeBranch —— 菜单形状', () => {
 describe('memeThumbUrl —— 缩略图地址', () => {
   test('素材根与名称各占一段：中文与空格都必须编码', () => {
     assert.equal(
-      memeThumbUrl('/pet-233', 'my pack', '大的 要来啦'),
-      '/pet-233/pic/memes/my%20pack/%E5%A4%A7%E7%9A%84%20%E8%A6%81%E6%9D%A5%E5%95%A6.png',
+      memeThumbUrl('/blue-fish', 'my pack', '大的 要来啦'),
+      '/blue-fish/pic/memes/my%20pack/%E5%A4%A7%E7%9A%84%20%E8%A6%81%E6%9D%A5%E5%95%A6.png',
     );
   });
 

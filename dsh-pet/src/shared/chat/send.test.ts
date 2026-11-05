@@ -36,7 +36,7 @@ describe('sendChat 请求体', () => {
   test('不带图：只有 text，与加入图片前逐字一致', async () => {
     const captured = captureFetch({ ok: true });
     try {
-      const state = await sendChat('http://127.0.0.1/pet-233/chat', '在吗');
+      const state = await sendChat('http://127.0.0.1/blue-fish/chat', '在吗');
       assert.equal(state.ok, true);
       assert.deepEqual(JSON.parse(captured.bodies[0] ?? '{}'), { text: '在吗' });
     } finally {
@@ -48,7 +48,7 @@ describe('sendChat 请求体', () => {
     const captured = captureFetch({ ok: true });
     const attachment = { mediaType: 'image/jpeg', data: 'AAAA' };
     try {
-      await sendChat('http://127.0.0.1/pet-233/chat', '看图', attachment);
+      await sendChat('http://127.0.0.1/blue-fish/chat', '看图', attachment);
       assert.deepEqual(JSON.parse(captured.bodies[0] ?? '{}'), { text: '看图', attachment });
     } finally {
       captured.restore();
@@ -58,7 +58,7 @@ describe('sendChat 请求体', () => {
   test('宿主回 ok:false → 原因归一化，message 原样带回', async () => {
     const captured = captureFetch({ ok: false, reason: 'bad-request', message: '图片过大' });
     try {
-      const state = await sendChat('http://127.0.0.1/pet-233/chat', '看图');
+      const state = await sendChat('http://127.0.0.1/blue-fish/chat', '看图');
       assert.deepEqual(state, { ok: false, reason: 'bad-request', message: '图片过大' });
     } finally {
       captured.restore();
@@ -68,7 +68,7 @@ describe('sendChat 请求体', () => {
   test('未知 reason 归一成 bad-request（消费方只需处理四种）', async () => {
     const captured = captureFetch({ ok: false, reason: 'something-new' });
     try {
-      const state = await sendChat('http://127.0.0.1/pet-233/chat', '在吗');
+      const state = await sendChat('http://127.0.0.1/blue-fish/chat', '在吗');
       assert.deepEqual(state, { ok: false, reason: 'bad-request', message: undefined });
     } finally {
       captured.restore();
@@ -79,7 +79,7 @@ describe('sendChat 请求体', () => {
     const original = globalThis.fetch;
     globalThis.fetch = (async () => new Response('null', { status: 200 })) as typeof fetch;
     try {
-      await assert.rejects(() => sendChat('http://127.0.0.1/pet-233/chat', '在吗'), /对话响应非法/);
+      await assert.rejects(() => sendChat('http://127.0.0.1/blue-fish/chat', '在吗'), /对话响应非法/);
     } finally {
       globalThis.fetch = original;
     }

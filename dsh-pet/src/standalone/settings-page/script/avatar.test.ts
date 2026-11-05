@@ -12,8 +12,8 @@ import { AVATAR_MAX_SIDE_PX as CLIENT_AVATAR_MAX_SIDE_PX } from '../../../client
 import { AVATAR_MAX_SIDE_PX } from '../../settings-page.ts';
 import { avatarScript } from './avatar.ts';
 
-const LOGO = '/pet-233/logo';
-const API = '/pet-233';
+const LOGO = '/blue-fish/logo';
+const API = '/blue-fish';
 
 type FakeNode = {
   tag: string;
@@ -154,7 +154,7 @@ test('内置条目：照样显示预览，但没有上传按钮', async () => {
   (context.state as { entry: string }).entry = 'main';
   const row = (context.avatarRow as (pet: Record<string, never>) => FakeNode)({});
   await settle();
-  assert.match(requests[0].url, /^\/pet-233\/logo\?v=\d+$/, '内置条目取包内 logo，不带 root');
+  assert.match(requests[0].url, /^\/blue-fish\/logo\?v=\d+$/, '内置条目取包内 logo，不带 root');
   assert.equal(requests[0].headers['X-Blue-Fish-Token'], 'test-token', '取图必须带令牌，否则打包版 403');
   assert.match(row.children[0].src, /^blob:avatar-/, '预览走 blob，不把地址直接塞进 img src');
   const box = row.children.find((child) => child.props.class === 'avatarBox');
@@ -175,7 +175,7 @@ test('素材根条目：条目名就是素材根，取图地址带 root 与版�
   const { context, requests } = harness();
   (context.avatarRow as (pet: Record<string, never>) => FakeNode)({});
   await settle();
-  assert.match(requests[0].url, /^\/pet-233\/logo\?root=shuai&v=\d+$/, '/config 里没有 assetRoot 时按条目名取');
+  assert.match(requests[0].url, /^\/blue-fish\/logo\?root=shuai&v=\d+$/, '/config 里没有 assetRoot 时按条目名取');
 });
 
 test('长边在上限内：原样上传原图字节，请求带令牌，成功后重取预览', async () => {

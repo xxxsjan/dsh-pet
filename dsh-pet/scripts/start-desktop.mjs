@@ -2,7 +2,7 @@
 /**
  * 本地开发或手动启动桌面 Helper，不经宿主拉起。
  *
- * 参数是一个成品配置地址，缺省指向本机 3080 端口的 /pet-233/config；
+ * 参数是一个成品配置地址，缺省指向本机 3080 端口的 /blue-fish/config；
  * 其余端点由渲染端从 configUrl 推导，本脚本只负责透传。
  * 不下载 Electron：找不到可执行文件即提示先跑 npm run ensure:electron。
  * 环境变量与宿主拉起时一致：配置地址、缩放倍数、Electron 路径。
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const helperMain = resolve(here, '..', 'runtime', 'electron-helper', 'main.js');
 const defaultConfigUrl =
-  process.env.BLUE_FISH_CONFIG_URL || process.argv[2] || 'http://127.0.0.1:3080/pet-233/config';
+  process.env.BLUE_FISH_CONFIG_URL || process.argv[2] || 'http://127.0.0.1:3080/blue-fish/config';
 
 // Electron 可执行文件相对解压目录的路径（按平台）。
 const PLAT = process.platform;

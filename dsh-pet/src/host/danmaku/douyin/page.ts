@@ -1,7 +1,7 @@
 /**
  * 抖音弹幕监听控制页：房间号 / Cookie / 开始停止 / 状态轮询 / 打开直播间。
  *
- * 自包含 HTML，由 `/pet-233/danmaku/` 返回；不接气泡与 LLM。
+ * 自包含 HTML，由 `/blue-fish/danmaku/` 返回；不接气泡与 LLM。
  * @module dsh-pet/src/host/danmaku/douyin/page
  */
 import { ROUTE_SEGMENT } from '../../../shared/constants.ts';
@@ -270,6 +270,24 @@ export function douyinDanmakuPageHtml(): string {
       font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font-size: 12px;
       line-height: 1.45;
+    }
+    .cookiePersist {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.3;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cookiePersist input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
     }
     .toggles {
       margin: 0 0 14px;
@@ -545,6 +563,10 @@ export function douyinDanmakuPageHtml(): string {
               <button id="open-cookie-help" class="linkBtn" type="button">获取cookie</button>
             </div>
             <textarea id="cookie" placeholder="一般可不填；礼物建议粘贴登录 Cookie"></textarea>
+            <label class="cookiePersist" for="saveCookieLocal">
+              <input id="saveCookieLocal" type="checkbox" />
+              保存到本地
+            </label>
           </div>
         </div>
         <div class="toggles">
@@ -605,6 +627,7 @@ export function douyinDanmakuPageHtml(): string {
     const feedMeta = el('feed-meta');
     const urlInput = el('url');
     const cookieInput = el('cookie');
+    const saveCookieLocalInput = el('saveCookieLocal');
     const replyChatInput = el('replyChat');
     const thankGiftInput = el('thankGift');
     const toggleBtn = el('toggle-listen');
@@ -671,6 +694,7 @@ export function douyinDanmakuPageHtml(): string {
       return {
         url: urlInput.value.trim(),
         cookie: cookieInput.value.trim(),
+        saveCookieLocal: !!saveCookieLocalInput.checked,
         replyChat: !!replyChatInput.checked,
         thankGift: !!thankGiftInput.checked,
       };
@@ -683,7 +707,16 @@ export function douyinDanmakuPageHtml(): string {
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object') return;
         if (typeof parsed.url === 'string' && parsed.url.trim()) urlInput.value = parsed.url.trim();
-        if (typeof parsed.cookie === 'string') cookieInput.value = parsed.cookie;
+        const hadCookie = typeof parsed.cookie === 'string' && parsed.cookie.trim().length > 0;
+        if (typeof parsed.saveCookieLocal === 'boolean') {
+          saveCookieLocalInput.checked = parsed.saveCookieLocal;
+        } else if (hadCookie) {
+          // 旧缓存没有该字段但已存过 Cookie：视为已勾选，避免刷新后丢 Cookie
+          saveCookieLocalInput.checked = true;
+        }
+        if (saveCookieLocalInput.checked && typeof parsed.cookie === 'string') {
+          cookieInput.value = parsed.cookie;
+        }
         if (typeof parsed.replyChat === 'boolean') replyChatInput.checked = parsed.replyChat;
         if (typeof parsed.thankGift === 'boolean') thankGiftInput.checked = parsed.thankGift;
       } catch { /* ignore */ }
@@ -691,7 +724,9 @@ export function douyinDanmakuPageHtml(): string {
 
     function saveCache() {
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(formState()));
+        const state = formState();
+        if (!state.saveCookieLocal) state.cookie = '';
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
       } catch { /* ignore */ }
     }
 
@@ -825,6 +860,7 @@ export function douyinDanmakuPageHtml(): string {
       node.addEventListener('change', saveCache);
       node.addEventListener('blur', saveCache);
     }
+    saveCookieLocalInput.addEventListener('change', saveCache);
     for (const node of [replyChatInput, thankGiftInput]) {
       node.addEventListener('change', () => {
         saveCache();

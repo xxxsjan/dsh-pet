@@ -1,6 +1,6 @@
 /**
  * 挂载前缀契约：子路径部署要跟随 `document.baseURI`，而根路径、桌面与宿主取值必须逐字节不变。
- * 现象背景见 issue #242——绝对路径 `/pet-233/…` 会绕开反代前缀，直达站点根。
+ * 现象背景见 issue #242——绝对路径 `/blue-fish/…` 会绕开反代前缀，直达站点根。
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,9 +64,9 @@ describe('routePathOf', () => {
   test('子路径部署：路由段挂在前缀之后', () => {
     assert.equal(
       routePathOf('http://192.0.2.10:5666/app/DeepSeek-Harness/fngateway/'),
-      '/app/DeepSeek-Harness/fngateway/pet-233',
+      '/app/DeepSeek-Harness/fngateway/blue-fish',
     );
-    assert.equal(routePathOf('https://h.example.com/dsh/'), '/dsh/pet-233');
+    assert.equal(routePathOf('https://h.example.com/dsh/'), '/dsh/blue-fish');
   });
 });
 

@@ -90,7 +90,7 @@ test('real plugin chat routes cannot bypass the standalone capability using enco
     security,
   });
   try {
-    const prefix = `http://127.0.0.1:${protectedServer.port}/pet-233/`;
+    const prefix = `http://127.0.0.1:${protectedServer.port}/blue-fish/`;
     for (const name of ['chat', '%63hat', 'ch%61t']) {
       const response = await fetch(prefix + name + '?pet=main');
       assert.equal(response.status, 403);
@@ -118,7 +118,7 @@ test('config pet IDs: duplicate IDs return 200 + bad-request without creating a 
     position: { corner: 'top-right', marginX: 20, marginY: 20 },
   };
   for (const id of ['main', ' main ']) {
-    const response = await fetch(`${base}/pet-233/config`, {
+    const response = await fetch(`${base}/blue-fish/config`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ pets: [pet, { ...pet, id, name: 'second' }] }),
@@ -136,12 +136,12 @@ describe('插件宿主半边在独立模式下跑起来了', () => {
     const routes = context?.routes ?? [];
     assert.equal(routes.length, 1, '当前插件只注册一条 prefix 路由；多出来的注册要在这里显式确认');
     assert.equal(routes[0]?.kind, 'prefix');
-    assert.equal(routes[0]?.path, '/pet-233');
+    assert.equal(routes[0]?.path, '/blue-fish');
     assert.equal(typeof routes[0]?.handler, 'function');
   });
 
   test('/state 与 DSH 内同形（独立模式没有任何会话事件 → 叶子保持初始值）', async () => {
-    const response = await get('/pet-233/state');
+    const response = await get('/blue-fish/state');
     assert.equal(response.status, 200);
     const body = response.json() as {
       sections: Record<string, { counter: number; data: unknown }>;
@@ -162,13 +162,13 @@ describe('插件宿主半边在独立模式下跑起来了', () => {
   });
 
   test('/models 是空清单（独立模式没有 llm 服务，但不报错、不静默失败）', async () => {
-    const response = await get('/pet-233/models');
+    const response = await get('/blue-fish/models');
     assert.equal(response.status, 200);
     assert.deepEqual(response.json(), { providers: [] });
   });
 
   test('/config/meta 的路径口径与 options.configPathsFor 完全一致（镜像不得漂移）', async () => {
-    const response = await get('/pet-233/config/meta');
+    const response = await get('/blue-fish/config/meta');
     assert.equal(response.status, 200);
     const meta = response.json() as { user: string; default: string; animations: string };
     const paths = configPathsFor(packageRoot, home);
@@ -181,7 +181,7 @@ describe('插件宿主半边在独立模式下跑起来了', () => {
 
 describe('配置与素材不可达时的口径 —— 显式失败，不静默兜底', () => {
   test('包内默认配置读不到（源码形态）→ /config 200 + generate-error 实体', async () => {
-    const response = await get('/pet-233/config');
+    const response = await get('/blue-fish/config');
     assert.equal(response.status, 200, '接口统一 200，失败放在实体里：静默返回空配置会让桌宠"看起来正常但什么都没有"');
     const body = response.json() as { ok?: boolean; reason?: string; message?: string };
     assert.equal(body.ok, false);
@@ -191,16 +191,16 @@ describe('配置与素材不可达时的口径 —— 显式失败，不静默�
 
   test('thumb 的路由安全口径经真实 HTTP 仍然成立', async () => {
     // 反斜杠不被 URL 的 pathname 拆段，会作为 petId 直接进路径拼接 —— 必须 400
-    assert.equal((await get('/pet-233/thumb/..%5C..%5Coutside/leak.webm')).status, 400);
+    assert.equal((await get('/blue-fish/thumb/..%5C..%5Coutside/leak.webm')).status, 400);
     // 扩展名白名单
-    assert.equal((await get('/pet-233/thumb/main/x.txt')).status, 400);
+    assert.equal((await get('/blue-fish/thumb/main/x.txt')).status, 400);
     // 不存在的素材（主素材链与独占目录都查不到）
-    assert.equal((await get(`/pet-233/thumb/main/${encodeURIComponent('不存在.webm')}`)).status, 404);
+    assert.equal((await get(`/blue-fish/thumb/main/${encodeURIComponent('不存在.webm')}`)).status, 404);
   });
 
   test('pic/memes 的素材根同样不得当路径片段', async () => {
-    assert.equal((await get('/pet-233/pic/memes/..%5C..%5Coutside-memes/leak.png')).status, 400);
-    assert.equal((await get('/pet-233/pic/memes/main/nope.png')).status, 404);
+    assert.equal((await get('/blue-fish/pic/memes/..%5C..%5Coutside-memes/leak.png')).status, 400);
+    assert.equal((await get('/blue-fish/pic/memes/main/nope.png')).status, 404);
   });
 });
 
@@ -218,6 +218,6 @@ describe('独立服务自己的端点', () => {
     const response = await fetch(`${base}/shutdown`, { method: 'POST' });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { ok: true, stopping: true });
-    assert.equal((await get('/pet-233/state')).status, 200, '测试里没人真的停机：服务应继续可用');
+    assert.equal((await get('/blue-fish/state')).status, 200, '测试里没人真的停机：服务应继续可用');
   });
 });

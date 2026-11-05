@@ -39,10 +39,10 @@ test('capabilities are random, fragment-only, and process-bound', () => {
 test('encoded private routes still require a capability; invalid encodings fail explicitly', () => {
   const security = createRequestSecurity();
   for (const path of [
-    '/pet-233/%63hat?pet=main',
-    '/pet-233/ch%61t',
-    '/pet-233/chat%2Fhistory',
-    '/pet-233/%77hisper',
+    '/blue-fish/%63hat?pet=main',
+    '/blue-fish/ch%61t',
+    '/blue-fish/chat%2Fhistory',
+    '/blue-fish/%77hisper',
   ]) {
     for (const method of ['GET', 'HEAD']) {
       const res = response();
@@ -61,7 +61,7 @@ test('encoded private routes still require a capability; invalid encodings fail 
     const res = response();
     assert.equal(
       security.authorize(
-        request({ 'x-blue-fish-token': security.token }, '/pet-233/%ZZ', method),
+        request({ 'x-blue-fish-token': security.token }, '/blue-fish/%ZZ', method),
         res as unknown as ServerResponse,
       ),
       false,
@@ -69,7 +69,7 @@ test('encoded private routes still require a capability; invalid encodings fail 
     assert.equal(res.status, 400);
   }
   assert.equal(
-    security.authorize(request({}, '/pet-233/thumb/main/%E7%9C%8B.webm'), response() as unknown as ServerResponse),
+    security.authorize(request({}, '/blue-fish/thumb/main/%E7%9C%8B.webm'), response() as unknown as ServerResponse),
     true,
   );
 });
@@ -77,7 +77,7 @@ test('encoded private routes still require a capability; invalid encodings fail 
 test('desktop file-origin exception always needs a capability and never relaxes Host checks', () => {
   const security = createRequestSecurity();
   const fileHeaders = { origin: 'null', 'sec-fetch-site': 'cross-site' };
-  for (const path of ['/pet-233/config', '/pet-233/chat']) {
+  for (const path of ['/blue-fish/config', '/blue-fish/chat']) {
     assert.equal(security.authorize(request(fileHeaders, path), response() as unknown as ServerResponse, true), false);
     const headers = { ...fileHeaders, 'x-blue-fish-token': security.token };
     assert.equal(security.authorize(request(headers, path), response() as unknown as ServerResponse, true), true);
@@ -158,8 +158,8 @@ test('only minimal health, settings shell and known media GET are public; public
     '/health',
     '/standalone-ai/',
     '/standalone-ai/settings.js',
-    '/pet-233/thumb/main/idle.webm',
-    '/pet-233/pic/memes/main/a.png',
+    '/blue-fish/thumb/main/idle.webm',
+    '/blue-fish/pic/memes/main/a.png',
   ]) {
     assert.equal(security.authorize(request({}, path), response() as unknown as ServerResponse), true, path);
     assert.equal(
@@ -169,10 +169,10 @@ test('only minimal health, settings shell and known media GET are public; public
     );
     assert.equal(security.authorize(request({}, path, 'POST'), response() as unknown as ServerResponse), false, path);
   }
-  for (const path of ['/standalone-ai/settings', '/pet-233/whisper', '/pet-233/chat', '/shutdown']) {
+  for (const path of ['/standalone-ai/settings', '/blue-fish/whisper', '/blue-fish/chat', '/shutdown']) {
     assert.equal(security.authorize(request({}, path), response() as unknown as ServerResponse), false, path);
   }
-  for (const path of ['/pet-233/config', '/pet-233/state']) {
+  for (const path of ['/blue-fish/config', '/blue-fish/state']) {
     assert.equal(security.authorize(request({}, path), response() as unknown as ServerResponse), true, path);
     assert.equal(
       security.authorize(request({ origin: 'http://evil.test' }, path), response() as unknown as ServerResponse),

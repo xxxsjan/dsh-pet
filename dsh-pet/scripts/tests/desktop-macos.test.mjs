@@ -58,7 +58,7 @@ test(
         ...process.env,
         BLUE_FISH_BRIDGE: '0',
         BLUE_FISH_SMOKE: '0',
-        BLUE_FISH_CONFIG_URL: `http://127.0.0.1:${server.address().port}/pet-233/config`,
+        BLUE_FISH_CONFIG_URL: `http://127.0.0.1:${server.address().port}/blue-fish/config`,
         BLUE_FISH_PETS: JSON.stringify([{ id: 'main', size: 150 }]),
         BLUE_FISH_SCALE: '1',
       };

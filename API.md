@@ -1,10 +1,10 @@
 # dsh-pet 对外 HTTP 接口一览
 
-dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由** `/pet-233`，浏览器端、
+dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由** `/blue-fish`，浏览器端、
 桌面端、设置页与第三方插件全都访问同一份实现。本文只做**功能预览**（接口名 + 一句话），
 完整契约——参数、响应体、字段含义、错误码与示例——见根目录的 [`openapi.yaml`](openapi.yaml)。
 
-- **基址**：`http://127.0.0.1:<port>/pet-233`，`<port>` 是 DSH Web 服务实际监听的端口
+- **基址**：`http://127.0.0.1:<port>/blue-fish`，`<port>` 是 DSH Web 服务实际监听的端口
 - **只监听 127.0.0.1，且没有鉴权**：任何能访问本机该端口的进程都能调用，请勿转发到公网
 
 ---
@@ -13,19 +13,19 @@ dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由
 
 | 接口                            | 功能                                                                                                       |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `GET /pet-233/state`       | **轮询唯一数据源**：所有状态位都在这里；带 `?since=&timeout=` 可长轮询                                     |
-| `GET /pet-233/config`      | 读合并后的成品配置（内置默认 + 用户层，字段已填满）                                                        |
-| `GET /pet-233/config/meta` | 配置文件路径、日志文件路径、各类数据落盘位置、卸载该用哪个 profile                                         |
-| `GET /pet-233/models`      | 可用服务商与模型清单（与 DSH 自己的模型选择器同源）                                                        |
-| `GET /pet-233/chat?pet=`   | 读某只桌宠最近的对话记忆窗口；带 `?rounds=` 可指定本次读取的轮数（0–200，不传用配置的 `chatMemoryRounds`） |
-| `GET /pet-233/pose?pet=`   | 读**桌面端**宠物的实况（位置 + 朝向）；网页端用客户端服务 `petApi7340`，不走这条路                         |
+| `GET /blue-fish/state`       | **轮询唯一数据源**：所有状态位都在这里；带 `?since=&timeout=` 可长轮询                                     |
+| `GET /blue-fish/config`      | 读合并后的成品配置（内置默认 + 用户层，字段已填满）                                                        |
+| `GET /blue-fish/config/meta` | 配置文件路径、日志文件路径、各类数据落盘位置、卸载该用哪个 profile                                         |
+| `GET /blue-fish/models`      | 可用服务商与模型清单（与 DSH 自己的模型选择器同源）                                                        |
+| `GET /blue-fish/chat?pet=`   | 读某只桌宠最近的对话记忆窗口；带 `?rounds=` 可指定本次读取的轮数（0–200，不传用配置的 `chatMemoryRounds`） |
+| `GET /blue-fish/pose?pet=`   | 读**桌面端**宠物的实况（位置 + 朝向）；网页端用客户端服务 `petApi7340`，不走这条路                         |
 
 ## 二、占用锁
 
 | 接口                                   | 功能                                                                                                               |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `POST /pet-233/lock?pet=`         | **占用锁**：联动演出期间独占这只宠物（除持锁者外全静音）；取锁会先把它叫醒，占用期间不能再睡下；`lockId` 给了=续期、没给=新建，回 `lockId` + `expiresAt` |
-| `POST /pet-233/lock/release?pet=` | **释放占用**：`lockId`=持锁者收工 / `force`=用户接管（渲染端上报，第三方不用调）                                   |
+| `POST /blue-fish/lock?pet=`         | **占用锁**：联动演出期间独占这只宠物（除持锁者外全静音）；取锁会先把它叫醒，占用期间不能再睡下；`lockId` 给了=续期、没给=新建，回 `lockId` + `expiresAt` |
+| `POST /blue-fish/lock/release?pet=` | **释放占用**：`lockId`=持锁者收工 / `force`=用户接管（渲染端上报，第三方不用调）                                   |
 
 **锁占用期间，桌宠完全静止**：它自己不动、也不弹气泡——余额、碎碎念、工作状态这些全都让路。
 
@@ -44,47 +44,47 @@ dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由
 
 | 接口                                   | 功能                                                                                                                                                                                                                                                     |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /pet-233/whisper?pet=`      | 让桌宠**生成**一句碎碎念（走当前模型）；响应带 `text`（配图时另有 `image`），同时照旧写进气泡                                                                                                                                                            |
-| `POST /pet-233/broadcast?pet=`    | **第三方投喂**（需锁）：把外部给定的文本写进气泡（不生成，只搬运）；配图（`image` 池内名 / `url` 自带地址）、时长、动画联动可选                                                                                                                          |
-| `POST /pet-233/bubble/clear?pet=` | **清空气泡**（需锁）：提前收起说话气泡（只动气泡，不动动画）                                                                                                                                                                                             |
-| `POST /pet-233/chat?pet=`         | 对桌宠说一句话并生成回复，同时写入对话记忆；响应带 `text`（配图时另有 `image`），同时照旧写进气泡。可选 `attachment`（`mediaType` + base64）随本轮送一张图：图片**记进记忆**（存附件引用，不存本体），但只影响这一轮、不进气泡；不传时行为与旧版逐字一致。配置 `chatAnimationEnabled` 时回复可带 `[动作:名称]`，采纳后与 `/anim` 同链路点播 |
-| `DELETE /pet-233/chat?pet=`       | **删除对话记忆**：带 `?ts=`（可重复，取自 `GET /chat` 的 `messages[].ts`）只删这些轮——一轮两条共享 `ts`，成对删；不带 `ts` 清空整只。响应 `{ ok: true, removed }`，删空后不留空对象                                                                      |
-| `GET /pet-233/chat/memory`        | 列出**已删宠物**残留的对话历史（宠物删了但历史还在，`GET /chat` 读不到）；只给条数与最后时间                                                                                                                                                             |
-| `DELETE /pet-233/chat/memory`     | 一次清空这些残留历史                                                                                                                                                                                                                                     |
-| `POST /pet-233/balance`           | 立即刷新一次余额（可见效果同样是弹气泡 + 档位动画）                                                                                                                                                                                                      |
+| `POST /blue-fish/whisper?pet=`      | 让桌宠**生成**一句碎碎念（走当前模型）；响应带 `text`（配图时另有 `image`），同时照旧写进气泡                                                                                                                                                            |
+| `POST /blue-fish/broadcast?pet=`    | **第三方投喂**（需锁）：把外部给定的文本写进气泡（不生成，只搬运）；配图（`image` 池内名 / `url` 自带地址）、时长、动画联动可选                                                                                                                          |
+| `POST /blue-fish/bubble/clear?pet=` | **清空气泡**（需锁）：提前收起说话气泡（只动气泡，不动动画）                                                                                                                                                                                             |
+| `POST /blue-fish/chat?pet=`         | 对桌宠说一句话并生成回复，同时写入对话记忆；响应带 `text`（配图时另有 `image`），同时照旧写进气泡。可选 `attachment`（`mediaType` + base64）随本轮送一张图：图片**记进记忆**（存附件引用，不存本体），但只影响这一轮、不进气泡；不传时行为与旧版逐字一致。配置 `chatAnimationEnabled` 时回复可带 `[动作:名称]`，采纳后与 `/anim` 同链路点播 |
+| `DELETE /blue-fish/chat?pet=`       | **删除对话记忆**：带 `?ts=`（可重复，取自 `GET /chat` 的 `messages[].ts`）只删这些轮——一轮两条共享 `ts`，成对删；不带 `ts` 清空整只。响应 `{ ok: true, removed }`，删空后不留空对象                                                                      |
+| `GET /blue-fish/chat/memory`        | 列出**已删宠物**残留的对话历史（宠物删了但历史还在，`GET /chat` 读不到）；只给条数与最后时间                                                                                                                                                             |
+| `DELETE /blue-fish/chat/memory`     | 一次清空这些残留历史                                                                                                                                                                                                                                     |
+| `POST /blue-fish/balance`           | 立即刷新一次余额（可见效果同样是弹气泡 + 档位动画）                                                                                                                                                                                                      |
 
 ## 四、让它做动作
 
 | 接口                                      | 功能                                                                                                                                                                           |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `POST /pet-233/anim?pet=`            | **点播动画**（需锁）：播池内名字（同右键「动作」菜单）或第三方自带的 `url`；`facing` 可选指定朝向（`left`/`right`，不传则不动朝向）；回 `playbackId`                           |
-| `GET /pet-233/playback/{id}`         | **播放回执**：查那次点播的真实状态；带 `?wait=&timeout=` 可挂起等待                                                                                                            |
-| `POST /pet-233/playback/{id}/report` | 渲染端上报播放状态（**内部通道**，第三方不用调）                                                                                                                               |
-| `POST /pet-233/pose/report?pet=`     | 桌面渲染端上报实况（**内部通道**，第三方不用调）                                                                                                                               |
-| `POST /pet-233/position?pet=`        | **位置控制**（需锁）：挪到归一化坐标，`mode` = 直接/弹簧/直线；不碰动画。额外回**夹取后**的 `x`/`y`                                                                            |
-| `POST /pet-233/throw?pet=`           | **原生抛掷**（需锁）：给桌宠一个初速度让它飞出去（`angle` 度、`power` 倍率）                                                                                                   |
-| `POST /pet-233/sleep?pet=`           | **让它睡下**：从 `animations.sleep` 里挑一整套（开始/循环/起来）写进 `pets.<id>.sleep`；睡着期间自动来源与手动触发一律拒绝（持锁时让路）；没配睡觉动画回 `no-sleep-animations` |
-| `POST /pet-233/wake?pet=`            | **叫醒**：播「起来」后回随机链；本来没睡也回 ok（幂等）                                                                                                                        |
-| `POST /pet-233/focus-session`        | **跳会话**：让页面切到指定会话；桌面端点会话气泡走这条                                                                                                                          |
+| `POST /blue-fish/anim?pet=`            | **点播动画**（需锁）：播池内名字（同右键「动作」菜单）或第三方自带的 `url`；`facing` 可选指定朝向（`left`/`right`，不传则不动朝向）；回 `playbackId`                           |
+| `GET /blue-fish/playback/{id}`         | **播放回执**：查那次点播的真实状态；带 `?wait=&timeout=` 可挂起等待                                                                                                            |
+| `POST /blue-fish/playback/{id}/report` | 渲染端上报播放状态（**内部通道**，第三方不用调）                                                                                                                               |
+| `POST /blue-fish/pose/report?pet=`     | 桌面渲染端上报实况（**内部通道**，第三方不用调）                                                                                                                               |
+| `POST /blue-fish/position?pet=`        | **位置控制**（需锁）：挪到归一化坐标，`mode` = 直接/弹簧/直线；不碰动画。额外回**夹取后**的 `x`/`y`                                                                            |
+| `POST /blue-fish/throw?pet=`           | **原生抛掷**（需锁）：给桌宠一个初速度让它飞出去（`angle` 度、`power` 倍率）                                                                                                   |
+| `POST /blue-fish/sleep?pet=`           | **让它睡下**：从 `animations.sleep` 里挑一整套（开始/循环/起来）写进 `pets.<id>.sleep`；睡着期间自动来源与手动触发一律拒绝（持锁时让路）；没配睡觉动画回 `no-sleep-animations` |
+| `POST /blue-fish/wake?pet=`            | **叫醒**：播「起来」后回随机链；本来没睡也回 ok（幂等）                                                                                                                        |
+| `POST /blue-fish/focus-session`        | **跳会话**：让页面切到指定会话；桌面端点会话气泡走这条                                                                                                                          |
 
 ## 五、改配置与重载
 
 | 接口                             | 功能                                                                                                                   |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `PUT /pet-233/config`       | 保存用户层配置（白名单重建，用户手写的精调字段会保留）                                                                 |
-| `POST /pet-233/config`      | 用内置默认整份覆盖用户配置，即「恢复默认」                                                                             |
-| `POST /pet-233/pet-display` | **改单只宠物的显示位置**（`web` / `desktop` / `both` / `none`），只传 `{ id, display }`                                |
-| `POST /pet-233/pet-config`  | **按种类写回全部实例**（`{ entry, pets }`，`entry` = `pet/<名>-config.json` 的前缀）；白名单重建，顶层动画池与人设保留 |
-| `POST /pet-233/reload`      | 重载桌面端（重启桌面宠物进程，按最新配置重建窗口）                                                                     |
+| `PUT /blue-fish/config`       | 保存用户层配置（白名单重建，用户手写的精调字段会保留）                                                                 |
+| `POST /blue-fish/config`      | 用内置默认整份覆盖用户配置，即「恢复默认」                                                                             |
+| `POST /blue-fish/pet-display` | **改单只宠物的显示位置**（`web` / `desktop` / `both` / `none`），只传 `{ id, display }`                                |
+| `POST /blue-fish/pet-config`  | **按种类写回全部实例**（`{ entry, pets }`，`entry` = `pet/<名>-config.json` 的前缀）；白名单重建，顶层动画池与人设保留 |
+| `POST /blue-fish/reload`      | 重载桌面端（重启桌面宠物进程，按最新配置重建窗口）                                                                     |
 
 ## 六、第三方菜单项
 
 | 接口                                         | 功能                                                                                                                                               |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /pet-233/menu/item`               | **注册菜单项**（该 `owner` 的菜单项整体覆盖）：`{ owner, labels: ["弹弓","钓鱼"], target?: "web"\|"desktop"\|"both" }`，`target` 不写 = 两端都显示 |
-| `DELETE /pet-233/menu/item?owner=`      | **清除菜单项**（该 `owner` 的全部项，幂等）：回 `{ ok: true, removed: 2 }`                                                                         |
-| `GET /pet-233/menu/events?owner=&wait=` | **查询触发**（读取即清空，`wait` = 长轮询毫秒数）：回 `{ 弹弓: "main", 钓鱼: null }`                                                               |
-| `POST /pet-233/menu/click`              | 渲染端上报点击（**内部通道**，第三方不用调）                                                                                                       |
+| `POST /blue-fish/menu/item`               | **注册菜单项**（该 `owner` 的菜单项整体覆盖）：`{ owner, labels: ["弹弓","钓鱼"], target?: "web"\|"desktop"\|"both" }`，`target` 不写 = 两端都显示 |
+| `DELETE /blue-fish/menu/item?owner=`      | **清除菜单项**（该 `owner` 的全部项，幂等）：回 `{ ok: true, removed: 2 }`                                                                         |
+| `GET /blue-fish/menu/events?owner=&wait=` | **查询触发**（读取即清空，`wait` = 长轮询毫秒数）：回 `{ 弹弓: "main", 钓鱼: null }`                                                               |
+| `POST /blue-fish/menu/click`              | 渲染端上报点击（**内部通道**，第三方不用调）                                                                                                       |
 
 第三方菜单项统一收在右键菜单的**「更多」**下；只有一项时不显示 `owner` 那层。
 
@@ -92,36 +92,36 @@ dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由
 
 | 接口                                     | 功能                                                              |
 | ---------------------------------------- | ----------------------------------------------------------------- |
-| `GET /pet-233/thumb/{petId}/{file}` | 动画素材（`.webm` / `.mov`，按宠物归属）                          |
-| `GET /pet-233/font/{file}`          | 字体文件                                                          |
-| `GET /pet-233/pic/{file}`           | 通知图标（`pic/`）与表情包（`pic/memes/{素材根}/`，按宠物归属）   |
-| `GET /pet-233/attachment?id=`       | **取图**：把对话记忆里 `image.attachmentId`（`sha256:…`）换回图片 |
-| `GET /pet-233/logo?root=`           | 宠物头像：缺省回插件 logo（`assets/logo.png`）；带 `root=<素材根>` 时回该 pet pack 上传的头像，没有就回默认 |
-| `POST /pet-233/pet-avatar?root=`    | **上传头像**：`{ base64 }`，覆盖写 `pet/<素材根>-avatar.<ext>`；`root=main`（内置）被拒 |
+| `GET /blue-fish/thumb/{petId}/{file}` | 动画素材（`.webm` / `.mov`，按宠物归属）                          |
+| `GET /blue-fish/font/{file}`          | 字体文件                                                          |
+| `GET /blue-fish/pic/{file}`           | 通知图标（`pic/`）与表情包（`pic/memes/{素材根}/`，按宠物归属）   |
+| `GET /blue-fish/attachment?id=`       | **取图**：把对话记忆里 `image.attachmentId`（`sha256:…`）换回图片 |
+| `GET /blue-fish/logo?root=`           | 宠物头像：缺省回插件 logo（`assets/logo.png`）；带 `root=<素材根>` 时回该 pet pack 上传的头像，没有就回默认 |
+| `POST /blue-fish/pet-avatar?root=`    | **上传头像**：`{ base64 }`，覆盖写 `pet/<素材根>-avatar.<ext>`；`root=main`（内置）被拒 |
 
 ## 八、工作状态（外部写入）
 
 | 接口                               | 功能                                                                 |
 | ---------------------------------- | -------------------------------------------------------------------- |
-| `POST /pet-233/work-status`   | **外部写入工作状态**：`{ state, task? }`，固定外部槽，最后写入者生效 |
-| `DELETE /pet-233/work-status` | **清空外部槽**回空闲（幂等，204）                                    |
+| `POST /blue-fish/work-status`   | **外部写入工作状态**：`{ state, task? }`，固定外部槽，最后写入者生效 |
+| `DELETE /blue-fish/work-status` | **清空外部槽**回空闲（幂等，204）                                    |
 
 ## 九、语音
 
 | 接口                             | 功能                                                                         |
 | -------------------------------- | ---------------------------------------------------------------------------- |
-| `POST /pet-233/voice/speak` | 合成并返回 mp3：`{ text, voice?, rate? }`；同一输入命中缓存，队列最多排 3 个 |
-| `POST /pet-233/voice/hear`  | 识别音频回文字：`{ audio }`，16kHz/单声道/PCM16 WAV 的 base64                |
-| `GET /pet-233/voice/voices` | 可用音色列表；前端拿它渲染选择器，不要硬编码 id                              |
+| `POST /blue-fish/voice/speak` | 合成并返回 mp3：`{ text, voice?, rate? }`；同一输入命中缓存，队列最多排 3 个 |
+| `POST /blue-fish/voice/hear`  | 识别音频回文字：`{ audio }`，16kHz/单声道/PCM16 WAV 的 base64                |
+| `GET /blue-fish/voice/voices` | 可用音色列表；前端拿它渲染选择器，不要硬编码 id                              |
 
 ## 十、待办事项
 
 | 接口                              | 功能                                                         |
 | --------------------------------- | ------------------------------------------------------------ |
-| `GET /pet-233/todos`         | 读取待办清单（未完成在前、到期越近越靠前，无期限垫底）       |
-| `POST /pet-233/todos`        | 新建一条：`{ text, dueAt? }`，`dueAt` 为 epoch 毫秒或 `null` |
-| `PATCH /pet-233/todos/{id}`  | 修改一条：`{ text?, dueAt?, done? }` 至少给一个              |
-| `DELETE /pet-233/todos/{id}` | 删除一条（幂等，回 `removed` 条数）                          |
+| `GET /blue-fish/todos`         | 读取待办清单（未完成在前、到期越近越靠前，无期限垫底）       |
+| `POST /blue-fish/todos`        | 新建一条：`{ text, dueAt? }`，`dueAt` 为 epoch 毫秒或 `null` |
+| `PATCH /blue-fish/todos/{id}`  | 修改一条：`{ text?, dueAt?, done? }` 至少给一个              |
+| `DELETE /blue-fish/todos/{id}` | 删除一条（幂等，回 `removed` 条数）                          |
 
 ---
 
@@ -157,15 +157,15 @@ dsh-pet 的宿主半侧向 DSH 自己的 Web 服务注册了**一条前缀路由
 
 ## 独立模式（不打开 DSH）
 
-不启动 DSH 时，同一份 `/pet-233` 契约由本机服务提供，另外多出三个**挂在服务根上**的端点
-（**不在 `/pet-233` 前缀下**）：
+不启动 DSH 时，同一份 `/blue-fish` 契约由本机服务提供，另外多出三个**挂在服务根上**的端点
+（**不在 `/blue-fish` 前缀下**）：
 
 | 接口                   | 功能                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------- |
 | `GET /`、`GET /health` | 服务与插件信息：名称、插件根与版本、监听端口、已运行秒数                                |
 | `POST /shutdown`       | 优雅停机：释放插件注册的 effect（停止桌面助手、清掉周期定时器）后关闭服务，进程退出码 0 |
 
-`/pet-233` 下的端点形状不变，但三个依赖 DSH 的接口**明确降级**（结构化失败，不假装成功）：
+`/blue-fish` 下的端点形状不变，但三个依赖 DSH 的接口**明确降级**（结构化失败，不假装成功）：
 `POST /whisper`、`POST /chat` 回 `reason: 'provider-missing'`，`POST /balance` 回 `reason: 'unsupported'`。
 
 ## 相关

@@ -76,7 +76,7 @@ function call(listener: (req: IncomingMessage, res: ServerResponse) => void, url
 function pluginLikeRoute(onCall?: (url: string) => void): RegisteredRoute {
   return {
     kind: 'prefix',
-    path: '/pet-233',
+    path: '/blue-fish',
     handler: (req, res) => {
       onCall?.(req.url ?? '');
       const payload = JSON.stringify({ ok: true, seen: req.url });
@@ -103,32 +103,32 @@ describe('createRequestListener —— 转交给插件路由', () => {
       logger: silent,
       security,
     });
-    const res = call(listener, '/pet-233/config?force=1');
+    const res = call(listener, '/blue-fish/config?force=1');
     assert.equal(res.status, 200);
-    assert.equal(seen, '/pet-233/config?force=1', '插件 handler 拿到的必须是完整 URL（它自己 slice 前缀）');
-    assert.equal(res.body(), JSON.stringify({ ok: true, seen: '/pet-233/config?force=1' }));
+    assert.equal(seen, '/blue-fish/config?force=1', '插件 handler 拿到的必须是完整 URL（它自己 slice 前缀）');
+    assert.equal(res.body(), JSON.stringify({ ok: true, seen: '/blue-fish/config?force=1' }));
   });
 
   test('前缀之外 → 404，并把已注册路由列出来（"插件没注册"要能一眼看出）', () => {
     const listener = createRequestListener({ routes: [pluginLikeRoute()], logger: silent, security });
     const res = call(listener, '/nope');
     assert.equal(res.status, 404);
-    assert.match(res.body(), /\/pet-233/, '404 正文应带上已注册前缀');
+    assert.match(res.body(), /\/blue-fish/, '404 正文应带上已注册前缀');
     assert.equal(res.headers['access-control-allow-origin'], undefined, '独立模式禁止跨源读取');
   });
 
   test('kind=exact 的路由按全等匹配，不吃子路径', () => {
     const exact: RegisteredRoute = {
       kind: 'exact',
-      path: '/pet-233/state',
+      path: '/blue-fish/state',
       handler: (_req, res) => {
         res.writeHead(200);
         res.end('exact');
       },
     };
     const listener = createRequestListener({ routes: [exact], logger: silent, security });
-    assert.equal(call(listener, '/pet-233/state').body(), 'exact');
-    assert.equal(call(listener, '/pet-233/state/extra').status, 404);
+    assert.equal(call(listener, '/blue-fish/state').body(), 'exact');
+    assert.equal(call(listener, '/blue-fish/state/extra').status, 404);
   });
 
   test('/ 与 /health → 运维 JSON（自定义 status 提供者）', () => {
@@ -153,7 +153,7 @@ describe('createRequestListener —— 转交给插件路由', () => {
       logger: silent,
       security,
     });
-    const res = call(listener, '/pet-233/config', 'OPTIONS');
+    const res = call(listener, '/blue-fish/config', 'OPTIONS');
     assert.equal(res.status, 204);
     assert.equal(calls, 0, '预检不该进插件路由');
     assert.equal(res.headers['access-control-allow-headers'], undefined);
@@ -180,12 +180,12 @@ describe('createRequestListener —— 异常收口', () => {
   test('handler 抛错且未写头 → 500 JSON（与插件自身的 500 口径一致）', () => {
     const exploding: RegisteredRoute = {
       kind: 'prefix',
-      path: '/pet-233',
+      path: '/blue-fish',
       handler: () => {
         throw new Error('读盘失败');
       },
     };
-    const res = call(createRequestListener({ routes: [exploding], logger: silent, security }), '/pet-233/config');
+    const res = call(createRequestListener({ routes: [exploding], logger: silent, security }), '/blue-fish/config');
     assert.equal(res.status, 500);
     assert.deepEqual(JSON.parse(res.body()), { error: '本机服务暂时无法处理请求' });
   });
@@ -193,12 +193,12 @@ describe('createRequestListener —— 异常收口', () => {
   test('handler 异步拒绝同样收口为 500', async () => {
     const exploding: RegisteredRoute = {
       kind: 'prefix',
-      path: '/pet-233',
+      path: '/blue-fish',
       handler: async () => {
         throw new Error('异步失败');
       },
     };
-    const res = call(createRequestListener({ routes: [exploding], logger: silent, security }), '/pet-233/config');
+    const res = call(createRequestListener({ routes: [exploding], logger: silent, security }), '/blue-fish/config');
     await new Promise((accept) => setImmediate(accept));
     assert.equal(res.status, 500);
     assert.match(res.body(), /本机服务暂时无法处理请求/);
@@ -207,14 +207,14 @@ describe('createRequestListener —— 异常收口', () => {
   test('头已发出的失败：断连而不是写坏响应（与插件 sendFile 的错误口径一致）', () => {
     const partial: RegisteredRoute = {
       kind: 'prefix',
-      path: '/pet-233',
+      path: '/blue-fish',
       handler: (_req, res) => {
         res.writeHead(200);
         res.end('前半段');
         throw new Error('写一半炸了');
       },
     };
-    const res = call(createRequestListener({ routes: [partial], logger: silent, security }), '/pet-233/x');
+    const res = call(createRequestListener({ routes: [partial], logger: silent, security }), '/blue-fish/x');
     assert.equal(res.status, 200, '已经写出的头不改写');
     assert.equal(res.destroyed, true, '已写头之后必须断连');
   });
@@ -258,7 +258,7 @@ describe('listenStandaloneServer —— 端口与关闭', () => {
   test('插件路由经真实 HTTP 可用（前缀下 200，前缀外 404）', async () => {
     const server = await listenStandaloneServer({ routes: [pluginLikeRoute()], logger: silent, security, port: 0 });
     closers.push(server.close);
-    const inside = await fetch(`http://127.0.0.1:${server.port}/pet-233/state`, {
+    const inside = await fetch(`http://127.0.0.1:${server.port}/blue-fish/state`, {
       headers: { 'X-Blue-Fish-Token': security.token },
     });
     assert.equal(inside.status, 200);
@@ -279,7 +279,7 @@ describe('HTTP boundary protects every route and settings', () => {
       routes: [
         {
           kind: 'prefix',
-          path: '/pet-233',
+          path: '/blue-fish',
           handler: (_req, res) => {
             calls++;
             res.setHeader('Access-Control-Allow-Origin', '*');
@@ -291,11 +291,11 @@ describe('HTTP boundary protects every route and settings', () => {
     });
     try {
       const base = `http://127.0.0.1:${server.port}`;
-      for (const path of ['/standalone-ai/settings', '/pet-233/whisper', '/shutdown']) {
+      for (const path of ['/standalone-ai/settings', '/blue-fish/whisper', '/shutdown']) {
         assert.equal(
           (
             await fetch(base + path, {
-              method: path === '/pet-233/whisper' || path === '/shutdown' ? 'POST' : 'GET',
+              method: path === '/blue-fish/whisper' || path === '/shutdown' ? 'POST' : 'GET',
             })
           ).status,
           403,
@@ -323,7 +323,7 @@ describe('HTTP boundary protects every route and settings', () => {
       });
       assert.equal(wrongHost, 403);
       assert.equal(calls, 0);
-      const response = await fetch(base + '/pet-233/config', { headers: { 'X-Blue-Fish-Token': security.token } });
+      const response = await fetch(base + '/blue-fish/config', { headers: { 'X-Blue-Fish-Token': security.token } });
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('access-control-allow-origin'), null);
       assert.equal(response.headers.get('access-control-allow-headers'), null);
@@ -448,7 +448,7 @@ describe('HTTP boundary protects every route and settings', () => {
       ],
     });
     try {
-      const result = await fetch(`http://127.0.0.1:${server.port}/pet-233/config`, {
+      const result = await fetch(`http://127.0.0.1:${server.port}/blue-fish/config`, {
         method: 'POST',
         headers: { 'X-Blue-Fish-Token': security.token },
         body: 'x'.repeat(1024 * 1024 + 1),

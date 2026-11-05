@@ -31,7 +31,7 @@ test('only the local main renderer receives the capability, scoped to the API or
     );
     return result;
   };
-  const endpoint = 'http://127.0.0.1:3080/pet-233/chat';
+  const endpoint = 'http://127.0.0.1:3080/blue-fish/chat';
   const ownFrame = { url: renderer + '?petIndex=0', parent: null };
   assert.equal(send(endpoint, ownFrame)['X-Blue-Fish-Token'], 'private-token');
   for (const frame of [
@@ -50,9 +50,9 @@ test('only the local main renderer receives the capability, scoped to the API or
     assert.equal(headers['content-type'], 'application/json');
   }
   for (const url of [
-    'http://127.0.0.1:3081/pet-233/chat',
-    'http://localhost:3080/pet-233/chat',
-    'https://example.invalid/pet-233/chat',
+    'http://127.0.0.1:3081/blue-fish/chat',
+    'http://localhost:3080/blue-fish/chat',
+    'https://example.invalid/blue-fish/chat',
     'http://127.0.0.1:3080/standalone-ai/settings',
     'invalid-url',
   ]) {

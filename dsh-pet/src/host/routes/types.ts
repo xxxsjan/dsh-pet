@@ -29,7 +29,7 @@ import type { WorkStatusStore } from '../work-status.ts';
 export interface RouteInput {
   /** 完整请求 URL（含查询串）。 */
   readonly url: URL;
-  /** 去掉 `/pet-233/` 前缀后的剩余路径（已解码）。 */
+  /** 去掉 `/blue-fish/` 前缀后的剩余路径（已解码）。 */
   readonly rest: string;
   /** HTTP 方法（大写）。 */
   readonly method: string;

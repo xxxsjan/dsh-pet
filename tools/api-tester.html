@@ -1445,7 +1445,7 @@
             <details class="desc">
               <summary>以外部程序身份写入一档状态；任务文案可省略或清空</summary>
               <div class="desc-body">
-                模拟 Codex 之类的外部调用方：<span class="mono">POST /pet-233/work-status</span>，
+                模拟 Codex 之类的外部调用方：<span class="mono">POST /blue-fish/work-status</span>，
                 body <span class="mono">{ state, task? }</span>。写入后桌宠按现有档位播动画，
                 本卡片同时显示宿主回报与 <span class="mono">/state</span> 里的当前快照。
               </div>
@@ -1856,12 +1856,12 @@
     "use strict";
 
     // ═══════════════════════════════════════════════════════════════
-    // 这个页面扮演一个**第三方消费方**：它只用 /pet-233 下那套
+    // 这个页面扮演一个**第三方消费方**：它只用 /blue-fish 下那套
     // 公开 HTTP 接口，自己轮询状态、自己比对 counter、自己维护界面。
     // 界面上不出现"端点"这类词——接口是它内部的实现手段。
     // ═══════════════════════════════════════════════════════════════
 
-    const PREFIX = "/pet-233";
+    const PREFIX = "/blue-fish";
     const POLL_MS = 1000;
 
     // ── 对话附图：第三方消费方自己截图 / 选图，宿主只收 base64 ──

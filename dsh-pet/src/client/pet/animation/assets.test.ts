@@ -37,7 +37,7 @@ describe('animationAssetUrl —— 动画素材地址', () => {
   test('素材根为空串时退到宠物 id', () => {
     assert.equal(
       animationAssetUrl({ assetRoot: '', id: 'pet-2', anim: 'idle1', ext: '.webm' }),
-      ROUTE_PATH + '/thumb/pet-233-2/idle1.webm',
+      ROUTE_PATH + '/thumb/blue-fish-2/idle1.webm',
     );
   });
 });

@@ -26,7 +26,7 @@ function makeDeps(
 
 /** 造一次路由输入。 */
 function input(rest: string, method: string, body?: string) {
-  return { url: new URL(`http://127.0.0.1:1/pet-233/${rest}`), rest, method, body };
+  return { url: new URL(`http://127.0.0.1:1/blue-fish/${rest}`), rest, method, body };
 }
 
 test('GET /voice/voices：返回音色列表', async () => {

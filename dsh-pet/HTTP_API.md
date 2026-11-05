@@ -10,7 +10,7 @@
 | -------------------- | ----------------------------------------------- |
 | 端口（桌面应用）     | 固定 **`3080`**；被占用则**启动失败**，不换端口 |
 | 端口（CLI 独立模式） | 首选 `3080`；被占用时向后顺延（最多约 25 个）   |
-| 业务前缀             | `/pet-233`                                 |
+| 业务前缀             | `/blue-fish`                                 |
 | 绑定                 | 本机回环（`127.0.0.1` / `localhost`）           |
 | 编码                 | UTF-8                                           |
 | 请求体               | `Content-Type: application/json`（写接口）      |
@@ -24,7 +24,7 @@ http://127.0.0.1:3080
 业务接口完整路径形如：
 
 ```text
-http://127.0.0.1:3080/pet-233/chat?pet=main
+http://127.0.0.1:3080/blue-fish/chat?pet=main
 ```
 
 桌宠未运行、`3080` 被占用导致启动失败、或鉴权失败时，接口不可用。可先请求 `GET /health` 确认进程与端口。
@@ -44,9 +44,9 @@ http://127.0.0.1:3080/pet-233/chat?pet=main
 | 类别                                  | 是否需要令牌 |
 | ------------------------------------- | ------------ |
 | `GET /`、`GET /health`                | 否           |
-| `GET /pet-233/state` 等多数只读  | 否           |
-| `GET/POST/DELETE /pet-233/chat*` | **是**       |
-| `POST /pet-233/whisper`          | **是**       |
+| `GET /blue-fish/state` 等多数只读  | 否           |
+| `GET/POST/DELETE /blue-fish/chat*` | **是**       |
+| `POST /blue-fish/whisper`          | **是**       |
 | 其它所有写操作（含 `broadcast`）      | **是**       |
 
 鉴权失败时 HTTP 状态码为真实的 `403`/`400`，体类似：
@@ -71,13 +71,13 @@ Windows 常见示例：
 
 设置页仍可通过右键桌宠 →「打开 AI 设置」打开（URL 短暂含 `#token=`，页面加载后会清掉地址栏 hash）；对接请优先读对应模式的 runtime 文件。
 
-- **作为 DSH 插件运行**：前缀仍是 `/pet-233`，鉴权由宿主侧决定，不一定走上述 standalone 令牌模型。
+- **作为 DSH 插件运行**：前缀仍是 `/blue-fish`，鉴权由宿主侧决定，不一定走上述 standalone 令牌模型。
 
 ---
 
 ## 统一响应约定
 
-插件业务路由（`/pet-233/...`）约定：
+插件业务路由（`/blue-fish/...`）约定：
 
 | 情况                                     | HTTP 状态                | 响应体                                                          |
 | ---------------------------------------- | ------------------------ | --------------------------------------------------------------- |
@@ -135,9 +135,9 @@ GET http://127.0.0.1:3080/health
 
 ## 对话
 
-前缀：`/pet-233`。独立模式下 **读写均需令牌**。
+前缀：`/blue-fish`。独立模式下 **读写均需令牌**。
 
-### POST `/pet-233/chat?pet=`
+### POST `/blue-fish/chat?pet=`
 
 把用户文本交给已配置的模型生成回复；成功时写入对话记忆，并通常会推到桌宠气泡。
 
@@ -146,7 +146,7 @@ GET http://127.0.0.1:3080/health
 #### 请求
 
 ```http
-POST http://127.0.0.1:3080/pet-233/chat?pet=main
+POST http://127.0.0.1:3080/blue-fish/chat?pet=main
 Content-Type: application/json
 X-Blue-Fish-Token: <token>
 
@@ -211,12 +211,12 @@ X-Blue-Fish-Token: <token>
 
 ---
 
-### GET `/pet-233/chat?pet=`
+### GET `/blue-fish/chat?pet=`
 
 读该宠物最近对话记忆窗口（一次读取，不是轮询）。
 
 ```http
-GET http://127.0.0.1:3080/pet-233/chat?pet=main&rounds=20
+GET http://127.0.0.1:3080/blue-fish/chat?pet=main&rounds=20
 X-Blue-Fish-Token: <token>
 ```
 
@@ -252,12 +252,12 @@ X-Blue-Fish-Token: <token>
 
 ---
 
-### DELETE `/pet-233/chat?pet=`
+### DELETE `/blue-fish/chat?pet=`
 
 删除记忆。
 
 ```http
-DELETE http://127.0.0.1:3080/pet-233/chat?pet=main
+DELETE http://127.0.0.1:3080/blue-fish/chat?pet=main
 X-Blue-Fish-Token: <token>
 ```
 
@@ -274,12 +274,12 @@ X-Blue-Fish-Token: <token>
 
 ---
 
-### GET `/pet-233/chat/memory`
+### GET `/blue-fish/chat/memory`
 
 列出**配置里已不存在**的宠物残留记忆摘要（不含正文）。
 
 ```http
-GET http://127.0.0.1:3080/pet-233/chat/memory
+GET http://127.0.0.1:3080/blue-fish/chat/memory
 X-Blue-Fish-Token: <token>
 ```
 
@@ -290,7 +290,7 @@ X-Blue-Fish-Token: <token>
 }
 ```
 
-### DELETE `/pet-233/chat/memory`
+### DELETE `/blue-fish/chat/memory`
 
 一次性清空全部孤儿记忆。
 
@@ -302,7 +302,7 @@ X-Blue-Fish-Token: <token>
 
 ## 气泡（不经过 / 经过模型）
 
-### POST `/pet-233/broadcast?pet=`
+### POST `/blue-fish/broadcast?pet=`
 
 让桌宠**原样显示**调用方给定的文字。不调用模型。
 
@@ -310,7 +310,7 @@ X-Blue-Fish-Token: <token>
 （能力上接近其它桌宠项目的「say」，但路径与字段不同。）
 
 ```http
-POST http://127.0.0.1:3080/pet-233/broadcast?pet=main
+POST http://127.0.0.1:3080/blue-fish/broadcast?pet=main
 Content-Type: application/json
 X-Blue-Fish-Token: <token>
 
@@ -345,12 +345,12 @@ X-Blue-Fish-Token: <token>
 
 ---
 
-### POST `/pet-233/whisper?pet=`
+### POST `/blue-fish/whisper?pet=`
 
 立即让桌宠**自己生成**一句碎碎念（走模型），写入气泡并在响应中带回正文。
 
 ```http
-POST http://127.0.0.1:3080/pet-233/whisper?pet=main
+POST http://127.0.0.1:3080/blue-fish/whisper?pet=main
 X-Blue-Fish-Token: <token>
 ```
 
@@ -370,12 +370,12 @@ X-Blue-Fish-Token: <token>
 
 ---
 
-### POST `/pet-233/bubble/clear?pet=`
+### POST `/blue-fish/bubble/clear?pet=`
 
 收起该宠物当前说话气泡。幂等：没有气泡也返回成功。
 
 ```http
-POST http://127.0.0.1:3080/pet-233/bubble/clear?pet=main
+POST http://127.0.0.1:3080/blue-fish/bubble/clear?pet=main
 X-Blue-Fish-Token: <token>
 ```
 
@@ -399,7 +399,7 @@ if (!pet) throw new Error('没有可用宠物');
 ### 2）原样播报（需 token）
 
 ```js
-await fetch(`${base}/pet-233/broadcast?pet=${encodeURIComponent(pet)}`, {
+await fetch(`${base}/blue-fish/broadcast?pet=${encodeURIComponent(pet)}`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -412,7 +412,7 @@ await fetch(`${base}/pet-233/broadcast?pet=${encodeURIComponent(pet)}`, {
 ### 3）对话生成（需 token）
 
 ```js
-const res = await fetch(`${base}/pet-233/chat?pet=${encodeURIComponent(pet)}`, {
+const res = await fetch(`${base}/blue-fish/chat?pet=${encodeURIComponent(pet)}`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -429,7 +429,7 @@ console.log(body.text); // 回复
 
 ## 其它接口一览
 
-路径均相对于 `/pet-233`（素材类除外说明）。独立模式下写操作普遍需要令牌。
+路径均相对于 `/blue-fish`（素材类除外说明）。独立模式下写操作普遍需要令牌。
 
 | 路径                                           | 方法            | 一句话                           |
 | ---------------------------------------------- | --------------- | -------------------------------- |
@@ -472,8 +472,8 @@ console.log(body.text); // 回复
 | 点       | 蓝色大肥鱼         | dsh-pet                                                 |
 | -------- | ------------------ | ------------------------------------------------------- |
 | 端口     | 固定 `19265`       | 桌面应用固定 `3080`（占用失败）；CLI 首选 `3080` 可顺延 |
-| 原样说话 | `POST /say`        | `POST /pet-233/broadcast?pet=`                     |
-| 模型对话 | `POST /chat`       | `POST /pet-233/chat?pet=`                          |
+| 原样说话 | `POST /say`        | `POST /blue-fish/broadcast?pet=`                     |
+| 模型对话 | `POST /chat`       | `POST /blue-fish/chat?pet=`                          |
 | 宠物参数 | 单宠，无 `pet`     | **几乎都要 `?pet=`**                                    |
 | 业务失败 | 常 `400`/`503`     | 常 **`200` + `ok:false`**                               |
 | 鉴权     | 文档以本机开放为主 | 独立模式写接口 / chat / whisper **要令牌**              |

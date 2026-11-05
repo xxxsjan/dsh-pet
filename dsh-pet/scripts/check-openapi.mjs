@@ -57,7 +57,7 @@ ok.push(`${refCount} 个 $ref 全部可解析`);
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options', 'trace'];
 let ops = 0;
 for (const [p, item] of Object.entries(doc.paths)) {
-  if (!p.startsWith('/pet-233')) fail.push(`路径未使用 /pet-233 前缀: ${p}`);
+  if (!p.startsWith('/blue-fish')) fail.push(`路径未使用 /blue-fish 前缀: ${p}`);
   const keys = Object.keys(item).filter((k) => METHODS.includes(k));
   if (keys.length === 0) fail.push(`${p} 没有任何操作`);
   for (const m of keys) {
@@ -104,7 +104,7 @@ for (const file of routeSources(ROUTES_DIR)) {
 }
 const documented = new Set();
 for (const p of Object.keys(doc.paths)) {
-  const seg = p.slice('/pet-233/'.length).split('/')[0];
+  const seg = p.slice('/blue-fish/'.length).split('/')[0];
   if (seg && !seg.startsWith('{')) documented.add(seg);
 }
 for (const seg of documented) {

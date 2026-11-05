@@ -142,7 +142,7 @@ export function speechSlice(text: string): string {
 
 /**
  * 换掉接口基址；桌面端在模块加载时调一次（`file://` 页面不能用相对路径）。
- * @param base - 已含前缀的地址，如 `blue-fish-bridge://dsh-pet/pet-233`。
+ * @param base - 已含前缀的地址，如 `blue-fish-bridge://dsh-pet/blue-fish`。
  */
 export function setVoiceBase(base: unknown): void {
   if (typeof base === 'string' && base) voiceBase = base;

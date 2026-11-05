@@ -89,9 +89,9 @@ async function open(t, { get = customized, put, post, viewport = { width: 900, h
     errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
-  await page.route('**/pet-233/**', async (route) => {
+  await page.route('**/blue-fish/**', async (route) => {
     const request = route.request();
-    if (new URL(request.url()).pathname === '/pet-233/config') {
+    if (new URL(request.url()).pathname === '/blue-fish/config') {
       if (request.method() === 'PUT') {
         writes.push(request.postDataJSON());
         if (put) return put(route);
