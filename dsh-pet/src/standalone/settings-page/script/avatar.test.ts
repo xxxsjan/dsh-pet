@@ -155,7 +155,7 @@ test('内置条目：照样显示预览，但没有上传按钮', async () => {
   const row = (context.avatarRow as (pet: Record<string, never>) => FakeNode)({});
   await settle();
   assert.match(requests[0].url, /^\/pet-233\/logo\?v=\d+$/, '内置条目取包内 logo，不带 root');
-  assert.equal(requests[0].headers['X-DSH-Pet-Token'], 'test-token', '取图必须带令牌，否则打包版 403');
+  assert.equal(requests[0].headers['X-Blue-Fish-Token'], 'test-token', '取图必须带令牌，否则打包版 403');
   assert.match(row.children[0].src, /^blob:avatar-/, '预览走 blob，不把地址直接塞进 img src');
   const box = row.children.find((child) => child.props.class === 'avatarBox');
   assert.ok(box);
@@ -188,7 +188,7 @@ test('长边在上限内：原样上传原图字节，请求带令牌，成功�
   assert.ok(upload, '必须发出上传请求');
   assert.equal(upload.method, 'POST');
   assert.equal(upload.url, API + '/pet-avatar?root=shuai', '上传参数是 root（素材根），不是 pet');
-  assert.equal(upload.headers['X-DSH-Pet-Token'], 'test-token');
+  assert.equal(upload.headers['X-Blue-Fish-Token'], 'test-token');
   assert.deepEqual(JSON.parse(upload.body), { base64: 'ORIGINAL' });
   const refetch = requests.filter((request) => request.url.startsWith(LOGO)).pop();
   assert.ok(refetch, '上传成功后必须重新取图');

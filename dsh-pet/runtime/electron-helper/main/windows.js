@@ -28,7 +28,7 @@ const POINTER_POLL_MS = 60;
  * @param deps.platform - 托盘与置顶的平台差异（tray-platform.js 的判定）。
  * @param deps.shouldReassertTopmost - 看门狗的纯判定。
  * @param deps.topmostLevel - 平台对应的置顶层级。
- * @param deps.taskbarWatchdogEnabled - 任务栏看门狗总开关（main.js 按 DSH_PET_TASKBAR_WATCHDOG 传入）。
+ * @param deps.taskbarWatchdogEnabled - 任务栏看门狗总开关（main.js 按 BLUE_FISH_TASKBAR_WATCHDOG 传入）。
  */
 function createWindows({
   BrowserWindow,
@@ -100,7 +100,7 @@ function createWindows({
       windowIgnore.set(win.id, false);
     } catch (e) {
       console.error(
-        '[dsh-pet-desktop-helper] clearForwardMouseHook failed:',
+        '[blue-fish-desktop-helper] clearForwardMouseHook failed:',
         String(e && e.message ? e.message : e),
       );
     }
@@ -116,10 +116,10 @@ function createWindows({
     return buildDeskGeometry(screen.getAllDisplays(), screen.getPrimaryDisplay().id, process.platform);
   }
 
-  /** 桌面宠物列表（[{id,size,index}]）：宿主经 DSH_PET_PETS 透传；空数组表示明确不建窗。 */
+  /** 桌面宠物列表（[{id,size,index}]）：宿主经 BLUE_FISH_PETS 透传；空数组表示明确不建窗。 */
   function petsFromEnv() {
     try {
-      const arr = JSON.parse(process.env.DSH_PET_PETS || '');
+      const arr = JSON.parse(process.env.BLUE_FISH_PETS || '');
       if (Array.isArray(arr)) {
         return arr.map((pet, index) => ({
           id: String(pet?.id ?? `pet-${index}`),
@@ -133,9 +133,9 @@ function createWindows({
     return [{ id: 'main', size: 462, index: 0 }];
   }
 
-  /** OBS 窗口捕获模式：宿主经 DSH_PET_OBS_CAPTURE 注入；开启后用不透明窗，便于窗口捕获。 */
+  /** OBS 窗口捕获模式：宿主经 BLUE_FISH_OBS_CAPTURE 注入；开启后用不透明窗，便于窗口捕获。 */
   function obsCaptureOn() {
-    return process.env.DSH_PET_OBS_CAPTURE === '1';
+    return process.env.BLUE_FISH_OBS_CAPTURE === '1';
   }
 
   /** 窗口初始尺寸 = 宠物包围盒 + 四周外扩余量；渲染端首帧会按真实配置精确覆盖。 */
@@ -309,7 +309,7 @@ function createWindows({
       offBodyMs.delete(win.id);
     });
     win.loadFile(path.join(helperDir, 'index.html'), { query: windowQuery(pet, geo, scale) }).catch((error) => {
-      console.error(`[dsh-pet-desktop-helper] page load failed (${pet.id}):`, error);
+      console.error(`[blue-fish-desktop-helper] page load failed (${pet.id}):`, error);
       win.destroy();
     });
     return win;
@@ -318,7 +318,7 @@ function createWindows({
   /** 渲染端首帧需要的全部参数：几何逐屏注入，运行期变化再经 pet:displays 推送。 */
   function windowQuery(pet, geo, scale) {
     return {
-      configUrl: process.env.DSH_PET_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config',
+      configUrl: process.env.BLUE_FISH_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config',
       bridge: isBridge ? '1' : '0',
       openTarget,
       scale: String(scale),
@@ -337,7 +337,7 @@ function createWindows({
     };
   }
 
-  /** 按 DSH_PET_PETS 建齐所有窗口。 */
+  /** 按 BLUE_FISH_PETS 建齐所有窗口。 */
   function createPetWindows() {
     const geo = deskGeometry();
     const scale = dpi.petScale();
@@ -364,7 +364,7 @@ function createWindows({
       try {
         win.destroy();
       } catch (e) {
-        console.error('[dsh-pet-desktop-helper] window destroy failed:', String(e && e.message ? e.message : e));
+        console.error('[blue-fish-desktop-helper] window destroy failed:', String(e && e.message ? e.message : e));
       }
     }
     windows.clear();
@@ -384,7 +384,7 @@ function createWindows({
         keepOffTaskbar(win);
       } catch (e) {
         console.error(
-          '[dsh-pet-desktop-helper] showAllPetWindows failed:',
+          '[blue-fish-desktop-helper] showAllPetWindows failed:',
           String(e && e.message ? e.message : e),
         );
       }

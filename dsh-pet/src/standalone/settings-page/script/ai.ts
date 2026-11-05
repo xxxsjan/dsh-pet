@@ -20,8 +20,8 @@ async function aiRequest(method, body) {
     cache: 'no-store',
     redirect: 'error',
     headers: body
-      ? { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' }
-      : { 'X-DSH-Pet-Token': TOKEN },
+      ? { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' }
+      : { 'X-Blue-Fish-Token': TOKEN },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
@@ -79,7 +79,7 @@ function wireBalanceQuery() {
         method: 'POST',
         credentials: 'same-origin',
         cache: 'no-store',
-        headers: { 'X-DSH-Pet-Token': TOKEN },
+        headers: { 'X-Blue-Fish-Token': TOKEN },
       });
       if (!response.ok) throw new Error('查询被拒绝（HTTP ' + response.status + '）');
       const data = await response.json();
@@ -131,7 +131,7 @@ function wireTest(testBtn, testResult) {
         method: 'POST',
         credentials: 'same-origin',
         cache: 'no-store',
-        headers: { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' },
+        headers: { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       });
       const data = await response.json();

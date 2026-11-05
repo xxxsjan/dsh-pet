@@ -174,10 +174,10 @@ Object.assign(PetSprite.prototype, {
   showBalanceFromMenu() {
     S.postAction(BALANCE_URL)
       .then((ok) => {
-        if (!ok) console.warn('[dsh-pet] 菜单查看余额：刷新动作未成功');
+        if (!ok) console.warn('[blue-fish] 菜单查看余额：刷新动作未成功');
       })
       .catch((e) => {
-        console.error('[dsh-pet] 菜单查看余额异常', e);
+        console.error('[blue-fish] 菜单查看余额异常', e);
       });
   },
 
@@ -194,10 +194,10 @@ Object.assign(PetSprite.prototype, {
     S.postAction(WHISPER_URL + '?pet=' + encodeURIComponent(this.pet.id) + '&surface=desktop' + pic)
       .then((ok) => {
         if (!ok)
-          console.warn('[dsh-pet] 菜单碎碎念：生成动作未成功 pet=' + this.pet.id + (image ? ' image=' + image : ''));
+          console.warn('[blue-fish] 菜单碎碎念：生成动作未成功 pet=' + this.pet.id + (image ? ' image=' + image : ''));
       })
       .catch((e) => {
-        console.warn('[dsh-pet] 菜单碎碎念异常', e);
+        console.warn('[blue-fish] 菜单碎碎念异常', e);
       });
   },
 
@@ -285,7 +285,7 @@ Object.assign(PetSprite.prototype, {
       clamp: this.visibleClampRect(),
       onSent: () => {
         // 发送成功：回复已写进 S → 版本号变 → 挂着的长轮询立刻返回并弹气泡
-        console.info('[dsh-pet] 对话已发送 pet=' + this.pet.id);
+        console.info('[blue-fish] 对话已发送 pet=' + this.pet.id);
       },
       onClose: () => {
         this.chatMount = null;
@@ -358,19 +358,19 @@ Object.assign(PetSprite.prototype, {
   },
 
   // 「重载配置」菜单：请宿主重启桌面 Helper，与设置页「保存」同一条重启路径（宿主 POST /reload →
-  // syncDesktop）。不在渲染端就地重拉：窗口数量/display/size 由宿主按 DSH_PET_PETS 建，且全局轮询是
+  // syncDesktop）。不在渲染端就地重拉：窗口数量/display/size 由宿主按 BLUE_FISH_PETS 建，且全局轮询是
   // 一次性启动的（loopsStarted），就地重建会漏启新循环或留下旧定时器。
   // 本请求由即将被重启的进程发出，响应可能永远不回（宿主杀进程时回调地址已失效），故不 await、
   // 不重试，失败只记日志——重载本身就是把本进程换掉。
   reloadDesktop() {
     fetch(BASE + '/reload', { method: 'POST' }).catch((e) => {
-      console.warn('[dsh-pet] 重载配置请求失败（宿主不可达？）', e);
+      console.warn('[blue-fish] 重载配置请求失败（宿主不可达？）', e);
     });
   },
 
   // 悬停快捷键 1-4（input.js）：改这一只宠物的 display，写它自己的配置，再由宿主重载生效。
   // 取值直接来自按键映射，渲染端不做推导（当前状态以配置为准）。不就地开关窗：窗口是进程启动时
-  // 按 DSH_PET_PETS 一次性建的。与 reloadDesktop 同一处境：选「仅网页/都不」时本进程会在重载中
+  // 按 BLUE_FISH_PETS 一次性建的。与 reloadDesktop 同一处境：选「仅网页/都不」时本进程会在重载中
   // 被换掉，故不 await、不重试。
   setPetDisplay(display) {
     if (!display) return;
@@ -379,7 +379,7 @@ Object.assign(PetSprite.prototype, {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id: this.pet.id, display }),
     }).catch((e) => {
-      console.warn('[dsh-pet] 显示位置请求失败（宿主不可达？）', e);
+      console.warn('[blue-fish] 显示位置请求失败（宿主不可达？）', e);
     });
   },
 

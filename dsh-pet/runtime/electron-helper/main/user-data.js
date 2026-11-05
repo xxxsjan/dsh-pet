@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 /** 可写性探测用的临时文件名；写完立即删除。 */
-const PROBE_NAME = '.dsh-pet-write-probe';
+const PROBE_NAME = '.blue-fish-write-probe';
 
 /**
  * DSH 主目录：DSH_HOME 优先，未设回落到 ~/.dsh（与宿主 dshHomeDir 同口径）。

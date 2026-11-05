@@ -71,14 +71,14 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
       '宿主必须用 process.versions.electron 判定形态（桌面应用以 ELECTRON_RUN_AS_NODE 跑，该字段仍在；dsh web 是纯 Node）',
     );
     assert.ok(
-      /DSH_PET_OPEN_TARGET: resolveOpenTarget\(siteUrl, isDesktopHost\(\)\)/.test(host),
+      /BLUE_FISH_OPEN_TARGET: resolveOpenTarget\(siteUrl, isDesktopHost\(\)\)/.test(host),
       'launchHelper 必须注入三态（只注入 desktop/site 会让 web 与独立模式共用一档）',
     );
   });
 
   test('helper 主进程：三态解析，未注入回落 web（旧行为）', () => {
     assert.ok(
-      /const OPEN_TARGET_RAW = process\.env\.DSH_PET_OPEN_TARGET;\s*const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' \|\| OPEN_TARGET_RAW === 'standalone' \? OPEN_TARGET_RAW : 'web'/.test(
+      /const OPEN_TARGET_RAW = process\.env\.BLUE_FISH_OPEN_TARGET;\s*const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' \|\| OPEN_TARGET_RAW === 'standalone' \? OPEN_TARGET_RAW : 'web'/.test(
         main,
       ),
       "非 desktop/standalone 一律回落 'web'（手写 start-desktop 无该变量时行为不得变）",
@@ -118,11 +118,11 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
 
   test('独立模式：App 显式标 standalone，CLI 由地址判定，不另注入形态', () => {
     assert.ok(
-      /process\.env\.DSH_PET_OPEN_TARGET = 'standalone'/.test(appMain),
+      /process\.env\.BLUE_FISH_OPEN_TARGET = 'standalone'/.test(appMain),
       '独立 App 不经 spawn，必须自己把形态标成 standalone（否则回落 web，文案又变回「打开网站」）',
     );
     assert.ok(
-      !/DSH_PET_OPEN_TARGET/.test(standaloneContext),
+      !/BLUE_FISH_OPEN_TARGET/.test(standaloneContext),
       '独立模式伪 ctx 不注入形态：App 归 main.ts，CLI 归 spawn 的地址判定',
     );
   });

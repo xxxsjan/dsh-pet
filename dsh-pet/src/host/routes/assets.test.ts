@@ -30,7 +30,7 @@ function readLogo(query: string, rest = 'logo'): Promise<RouteResult | undefined
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-assets-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-assets-'));
 });
 
 beforeEach(() => {

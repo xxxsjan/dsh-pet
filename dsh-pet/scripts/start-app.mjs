@@ -26,11 +26,11 @@ const ELECTRON_REL =
       : 'electron';
 
 const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh');
-const electron = [process.env.DSH_PET_ELECTRON_PATH, join(dshHome, 'electron', ELECTRON_REL)].find(
+const electron = [process.env.BLUE_FISH_ELECTRON_PATH, join(dshHome, 'electron', ELECTRON_REL)].find(
   (value) => value && existsSync(value),
 );
 if (!electron) {
-  console.error('[start-app] 找不到 Electron：先跑 `npm run ensure:electron` 或设置 DSH_PET_ELECTRON_PATH。');
+  console.error('[start-app] 找不到 Electron：先跑 `npm run ensure:electron` 或设置 BLUE_FISH_ELECTRON_PATH。');
   process.exit(1);
 }
 

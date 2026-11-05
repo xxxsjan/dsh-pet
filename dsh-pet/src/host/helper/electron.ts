@@ -48,7 +48,7 @@ function isNonEmptyFile(path: string): boolean {
 }
 
 /**
- * 解析 Electron 可执行文件，按优先级取第一个存在且非空的候选：显式候选与 DSH_PET_ELECTRON_PATH
+ * 解析 Electron 可执行文件，按优先级取第一个存在且非空的候选：显式候选与 BLUE_FISH_ELECTRON_PATH
  * → 本机 electron npm 包 → $DSH_HOME/electron（下载落地路径）。
  * 只认自己的落地路径，不再去 npm 全局目录 / Program Files / /usr/bin 探测别人装的 Electron。
  * 都不存在时由 ensureElectronDownload() 在进程内异步下载（不 spawn 子进程，避免 process.execPath
@@ -63,7 +63,7 @@ export function resolveElectronPath(candidates: Array<string | undefined> = []):
     list.push(value);
   };
   for (const value of candidates) push(value);
-  if (process.env.DSH_PET_ELECTRON_PATH) push(process.env.DSH_PET_ELECTRON_PATH);
+  if (process.env.BLUE_FISH_ELECTRON_PATH) push(process.env.BLUE_FISH_ELECTRON_PATH);
   try {
     const resolved = require('electron');
     if (typeof resolved === 'string' && resolved) push(resolved);
@@ -82,12 +82,12 @@ export function resolveElectronPath(candidates: Array<string | undefined> = []):
  * Linux 无显示环境（服务器 / 容器 / 纯 CLI）下 Electron 能被下载并 spawn，却在初始化图形栈时崩溃；
  * 配合守护循环就变成每秒「拉起 → 崩溃 → 重启」，每个 core dump 约 14MB，几小时能堆到数十 GB 打满
  * 磁盘，所以必须在拉起之前判断。只拦「明确跑不起来」的：win32 / darwin 放行（macOS 无 DISPLAY 也走
- * WindowServer），linux 需要 DISPLAY 或 WAYLAND_DISPLAY 其一。逃生口 DSH_PET_DESKTOP_FORCE=1 强制
+ * WindowServer），linux 需要 DISPLAY 或 WAYLAND_DISPLAY 其一。逃生口 BLUE_FISH_DESKTOP_FORCE=1 强制
  * 跳过，供 Xvfb / 远程桌面等「环境变量没设但其实能显示」的场景使用。
  */
 export function hasGraphicalDisplay(): boolean {
   if (process.platform !== 'linux') return true;
-  if (process.env.DSH_PET_DESKTOP_FORCE === '1') return true;
+  if (process.env.BLUE_FISH_DESKTOP_FORCE === '1') return true;
   return Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
 }
 
@@ -144,9 +144,9 @@ export function readElectronVersion(electronExe: string): string | undefined {
 
 /** 进程内下载 Electron 的选项。 */
 export interface EnsureElectronOptions {
-  /** Electron 版本号（默认 43.3.0，可被 DSH_PET_ELECTRON_VERSION 覆盖）。 */
+  /** Electron 版本号（默认 43.3.0，可被 BLUE_FISH_ELECTRON_VERSION 覆盖）。 */
   version?: string;
-  /** 下载镜像（默认 npmmirror，可被 DSH_PET_ELECTRON_MIRROR 覆盖）。 */
+  /** 下载镜像（默认 npmmirror，可被 BLUE_FISH_ELECTRON_MIRROR 覆盖）。 */
   mirror?: string;
   /** 单次下载超时（默认 10 分钟）。 */
   timeoutMs?: number;
@@ -173,8 +173,8 @@ export interface ElectronDownloadLog {
  * 宿主里指向宿主 exe 而崩溃。已存在则原样返回；失败返回 undefined（不影响 DSH 与浏览器 overlay）。
  */
 export async function ensureElectronDownload(options: EnsureElectronOptions = {}): Promise<string | undefined> {
-  const version = options.version || process.env.DSH_PET_ELECTRON_VERSION || '43.3.0';
-  const mirror = options.mirror || process.env.DSH_PET_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
+  const version = options.version || process.env.BLUE_FISH_ELECTRON_VERSION || '43.3.0';
+  const mirror = options.mirror || process.env.BLUE_FISH_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
   const timeoutMs = options.timeoutMs ?? 10 * 60 * 1000;
   const targetDir = electronLandingDir();
   const exe = defaultElectronExe();
@@ -183,8 +183,8 @@ export async function ensureElectronDownload(options: EnsureElectronOptions = {}
   // 下载日志默认走 console；宿主会把它自己的统一日志器传进来——桌面版没有控制台，console 直出
   // 等于丢失（ctx.logger 在部分宿主也不映射到终端）。
   const sink = options.logger ?? console;
-  const log = (message: string): void => sink.info?.(`[dsh-pet] ${message}`);
-  const warn = (message: string): void => sink.warn?.(`[dsh-pet] ${message}`);
+  const log = (message: string): void => sink.info?.(`[blue-fish] ${message}`);
+  const warn = (message: string): void => sink.warn?.(`[blue-fish] ${message}`);
   // 同一件事两个出口（见 EnsureElectronOptions.onLog）：console 原文 + 给用户看的一句。
   // 文案刻意分成两套——版本号 / 路径 / 耗时对开发者有用，对用户是噪音，不合并成同一句。
   const info = (consoleText: string, text: string, done = false): void => {
@@ -257,7 +257,7 @@ export async function ensureElectronDownload(options: EnsureElectronOptions = {}
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     fail(`ensure failed: ${reason}`, `Electron 下载失败：${reason}`);
-    warn('desktop pet unavailable. Set DSH_PET_ELECTRON_PATH to an existing Electron, or retry later.');
+    warn('desktop pet unavailable. Set BLUE_FISH_ELECTRON_PATH to an existing Electron, or retry later.');
     return undefined;
   }
 }
@@ -269,7 +269,7 @@ export async function ensureElectronDownload(options: EnsureElectronOptions = {}
 export function defaultLaunch(options: HelperOptions = {}): { command: string; args: string[] } {
   const electronPath = resolveElectronPath([options.electronPath]);
   if (!electronPath) {
-    throw new Error('dsh-pet: cannot resolve Electron executable. Set DSH_PET_ELECTRON_PATH or install electron.');
+    throw new Error('blue-fish: cannot resolve Electron executable. Set BLUE_FISH_ELECTRON_PATH or install electron.');
   }
   const helperPath = options.helperPath || defaultHelperMain;
   return { command: electronPath, args: helperLaunchArgs(helperPath) };

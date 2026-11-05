@@ -43,7 +43,7 @@ function request(id: string | undefined, method = 'GET'): RouteInput {
 
 /** 把字节写成临时对象文件，返回其路径与服务桩（imageHostPath 回这个路径）。 */
 function objectFile(bytes: Buffer): { file: string; sink: PetImageSink; clean: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-attachment-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-attachment-test-'));
   const file = join(dir, 'object');
   writeFileSync(file, bytes);
   const sink: PetImageSink = {
@@ -90,7 +90,7 @@ describe('handleAttachmentRoutes —— 取图端点', () => {
       },
     } as PetImageSink;
     const res = await handleAttachmentRoutes(makeDeps(throwing), request(ID));
-    assert.equal((res as { kind: 'text'; body: string }).body, 'dsh-pet: attachment not found');
+    assert.equal((res as { kind: 'text'; body: string }).body, 'blue-fish: attachment not found');
   });
 
   test('对象已被清掉（路径存在但文件不在）→ 404', async () => {

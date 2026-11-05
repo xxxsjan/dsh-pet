@@ -17,7 +17,7 @@ import { limitPool, matchMeme, pickMeme, readMemePool } from './memes.ts';
 
 /** 造一个临时表情包目录，并按 names 写同名 png（内容无关，只要存在） */
 function withMemes(names: string[], run: (memesDir: string) => void): void {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-memes-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-memes-test-'));
   try {
     const memesDir = join(dir, 'memes');
     mkdirSync(memesDir, { recursive: true });
@@ -71,7 +71,7 @@ describe('readMemePool —— 配置与磁盘的对齐', () => {
   });
 
   test('目录不存在 → 空池（未打包/被删也不崩）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-memes-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-memes-test-'));
     try {
       assert.deepEqual(readMemePool({ 可爱: '卖萌' }, [join(dir, 'nope')]), []);
     } finally {

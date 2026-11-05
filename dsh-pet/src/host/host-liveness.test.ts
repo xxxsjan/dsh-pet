@@ -138,7 +138,7 @@ describe('守卫：main.js 的两条路必须都在位（helper 随包发行，�
 
   test('宿主探测（B）：pid 由 env 来，只有 ESRCH 才退，且探测实例不参与', () => {
     assert.ok(
-      /const HOST_PID = parseHostPid\(process\.env\.DSH_PET_HOST_PID\)/.test(main),
+      /const HOST_PID = parseHostPid\(process\.env\.BLUE_FISH_HOST_PID\)/.test(main),
       'pid 必须来自宿主注入的 env（未注入 → 0 → 不探测）',
     );
     assert.ok(/if \(!DPI_PROBE && HOST_PID > 0\)/.test(main), 'pid 非法或 DPI 探测实例都不起轮询');
@@ -164,7 +164,7 @@ describe('守卫：main.js 的两条路必须都在位（helper 随包发行，�
 });
 
 describe('守卫：宿主侧必须把 pid 注入（否则 B 永远不生效）', () => {
-  test('helper/child.ts：唯一的 spawn 点经 helperSpawnEnv 注入 DSH_PET_HOST_PID', () => {
+  test('helper/child.ts：唯一的 spawn 点经 helperSpawnEnv 注入 BLUE_FISH_HOST_PID', () => {
     const src = readSource('./helper/child.ts');
     assert.ok(
       /env: helperSpawnEnv\(process\.pid, this\.options\.env\)/.test(src),
@@ -186,7 +186,7 @@ describe('守卫：宿主侧必须把 pid 注入（否则 B 永远不生效）',
 
   test('start-desktop.mjs：开发流同样注入 pid 且同样删掉该变量', () => {
     const src = readSource('../../scripts/start-desktop.mjs');
-    assert.ok(/DSH_PET_HOST_PID: String\(process\.pid\)/.test(src), '开发流也要跟随');
+    assert.ok(/BLUE_FISH_HOST_PID: String\(process\.pid\)/.test(src), '开发流也要跟随');
     assert.ok(/delete env\.ELECTRON_RUN_AS_NODE;/.test(src), '手动拉起同样要防这个变量（issue #63）');
   });
 });

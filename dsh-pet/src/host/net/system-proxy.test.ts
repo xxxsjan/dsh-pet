@@ -25,17 +25,17 @@ describe('resolveOutboundProxyUrl', () => {
   test('HTTPS_PROXY 优先于系统代理开关', () => {
     const saved = {
       HTTPS_PROXY: process.env.HTTPS_PROXY,
-      disable: process.env.DSH_PET_DISABLE_SYSTEM_PROXY,
+      disable: process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY,
     };
     process.env.HTTPS_PROXY = 'http://127.0.0.1:18080';
-    process.env.DSH_PET_DISABLE_SYSTEM_PROXY = '1';
+    process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY = '1';
     try {
       assert.equal(resolveOutboundProxyUrl(), 'http://127.0.0.1:18080');
     } finally {
       if (saved.HTTPS_PROXY === undefined) delete process.env.HTTPS_PROXY;
       else process.env.HTTPS_PROXY = saved.HTTPS_PROXY;
-      if (saved.disable === undefined) delete process.env.DSH_PET_DISABLE_SYSTEM_PROXY;
-      else process.env.DSH_PET_DISABLE_SYSTEM_PROXY = saved.disable;
+      if (saved.disable === undefined) delete process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY;
+      else process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY = saved.disable;
     }
   });
 });

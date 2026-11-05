@@ -62,7 +62,7 @@ type Logger = {
  * `'0'` / `'false'` / `'1'` 都进纯 Node 模式；运行期再 delete 已经晚了，模块加载器在进程启动时就定了。
  */
 export function helperSpawnEnv(hostPid: number, extra?: Record<string, string | undefined>): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, DSH_PET_HOST_PID: String(hostPid), ...extra };
+  const env: NodeJS.ProcessEnv = { ...process.env, BLUE_FISH_HOST_PID: String(hostPid), ...extra };
   delete env.ELECTRON_RUN_AS_NODE;
   return env;
 }
@@ -148,7 +148,7 @@ export class HelperProcess {
     mkdirSync(cwd, { recursive: true }); // spawn 的 cwd 不存在会直接 ENOENT
     const child = spawn(command, args, {
       cwd,
-      // DSH_PET_HOST_PID：把宿主自己的 pid 交给 helper，让它能判断「宿主还在不在」（helper 侧每 2s
+      // BLUE_FISH_HOST_PID：把宿主自己的 pid 交给 helper，让它能判断「宿主还在不在」（helper 侧每 2s
       // kill(pid, 0) 一次，ESRCH 就自行退出）。放在唯一的 spawn 点，所有调用方都能拿到。
       // macOS/Linux 非有不可：Windows 上 libuv 会把子进程放进带 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
       // 的 job 对象，宿主一退出内核就顺手杀掉；POSIX 没有这层兜底，helper 会一直留着。
@@ -208,7 +208,7 @@ export class HelperProcess {
     return child;
   }
 
-  /** stdout 按行缓冲：`dsh-pet-bridge:` 前缀整行 = 协议请求，其余 = 日志行。 */
+  /** stdout 按行缓冲：`blue-fish-bridge:` 前缀整行 = 协议请求，其余 = 日志行。 */
   private onStdoutChunk(chunk: string): void {
     this.stdoutBuffer += chunk;
     let nl: number;
@@ -225,7 +225,7 @@ export class HelperProcess {
         const url = trimmed.slice(DOUYIN_SIGN_PREFIX.length).trim();
         if (/^https?:\/\//.test(url)) {
           this.douyinSignBaseUrl = url.replace(/\/$/, '');
-          this.logger.info?.(`[dsh-pet] douyin sign bridge: ${this.douyinSignBaseUrl}`);
+          this.logger.info?.(`[blue-fish] douyin sign bridge: ${this.douyinSignBaseUrl}`);
         }
         continue;
       }
@@ -325,7 +325,7 @@ export class HelperProcess {
       alreadyApplied: this.hasSandboxFallbackApplied,
       customCommand: Boolean(this.options.command),
       // 用户在 GPU 沙箱那层设的「保留沙箱」开关：自动降级不得越过显式设定。
-      sandboxOptOut: process.env.DSH_PET_GPU_SANDBOX === '1',
+      sandboxOptOut: process.env.BLUE_FISH_GPU_SANDBOX === '1',
     });
     if (!applied) return false;
     this.hasSandboxFallbackApplied = true;
@@ -340,7 +340,7 @@ export class HelperProcess {
   private scheduleRestart(): void {
     if (this.restartTimer || this.stopping) return;
     // 指数退避（750ms 起 2x，封顶 30s）+ 熔断（连续崩溃 12 次约 3 分钟后停止重启）；两个阈值都可配
-    // （DSH_PET_RESTART_BASE_MS / DSH_PET_RESTART_MAX_FAILURES），稳定运行 ≥3 分钟清零。
+    // （BLUE_FISH_RESTART_BASE_MS / BLUE_FISH_RESTART_MAX_FAILURES），稳定运行 ≥3 分钟清零。
     if (helperRunIsStable(Date.now() - this.lastStartAt)) {
       this.restartFailures = 0;
     } else {
@@ -369,13 +369,13 @@ export class HelperProcess {
     this.restartTimer.unref?.();
   }
 
-  /** 退避基值：DSH_PET_RESTART_BASE_MS（ms，>0）可调，默认 750。 */
+  /** 退避基值：BLUE_FISH_RESTART_BASE_MS（ms，>0）可调，默认 750。 */
   private resolveRestartBaseMs(): number {
-    return envPositiveInt(process.env.DSH_PET_RESTART_BASE_MS, RESTART_BASE_MS_DEFAULT);
+    return envPositiveInt(process.env.BLUE_FISH_RESTART_BASE_MS, RESTART_BASE_MS_DEFAULT);
   }
 
-  /** 熔断阈值：DSH_PET_RESTART_MAX_FAILURES（次，>0）可调，默认 12。 */
+  /** 熔断阈值：BLUE_FISH_RESTART_MAX_FAILURES（次，>0）可调，默认 12。 */
   private resolveMaxFailures(): number {
-    return envPositiveInt(process.env.DSH_PET_RESTART_MAX_FAILURES, RESTART_MAX_FAILURES_DEFAULT);
+    return envPositiveInt(process.env.BLUE_FISH_RESTART_MAX_FAILURES, RESTART_MAX_FAILURES_DEFAULT);
   }
 }

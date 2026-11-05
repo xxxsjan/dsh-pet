@@ -39,8 +39,8 @@ describe('memeImageUrl —— 表情包图片地址', () => {
   test('base 语义 = 已含 /pet-233 的宿主基址（与视频 assetBase 一致）', () => {
     // 桌面 bridge 模式：传 BASE 本身（它已含 /pet-233），不得再拼一次
     assert.equal(
-      memeImageUrl('可爱', 'dsh-pet-bridge://dsh-pet/pet-233'),
-      'dsh-pet-bridge://dsh-pet/pet-233/pic/memes/' + encodeURIComponent('可爱') + '.png',
+      memeImageUrl('可爱', 'blue-fish-bridge://dsh-pet/pet-233'),
+      'blue-fish-bridge://dsh-pet/pet-233/pic/memes/' + encodeURIComponent('可爱') + '.png',
     );
     // 桌面 HTTP 直连模式：同上
     assert.equal(
@@ -52,7 +52,7 @@ describe('memeImageUrl —— 表情包图片地址', () => {
   });
 
   test('不得出现重复的 /pet-233 段（桌面端图裂的成因）', () => {
-    for (const base of ['dsh-pet-bridge://dsh-pet/pet-233', 'http://127.0.0.1:8080/pet-233']) {
+    for (const base of ['blue-fish-bridge://dsh-pet/pet-233', 'http://127.0.0.1:8080/pet-233']) {
       const url = memeImageUrl('可爱', base);
       assert.equal(url.split('/pet-233').length - 1, 1, url);
     }

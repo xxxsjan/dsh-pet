@@ -13,13 +13,13 @@ import { isKnownFishVoice, normalizeFishCustomVoices, normalizeFishTtsModel } fr
 
 /** 单测走直连 + mock fetch，不读本机系统代理。 */
 const savedProxyEnv = {
-  disable: process.env.DSH_PET_DISABLE_SYSTEM_PROXY,
+  disable: process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY,
   https: process.env.HTTPS_PROXY,
   http: process.env.HTTP_PROXY,
   all: process.env.ALL_PROXY,
 };
 before(() => {
-  process.env.DSH_PET_DISABLE_SYSTEM_PROXY = '1';
+  process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY = '1';
   delete process.env.HTTPS_PROXY;
   delete process.env.https_proxy;
   delete process.env.HTTP_PROXY;
@@ -28,8 +28,8 @@ before(() => {
   delete process.env.all_proxy;
 });
 after(() => {
-  if (savedProxyEnv.disable === undefined) delete process.env.DSH_PET_DISABLE_SYSTEM_PROXY;
-  else process.env.DSH_PET_DISABLE_SYSTEM_PROXY = savedProxyEnv.disable;
+  if (savedProxyEnv.disable === undefined) delete process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY;
+  else process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY = savedProxyEnv.disable;
   if (savedProxyEnv.https === undefined) delete process.env.HTTPS_PROXY;
   else process.env.HTTPS_PROXY = savedProxyEnv.https;
   if (savedProxyEnv.http === undefined) delete process.env.HTTP_PROXY;
@@ -80,7 +80,7 @@ test('synthesizeFish：缺 Key 直接失败，不发请求', async () => {
 });
 
 test('synthesizeFish：请求头与正文形状正确，mp3 落盘', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-fish-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-fish-'));
   const target = join(root, 'out.mp3');
   const original = globalThis.fetch;
   let seen: { url: string; init: RequestInit } | undefined;

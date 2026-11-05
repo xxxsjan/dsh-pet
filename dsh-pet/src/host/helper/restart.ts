@@ -93,17 +93,17 @@ function describeCodeDetail(code: number | null): string {
  * @returns 一句面向用户的建议文本（含可复制的环境变量名）。
  */
 export function crashLoopAdvice(platform: NodeJS.Platform): string {
-  const raise = '或设 DSH_PET_RESTART_MAX_FAILURES 提高重试上限后重启。';
+  const raise = '或设 BLUE_FISH_RESTART_MAX_FAILURES 提高重试上限后重启。';
   if (platform === 'win32') {
     return (
-      '换一个 Electron 版本（删掉日志里 electron= 指向的目录，用 DSH_PET_ELECTRON_VERSION 指定可用版本后重启），' +
-      `或用 DSH_PET_ELECTRON_PATH 指向本机能开窗的 electron.exe；${raise}`
+      '换一个 Electron 版本（删掉日志里 electron= 指向的目录，用 BLUE_FISH_ELECTRON_VERSION 指定可用版本后重启），' +
+      `或用 BLUE_FISH_ELECTRON_PATH 指向本机能开窗的 electron.exe；${raise}`
     );
   }
   if (platform === 'linux') {
-    return `确认有可用显示环境（DISPLAY / WAYLAND_DISPLAY，无显示时用 Xvfb 并设 DSH_PET_DESKTOP_FORCE=1）；${raise}`;
+    return `确认有可用显示环境（DISPLAY / WAYLAND_DISPLAY，无显示时用 Xvfb 并设 BLUE_FISH_DESKTOP_FORCE=1）；${raise}`;
   }
-  return `用 DSH_PET_ELECTRON_PATH 指向本机能开窗的 Electron；${raise}`;
+  return `用 BLUE_FISH_ELECTRON_PATH 指向本机能开窗的 Electron；${raise}`;
 }
 
 /**
@@ -130,10 +130,10 @@ export function shouldFallbackToNoSandbox(input: {
   return input.ranMs < SANDBOX_FALLBACK_WINDOW_MS;
 }
 
-/** 退避基值（ms）：默认 750 与旧版首延一致，DSH_PET_RESTART_BASE_MS 可调。 */
+/** 退避基值（ms）：默认 750 与旧版首延一致，BLUE_FISH_RESTART_BASE_MS 可调。 */
 export const RESTART_BASE_MS_DEFAULT = 750;
 
-/** 熔断阈值（连续崩溃次数）：默认 12，DSH_PET_RESTART_MAX_FAILURES 可调。 */
+/** 熔断阈值（连续崩溃次数）：默认 12，BLUE_FISH_RESTART_MAX_FAILURES 可调。 */
 export const RESTART_MAX_FAILURES_DEFAULT = 12;
 
 /** 非负整数 env 解析（非法/未设回落默认），供重启参数读取共用。 */

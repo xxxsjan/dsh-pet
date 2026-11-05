@@ -4,7 +4,7 @@
  * 只出解包目录：portable 是 NSIS 自解压壳，每次启动都要把整个应用目录解压到 %TEMP%，对 Electron 体量得不偿失；
  * nsis 安装包对自用与绿色分发没有增量价值，故不提供。
  * 不下载 Electron：默认只认本机已解压目录，找不到就明确失败，避免本地开发被静默拉走一百多兆；
- * 只有设了 DSH_PET_ALLOW_ELECTRON_DOWNLOAD=1 才交回 electron-builder 自行下载（CI 用）。
+ * 只有设了 BLUE_FISH_ALLOW_ELECTRON_DOWNLOAD=1 才交回 electron-builder 自行下载（CI 用）。
  * 打包二进制统一走 npmmirror 镜像，因为本机 github.com 不通。
  * @module dsh-pet/scripts/dist
  */
@@ -28,7 +28,7 @@ const ELECTRON_REL =
 /**
  * 解析本机 Electron 解压目录，一个字节都不下载。
  *
- * 候选依次是 DSH_PET_ELECTRON_DIST、DSH_PET_ELECTRON_PATH 所在目录、$DSH_HOME/electron；
+ * 候选依次是 BLUE_FISH_ELECTRON_DIST、BLUE_FISH_ELECTRON_PATH 所在目录、$DSH_HOME/electron；
  * 本机都没有时：开了允许下载就返回 undefined（不传 electronDist），否则直接退出进程。
  *
  * @returns 解压目录，或 undefined（交给 electron-builder 下载）。
@@ -36,20 +36,20 @@ const ELECTRON_REL =
 function resolveElectronDist() {
   const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh');
   const candidates = [
-    process.env.DSH_PET_ELECTRON_DIST,
-    process.env.DSH_PET_ELECTRON_PATH ? dirname(process.env.DSH_PET_ELECTRON_PATH) : undefined,
+    process.env.BLUE_FISH_ELECTRON_DIST,
+    process.env.BLUE_FISH_ELECTRON_PATH ? dirname(process.env.BLUE_FISH_ELECTRON_PATH) : undefined,
     join(dshHome, 'electron'),
   ].filter((value) => Boolean(value));
   for (const dir of candidates) {
     if (existsSync(join(dir, ELECTRON_REL))) return dir;
   }
-  if (process.env.DSH_PET_ALLOW_ELECTRON_DOWNLOAD === '1') {
+  if (process.env.BLUE_FISH_ALLOW_ELECTRON_DOWNLOAD === '1') {
     console.warn('[dist] 本机没有 Electron 解压目录，交给 electron-builder 下载（CI 模式）。');
     return undefined;
   }
   console.error(
     '[dist] 找不到本机 Electron 解压目录。先跑 `npm run ensure:electron`，' +
-      '或设置 DSH_PET_ELECTRON_DIST 指向解压目录。',
+      '或设置 BLUE_FISH_ELECTRON_DIST 指向解压目录。',
   );
   process.exit(1);
 }
@@ -72,10 +72,10 @@ const env = {
 };
 // 有本地解压目录时才禁止 Electron 下载；CI 的回退路径反过来必须允许下载
 if (electronDist) {
-  env.DSH_PET_ELECTRON_DIST = electronDist;
+  env.BLUE_FISH_ELECTRON_DIST = electronDist;
   env.ELECTRON_SKIP_BINARY_DOWNLOAD = '1';
 } else {
-  delete env.DSH_PET_ELECTRON_DIST;
+  delete env.BLUE_FISH_ELECTRON_DIST;
   delete env.ELECTRON_SKIP_BINARY_DOWNLOAD;
 }
 

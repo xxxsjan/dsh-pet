@@ -147,7 +147,7 @@ describe('sendFile —— Range 应答', () => {
   let close = (): void => {};
 
   before(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'dsh-pet-range-'));
+    dir = mkdtempSync(join(tmpdir(), 'blue-fish-range-'));
     const file = join(dir, 'clip.webm');
     writeFileSync(file, payload);
     // 每个测试文件自建 server、随机端口，结束时关闭（不依赖外部服务）

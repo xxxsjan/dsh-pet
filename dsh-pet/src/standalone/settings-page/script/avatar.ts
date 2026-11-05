@@ -65,7 +65,7 @@ async function loadAvatar(image, assetRoot) {
     const response = await fetch(avatarSrc(assetRoot), {
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'X-DSH-Pet-Token': TOKEN },
+      headers: { 'X-Blue-Fish-Token': TOKEN },
     });
     if (!response.ok) return;
     const blob = await response.blob();
@@ -87,7 +87,7 @@ async function uploadAvatar(assetRoot, file, result, image) {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ base64: base64 }),
     });
     if (response.status === 403) throw new Error('打开凭据已失效。请从桌宠菜单重新打开设置。');

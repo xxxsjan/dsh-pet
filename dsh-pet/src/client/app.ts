@@ -35,7 +35,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
     try {
       primitives = require('@deepseek-ai/dsh-client-ui-primitives');
     } catch (error) {
-      console.warn('[dsh-pet] 图标模块不可用：' + (error instanceof Error ? error.message : String(error)));
+      console.warn('[blue-fish] 图标模块不可用：' + (error instanceof Error ? error.message : String(error)));
     }
 
     // react-dom 也是平台种子模块，仅用于把图标同步渲成 SVG 供 CSS mask 使用。
@@ -57,7 +57,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
       };
     } catch (error) {
       console.warn(
-        '[dsh-pet] 图标渲染器不可用（react-dom 缺失）：' + (error instanceof Error ? error.message : String(error)),
+        '[blue-fish] 图标渲染器不可用（react-dom 缺失）：' + (error instanceof Error ? error.message : String(error)),
       );
     }
 
@@ -70,7 +70,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DSH 注入的 ctx（locale/slots/webServer 等 service 无静态类型）
     function apply(ctx: any) {
       // 设置页文案字典。
-      ctx.effect(() => ctx.locale.register(NS, dicts), 'dsh-pet: dictionaries');
+      ctx.effect(() => ctx.locale.register(NS, dicts), 'blue-fish: dictionaries');
       const t = ctx.locale.bind(NS);
 
       // 同页第三方插件可通过 Cordis 服务 petApi7340 读取本页宠物的实况、播放进度、最近一拍状态与菜单点击。
@@ -99,7 +99,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
               return name || undefined;
             },
           }),
-        'dsh-pet: notifications',
+        'blue-fish: notifications',
       );
 
       // /pet-233 选择框：选中后提交 /pet-233 <id>，由 host 命令落地。
@@ -108,7 +108,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DSH 注入服务无静态类型
         const commandUi = (ctx as any).get?.('commandUi');
         if (!commandUi || typeof commandUi.decorate !== 'function') {
-          console.warn('[dsh-pet] 命令选择框不可用：commandUi 服务缺失（/pet-233 仍可手输 id 或名字）');
+          console.warn('[blue-fish] 命令选择框不可用：commandUi 服务缺失（/pet-233 仍可手输 id 或名字）');
           return () => {};
         }
         return commandUi.decorate({
@@ -130,7 +130,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
             },
           },
         });
-      }, 'dsh-pet: /pet-233 picker');
+      }, 'blue-fish: /pet-233 picker');
 
       // 给 /chat /pet-233 /balance 补上「/」菜单的行标题与图标。
       // DSH 没有官方入口，这里包装 commandUi.candidates；命令本身的行为不受影响。
@@ -140,7 +140,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
         const commandUi = (ctx as any).get?.('commandUi') as CommandUiLike | undefined;
         const icons = primitives;
         if (commandUi === undefined || icons === undefined) {
-          console.warn('[dsh-pet] 命令图标不可用（命令本身仍可用，只是没有图标）');
+          console.warn('[blue-fish] 命令图标不可用（命令本身仍可用，只是没有图标）');
           return () => {};
         }
         return installCommandFaces(
@@ -154,7 +154,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
             ['balance', { label: () => t('cmd.balance'), icon: icons.IconGaugeOutlineRegular }],
           ]),
         );
-      }, 'dsh-pet: command faces');
+      }, 'blue-fish: command faces');
 
       // 设置页导航「桌宠配置」的图标：DSH 只给白名单分区配图标，只能在 DOM 层补。
       // 依据与降级策略见 nav-icon.ts。
@@ -162,11 +162,11 @@ export function makeFactory(): (require: (mod: string) => any) => any {
         const renderIcon = renderIconSvg;
         const icon = primitives?.IconSlidersTwoOutlineMedium;
         if (renderIcon === undefined || icon === undefined) {
-          console.warn('[dsh-pet] 设置页导航图标不可用（那一行仍是齿轮）');
+          console.warn('[blue-fish] 设置页导航图标不可用（那一行仍是齿轮）');
           return () => {};
         }
         return installSectionNavIcon({ label: () => t('nav'), renderSvg: () => renderIcon(icon) });
-      }, 'dsh-pet: settings nav icon');
+      }, 'blue-fish: settings nav icon');
 
       // 宠物 overlay：容器渲染多个 PetCard。
       ctx.slots.inject('shell.overlay', function* () {
@@ -199,7 +199,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
           sidebarChat.dispose();
           card.dispose();
         };
-      }, 'dsh-pet: shortcuts');
+      }, 'blue-fish: shortcuts');
 
       // 右侧栏「桌宠对话」：可选能力，服务缺失时只告警，不影响其它部位。
       // 确认弹窗用平台原语（primitives 缺失时面板内部退化为内联确认条）。
@@ -227,10 +227,10 @@ export function makeFactory(): (require: (mod: string) => any) => any {
             sidebarChatReady ? { commandId: PET_CHAT_COMMAND_ID } : {},
           );
         } catch (error) {
-          console.error('[dsh-pet] 右侧栏对话面板注册失败（已忽略，不影响启动）：', error);
+          console.error('[blue-fish] 右侧栏对话面板注册失败（已忽略，不影响启动）：', error);
           return () => {};
         }
-      }, 'dsh-pet: sidebar chat tab');
+      }, 'blue-fish: sidebar chat tab');
     }
 
     module.exports = { apply, inject, name };

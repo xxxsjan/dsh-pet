@@ -13,7 +13,7 @@ describe('petUserRootForHome', () => {
     assert.equal(petUserRootForHome(join('/Users/x', '.dsh')), join('/Users/x', PET_USER_DIR));
   });
 
-  test('自定义 home → {home}/dsh-pet', () => {
-    assert.equal(petUserRootForHome(join('/tmp', 'iso')), join('/tmp', 'iso', 'dsh-pet'));
+  test('自定义 home → {home}/blue-fish', () => {
+    assert.equal(petUserRootForHome(join('/tmp', 'iso')), join('/tmp', 'iso', 'blue-fish'));
   });
 });

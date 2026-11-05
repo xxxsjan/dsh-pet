@@ -88,7 +88,7 @@ export interface HostSetup {
  * @returns 日志、路径、store 与两个工具函数。
  */
 export function createHostSetup(ctx: HostSetupContext): HostSetup {
-  // 用户数据根：默认 ~/.blue-fish；自定义 DSH_HOME 时为 $DSH_HOME/dsh-pet（不迁旧目录）。
+  // 用户数据根：默认 ~/.blue-fish；自定义 DSH_HOME 时为 $DSH_HOME/blue-fish（不迁旧目录）。
   const dshHome = resolveDshHome();
   const userRoot = petUserRootForHome(dshHome);
 
@@ -103,7 +103,7 @@ export function createHostSetup(ctx: HostSetupContext): HostSetup {
     createFileLogger({
       file: join(userRoot, 'logs.txt'),
       base: ctx.logger,
-      debugEnabled: process.env.DSH_PET_LOG_DEBUG === '1',
+      debugEnabled: process.env.BLUE_FISH_LOG_DEBUG === '1',
     });
 
   // 纯模块（./config、./chat、./whisper）拿不到 ctx.logger，用这个默认出口落盘
@@ -116,7 +116,7 @@ export function createHostSetup(ctx: HostSetupContext): HostSetup {
         void log.flush();
         log.dispose();
       },
-      'dsh-pet: log file',
+      'blue-fish: log file',
     );
   }
 
@@ -162,7 +162,7 @@ export function createHostSetup(ctx: HostSetupContext): HostSetup {
 
   // 老用户一次性迁移：main-config.json → main-config.jsonc（重命名，内容一字不动；
   // 新文件已存在则不动旧文件）。失败不影响运行——读取侧对旧路径有回落。
-  migrateUserConfig(configPaths, (msg) => log.info('[dsh-pet] ' + msg));
+  migrateUserConfig(configPaths, (msg) => log.info('[blue-fish] ' + msg));
 
   // 用户动画目录（thumb 播放时优先于包内素材；webm 放 main-animation/webm/，mov（macOS 定制）放 main-animation/mov/）
   const thumbUserRoot = join(userRoot, 'main-animation');

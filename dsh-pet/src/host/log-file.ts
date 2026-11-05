@@ -63,7 +63,7 @@ export interface FileLoggerOptions {
   flushThreshold?: number;
   /** 内存里最多缓冲多少条（超出丢最旧），默认 1000 */
   maxPending?: number;
-  /** debug 级别是否落盘，默认关（`DSH_PET_LOG_DEBUG=1` 打开） */
+  /** debug 级别是否落盘，默认关（`BLUE_FISH_LOG_DEBUG=1` 打开） */
   debugEnabled?: boolean;
   /** 时间源（测试注入用） */
   now?: () => Date;
@@ -89,7 +89,7 @@ export function redactSensitive(text: string): string {
     .replace(/(x-blue-fish-token["'\s:=]+)[A-Za-z0-9_-]{16,}/gi, '$1***')
     .replace(/(token["'\s:=]+)[A-Za-z0-9_-]{32,}/gi, '$1***')
     .replace(/(#token=)[A-Za-z0-9_-]{16,}/g, '$1***')
-    .replace(/(DSH_PET_SITE_URL=)\S+/g, '$1***');
+    .replace(/(BLUE_FISH_SITE_URL=)\S+/g, '$1***');
 }
 
 /** 截断时保留尾部 `keepBytes` 字节；取尾部会切断多字节字符，调用方只用于拼日志文本，可接受。 */
@@ -247,7 +247,7 @@ export function createPlainFileLogger(file: string, base?: LoggerLike): FileLogg
   return createFileLogger({
     file,
     base,
-    debugEnabled: process.env.DSH_PET_LOG_DEBUG === '1',
+    debugEnabled: process.env.BLUE_FISH_LOG_DEBUG === '1',
   });
 }
 
@@ -273,7 +273,7 @@ export function defaultLog(level: LogLevel, message: string): void {
     return;
   }
   if (level === 'debug') {
-    if (process.env.DSH_PET_LOG_DEBUG === '1') console.debug(message);
+    if (process.env.BLUE_FISH_LOG_DEBUG === '1') console.debug(message);
     return;
   }
   if (level === 'info') console.info(message);

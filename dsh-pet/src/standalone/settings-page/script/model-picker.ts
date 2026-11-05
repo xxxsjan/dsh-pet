@@ -46,7 +46,7 @@ async function fetchModelOptions(trigger) {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         protocol: protocolSelect ? protocolSelect.getValue() : 'openai-compatible',
         baseUrl: byId('baseUrl').value.trim(),

@@ -37,7 +37,7 @@ http://127.0.0.1:3080/pet-233/chat?pet=main
 
 1. **Host 必须是当前回环地址**：`127.0.0.1:<实际端口>` 或 `localhost:<实际端口>`。
 2. **跨站 Origin / `Sec-Fetch-Site: cross-site` 会被拒绝**（`403`）。
-3. **令牌**：请求头 `X-DSH-Pet-Token: <token>`（或同进程浏览器会话 cookie `dsh_pet_token`）。
+3. **令牌**：请求头 `X-Blue-Fish-Token: <token>`（或同进程浏览器会话 cookie `blue_fish_token`）。
 
 ### 哪些路径要令牌
 
@@ -148,7 +148,7 @@ GET http://127.0.0.1:3080/health
 ```http
 POST http://127.0.0.1:3080/pet-233/chat?pet=main
 Content-Type: application/json
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 
 {
   "text": "你好呀"
@@ -217,7 +217,7 @@ X-DSH-Pet-Token: <token>
 
 ```http
 GET http://127.0.0.1:3080/pet-233/chat?pet=main&rounds=20
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 ```
 
 | 查询     | 说明                                                       |
@@ -258,7 +258,7 @@ X-DSH-Pet-Token: <token>
 
 ```http
 DELETE http://127.0.0.1:3080/pet-233/chat?pet=main
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 ```
 
 | 查询  | 说明                                            |
@@ -280,7 +280,7 @@ X-DSH-Pet-Token: <token>
 
 ```http
 GET http://127.0.0.1:3080/pet-233/chat/memory
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 ```
 
 ```json
@@ -312,7 +312,7 @@ X-DSH-Pet-Token: <token>
 ```http
 POST http://127.0.0.1:3080/pet-233/broadcast?pet=main
 Content-Type: application/json
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 
 {
   "text": "大家好呀～",
@@ -351,7 +351,7 @@ X-DSH-Pet-Token: <token>
 
 ```http
 POST http://127.0.0.1:3080/pet-233/whisper?pet=main
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 ```
 
 可选查询：`image=`（指定池内表情包名）、`surface=`。
@@ -376,7 +376,7 @@ X-DSH-Pet-Token: <token>
 
 ```http
 POST http://127.0.0.1:3080/pet-233/bubble/clear?pet=main
-X-DSH-Pet-Token: <token>
+X-Blue-Fish-Token: <token>
 ```
 
 ```json
@@ -403,7 +403,7 @@ await fetch(`${base}/pet-233/broadcast?pet=${encodeURIComponent(pet)}`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-DSH-Pet-Token': token,
+    'X-Blue-Fish-Token': token,
   },
   body: JSON.stringify({ text: '大家好呀～' }),
 });
@@ -416,7 +416,7 @@ const res = await fetch(`${base}/pet-233/chat?pet=${encodeURIComponent(pet)}`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-DSH-Pet-Token': token,
+    'X-Blue-Fish-Token': token,
   },
   body: JSON.stringify({ text: '鱼鱼你好' }),
 });

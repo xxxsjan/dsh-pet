@@ -69,6 +69,6 @@ export function registerPetCommand(deps: CommandPetInput): void {
           return { kind: 'error', text: '找不到桌宠「' + arg + '」（id 或名字都行；/pet-233 回车可打开选择框）' };
         },
       }),
-    'dsh-pet: /pet-233 command',
+    'blue-fish: /pet-233 command',
   );
 }

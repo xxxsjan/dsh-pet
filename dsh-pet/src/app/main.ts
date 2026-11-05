@@ -85,7 +85,7 @@ async function boot(): Promise<void> {
   const logger = createFileLogger({
     file: logFile,
     base: rawConsole,
-    debugEnabled: process.env.DSH_PET_LOG_DEBUG === '1',
+    debugEnabled: process.env.BLUE_FISH_LOG_DEBUG === '1',
   });
   const toLine = (args: unknown[]): string => args.map((a) => (typeof a === 'string' ? a : String(a))).join(' ');
   for (const level of ['info', 'warn', 'error', 'debug'] as const) {
@@ -135,24 +135,24 @@ async function boot(): Promise<void> {
   }
 
   // 先把「我自己就是应用」告诉插件，再 apply：apply 内部据此短路 spawn 与下载
-  process.env.DSH_PET_IN_PROCESS = '1';
-  process.env.DSH_PET_APP_MODE = '1';
+  process.env.BLUE_FISH_IN_PROCESS = '1';
+  process.env.BLUE_FISH_APP_MODE = '1';
   // 独立模式点首项打开的是本机 AI 设置页，不是 DSH 站点：形态必须显式标成 standalone。
-  process.env.DSH_PET_OPEN_TARGET = 'standalone';
+  process.env.BLUE_FISH_OPEN_TARGET = 'standalone';
   // 不注入宿主 PID：helper 的「宿主没了就退出」只对双进程有意义，同进程里设了会自己杀自己
-  delete process.env.DSH_PET_HOST_PID;
-  process.env.DSH_PET_CONFIG_URL = `${origin}${ROUTE_SEGMENT}/config`;
+  delete process.env.BLUE_FISH_HOST_PID;
+  process.env.BLUE_FISH_CONFIG_URL = `${origin}${ROUTE_SEGMENT}/config`;
   // 右键「打开 AI 设置」用它：带令牌的配置页（与 CLI 行为一致）。裸 origin 在应用里没有页面可看。
-  process.env.DSH_PET_SITE_URL = security.authenticatedUrl(origin);
-  if (!process.env.DSH_PET_SCALE) process.env.DSH_PET_SCALE = '1';
+  process.env.BLUE_FISH_SITE_URL = security.authenticatedUrl(origin);
+  if (!process.env.BLUE_FISH_SCALE) process.env.BLUE_FISH_SCALE = '1';
 
   apply(context.ctx);
   log(`apply() 完成：routes=${routes.length} 失败=${context.failures.length}`);
 
   // helper 读它决定建几个窗口；读不到时它会回落到单个默认窗口，首帧再由渲染端自校正
-  process.env.DSH_PET_PETS = JSON.stringify(desktopPets());
-  // OBS 窗口捕获：与配置 obsCaptureEnabled 同步；helper 建窗时读 DSH_PET_OBS_CAPTURE
-  process.env.DSH_PET_OBS_CAPTURE = obsCaptureEnabled() ? '1' : '0';
+  process.env.BLUE_FISH_PETS = JSON.stringify(desktopPets());
+  // OBS 窗口捕获：与配置 obsCaptureEnabled 同步；helper 建窗时读 BLUE_FISH_OBS_CAPTURE
+  process.env.BLUE_FISH_OBS_CAPTURE = obsCaptureEnabled() ? '1' : '0';
 
   // 同进程跑 Helper：建窗、托盘、IPC、碰撞都在它内部完成（CJS，需要 require）。
   // 渲染端日志必须转出来——打包后的应用没有控制台，渲染端报错只会表现成「窗口透明」。
@@ -170,11 +170,11 @@ async function boot(): Promise<void> {
       security.token,
     );
   });
-  process.env.DSH_PET_APP_TOKEN = security.token;
+  process.env.BLUE_FISH_APP_TOKEN = security.token;
   try {
     createRequire(import.meta.url)(helperMain);
   } finally {
-    delete process.env.DSH_PET_APP_TOKEN;
+    delete process.env.BLUE_FISH_APP_TOKEN;
   }
 
   app.on('second-instance', () => log('已有一个实例在运行，忽略本次启动'));

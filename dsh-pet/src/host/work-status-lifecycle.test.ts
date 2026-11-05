@@ -120,12 +120,12 @@ function setup(): Harness {
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-workstatus-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-workstatus-'));
   savedHome = process.env.DSH_HOME;
-  savedElectron = process.env.DSH_PET_ELECTRON_PATH;
+  savedElectron = process.env.BLUE_FISH_ELECTRON_PATH;
   process.env.DSH_HOME = join(dir, 'home');
   // 命中一个已存在的文件：桌面 Helper 无论走哪条分支都不会真的下载/拉起
-  process.env.DSH_PET_ELECTRON_PATH = process.execPath;
+  process.env.BLUE_FISH_ELECTRON_PATH = process.execPath;
 });
 
 after(() => {
@@ -134,8 +134,8 @@ after(() => {
   for (const h of harnesses.splice(0)) h.dispose();
   if (savedHome === undefined) delete process.env.DSH_HOME;
   else process.env.DSH_HOME = savedHome;
-  if (savedElectron === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
-  else process.env.DSH_PET_ELECTRON_PATH = savedElectron;
+  if (savedElectron === undefined) delete process.env.BLUE_FISH_ELECTRON_PATH;
+  else process.env.BLUE_FISH_ELECTRON_PATH = savedElectron;
   rmSync(dir, { recursive: true, force: true });
 });
 

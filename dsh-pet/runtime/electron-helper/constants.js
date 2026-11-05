@@ -28,7 +28,7 @@ function toScreen(v) {
 function toLocal(v) {
   return v / CONFIG.scale;
 }
-// bridge 模式（DSH_PET_BRIDGE=1）：请求走自定义 scheme 经主进程转宿主管道，绕开 DSH 桌面应用的
+// bridge 模式（BLUE_FISH_BRIDGE=1）：请求走自定义 scheme 经主进程转宿主管道，绕开 DSH 桌面应用的
 // 浏览器访问闸门（它只放行带令牌的请求，插件自拉进程的裸 HTTP 一律 403）。
 const BRIDGE = params.get('bridge') === '1';
 // 菜单首项去向（主进程按宿主形态注入）：desktop 唤起桌面应用，standalone 打开本机 AI 设置页，web 打开站点。
@@ -134,7 +134,7 @@ applyDeskGeometry({
 });
 const ORIGIN = new URL(CONFIG.configUrl).origin;
 /** 宿主 /pet-233 前缀：bridge 走自定义 scheme（主进程转发），否则 HTTP 直连宿主 */
-const BASE = BRIDGE ? 'dsh-pet-bridge://dsh-pet/pet-233' : ORIGIN + '/pet-233';
+const BASE = BRIDGE ? 'blue-fish-bridge://dsh-pet/pet-233' : ORIGIN + '/pet-233';
 const STATE_URL = BASE + '/state'; // 轮询统一状态 S：前端 1s 轮询的唯一数据源（余额/工作状态/通知/说话）
 const BALANCE_URL = BASE + '/balance'; // 余额刷新动作（POST，写 S；数据本身从 /state 读）
 const FOCUS_SESSION_URL = BASE + '/focus-session'; // 跳会话动作（POST，写 sections.focusSession；页面据此切过去）

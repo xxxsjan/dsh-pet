@@ -48,7 +48,7 @@ const decide = (over: Partial<Parameters<typeof decideBroadcast>[0]> = {}) =>
   });
 
 before(() => {
-  const root = mkdtempSync(join(tmpdir(), 'dsh-pet-broadcast-'));
+  const root = mkdtempSync(join(tmpdir(), 'blue-fish-broadcast-'));
   memesDir = join(root, 'memes');
   mkdirSync(memesDir, { recursive: true });
   writeFileSync(join(memesDir, `${IN_POOL}.png`), 'x');
@@ -313,7 +313,7 @@ describe('decideBroadcast —— 配图的 url 形态（第三方自带素材，
   });
 
   test('同源相对地址不行——必须是完整 URL', () => {
-    const d = decide({ url: '/dsh-pet-wallpaper/asset/x.png' });
+    const d = decide({ url: '/blue-fish-wallpaper/asset/x.png' });
     assert.equal(d.ok, false);
     assert.equal(d.ok === false && d.reason, 'bad-request');
   });

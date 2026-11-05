@@ -3,7 +3,7 @@
  *
  * 下载（@electron/get）与解压（@electron-internal/extract-zip）已由官方库接管，
  * 不再有手写 zip 解析/平台命令链，故原 extractAttempts/extractZipWithNode 测试随代码删除。
- * 这里测的是 resolveElectronPath 的候选优先级、DSH_PET_ELECTRON_PATH 环境变量覆盖、
+ * 这里测的是 resolveElectronPath 的候选优先级、BLUE_FISH_ELECTRON_PATH 环境变量覆盖、
  * 以及 dshHomeDir/defaultElectronExe 的路径拼装——这些是本文件仍然自己实现的部分。
  *
  * 用 Node 内置 test runner（node:test），不引入任何 npm 依赖：
@@ -37,7 +37,7 @@ import {
 } from './helper-process.ts';
 
 test('Electron 安装目录无法创建时返回 undefined，不产生未处理拒绝', async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-install-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-install-'));
   const savedHome = process.env.DSH_HOME;
   t.after(() => {
     if (savedHome === undefined) delete process.env.DSH_HOME;
@@ -52,23 +52,23 @@ test('Electron 安装目录无法创建时返回 undefined，不产生未处理�
   t.mock.method(console, 'log', () => {});
   assert.equal(await ensureElectronDownload(), undefined);
   assert.ok(warnings.some((message) => message.includes('ensure failed:')));
-  assert.ok(warnings.some((message) => message.includes('DSH_PET_ELECTRON_PATH')));
+  assert.ok(warnings.some((message) => message.includes('BLUE_FISH_ELECTRON_PATH')));
 });
 
-/** 建一个隔离的临时目录,并归还原 DSH_HOME / DSH_PET_ELECTRON_PATH 环境变量 */
+/** 建一个隔离的临时目录,并归还原 DSH_HOME / BLUE_FISH_ELECTRON_PATH 环境变量 */
 function withIsolatedHome(fn: (dir: string) => void): void {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-test-'));
   const savedHome = process.env.DSH_HOME;
-  const savedPath = process.env.DSH_PET_ELECTRON_PATH;
+  const savedPath = process.env.BLUE_FISH_ELECTRON_PATH;
   try {
     process.env.DSH_HOME = join(dir, 'dshhome');
-    process.env.DSH_PET_ELECTRON_PATH = '';
+    process.env.BLUE_FISH_ELECTRON_PATH = '';
     fn(dir);
   } finally {
     if (savedHome === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = savedHome;
-    if (savedPath === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
-    else process.env.DSH_PET_ELECTRON_PATH = savedPath;
+    if (savedPath === undefined) delete process.env.BLUE_FISH_ELECTRON_PATH;
+    else process.env.BLUE_FISH_ELECTRON_PATH = savedPath;
     rmSync(dir, { recursive: true, force: true });
   }
 }
@@ -144,11 +144,11 @@ describe('resolveElectronPath —— 候选优先级', () => {
     });
   });
 
-  test('DSH_PET_ELECTRON_PATH 环境变量参与候选（在显式候选之后）', () => {
+  test('BLUE_FISH_ELECTRON_PATH 环境变量参与候选（在显式候选之后）', () => {
     withIsolatedHome((dir) => {
       const viaEnv = join(dir, 'env-electron.exe');
       writeFileSync(viaEnv, 'executable fixture');
-      process.env.DSH_PET_ELECTRON_PATH = viaEnv;
+      process.env.BLUE_FISH_ELECTRON_PATH = viaEnv;
       assert.equal(resolveElectronPath([]), viaEnv);
     });
   });
@@ -193,7 +193,7 @@ describe('resolveElectronPath —— 候选优先级', () => {
 });
 
 test('Electron cache validation: an existing non-empty file avoids a download', async (t) => {
-  const home = mkdtempSync(join(tmpdir(), 'dsh-pet-cache-'));
+  const home = mkdtempSync(join(tmpdir(), 'blue-fish-cache-'));
   const previous = process.env.DSH_HOME;
   t.after(() => {
     if (previous === undefined) delete process.env.DSH_HOME;
@@ -217,7 +217,7 @@ test('Electron cache validation: an existing non-empty file avoids a download', 
 });
 
 test('Electron cache validation: an empty file enters the download path and reports failure', async (t) => {
-  const home = mkdtempSync(join(tmpdir(), 'dsh-pet-cache-'));
+  const home = mkdtempSync(join(tmpdir(), 'blue-fish-cache-'));
   const previous = process.env.DSH_HOME;
   t.after(() => {
     if (previous === undefined) delete process.env.DSH_HOME;
@@ -246,7 +246,7 @@ test('Electron cache validation: an empty file enters the download path and repo
 describe('hasGraphicalDisplay —— 无图形环境时不拉起 Electron', () => {
   const saved = { ...process.env };
   afterEach(() => {
-    for (const key of ['DISPLAY', 'WAYLAND_DISPLAY', 'DSH_PET_DESKTOP_FORCE']) delete process.env[key];
+    for (const key of ['DISPLAY', 'WAYLAND_DISPLAY', 'BLUE_FISH_DESKTOP_FORCE']) delete process.env[key];
     Object.assign(process.env, saved);
   });
 
@@ -267,10 +267,10 @@ describe('hasGraphicalDisplay —— 无图形环境时不拉起 Electron', () =
     assert.equal(hasGraphicalDisplay(), true);
   });
 
-  test('DSH_PET_DESKTOP_FORCE=1 为逃生口（Xvfb / 远程桌面场景）', () => {
+  test('BLUE_FISH_DESKTOP_FORCE=1 为逃生口（Xvfb / 远程桌面场景）', () => {
     delete process.env.DISPLAY;
     delete process.env.WAYLAND_DISPLAY;
-    process.env.DSH_PET_DESKTOP_FORCE = '1';
+    process.env.BLUE_FISH_DESKTOP_FORCE = '1';
     assert.equal(hasGraphicalDisplay(), true);
   });
 });
@@ -282,7 +282,7 @@ describe('restartBackoffDelayMs —— 指数退避（750ms 起，2x 封顶 30s�
     assert.deepEqual(seq, [750, 1500, 3000, 6000, 12000, 24000, 30000, 30000, 30000]);
   });
 
-  test('DSH_PET_RESTART_BASE_MS 可调基值（同样 2x、封顶 30s）', () => {
+  test('BLUE_FISH_RESTART_BASE_MS 可调基值（同样 2x、封顶 30s）', () => {
     assert.equal(restartBackoffDelayMs(0, 1000), 1000);
     assert.equal(restartBackoffDelayMs(5, 1000), 30000);
   });
@@ -329,7 +329,7 @@ describe('shouldFallbackToNoSandbox —— 沙箱起不来时自动改用 --no-s
     assert.equal(shouldFallbackToNoSandbox({ ...base, alreadyApplied: true }), false);
   });
 
-  test('用户显式要求保留沙箱（DSH_PET_GPU_SANDBOX=1）→ 不退', () => {
+  test('用户显式要求保留沙箱（BLUE_FISH_GPU_SANDBOX=1）→ 不退', () => {
     assert.equal(shouldFallbackToNoSandbox({ ...base, sandboxOptOut: true }), false);
   });
 
@@ -399,28 +399,28 @@ describe('describeExit —— 崩溃退出码翻成可读片段', () => {
 describe('crashLoopAdvice —— 熔断建议按平台分支', () => {
   test('Windows：给换版本与指向现成可执行文件，不提 DISPLAY', () => {
     const advice = crashLoopAdvice('win32');
-    assert.match(advice, /DSH_PET_ELECTRON_VERSION/);
-    assert.match(advice, /DSH_PET_ELECTRON_PATH/);
-    assert.match(advice, /DSH_PET_RESTART_MAX_FAILURES/);
+    assert.match(advice, /BLUE_FISH_ELECTRON_VERSION/);
+    assert.match(advice, /BLUE_FISH_ELECTRON_PATH/);
+    assert.match(advice, /BLUE_FISH_RESTART_MAX_FAILURES/);
     assert.ok(!advice.includes('DISPLAY'), 'Windows 上建议配 DISPLAY 是误导');
   });
 
   test('Linux：给显示环境与 Xvfb 逃生口', () => {
     const advice = crashLoopAdvice('linux');
     assert.match(advice, /DISPLAY/);
-    assert.match(advice, /DSH_PET_DESKTOP_FORCE=1/);
+    assert.match(advice, /BLUE_FISH_DESKTOP_FORCE=1/);
   });
 
   test('macOS：指向现成可执行文件，不提显示环境', () => {
     const advice = crashLoopAdvice('darwin');
-    assert.match(advice, /DSH_PET_ELECTRON_PATH/);
+    assert.match(advice, /BLUE_FISH_ELECTRON_PATH/);
     assert.ok(!advice.includes('DISPLAY'));
   });
 });
 
 describe('readElectronVersion —— 读落地目录里的 version 文件', () => {
   test('正常读取：内容去掉换行后返回', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-version-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-version-'));
     try {
       writeFileSync(join(dir, 'version'), '43.3.0\n');
       assert.equal(readElectronVersion(join(dir, 'electron.exe')), '43.3.0');
@@ -430,7 +430,7 @@ describe('readElectronVersion —— 读落地目录里的 version 文件', () =
   });
 
   test('文件缺失或内容不是版本号：返回 undefined，不编造', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-version-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-version-'));
     try {
       assert.equal(readElectronVersion(join(dir, 'electron.exe')), undefined);
       writeFileSync(join(dir, 'version'), 'not-a-version');
@@ -484,15 +484,15 @@ describe('HelperProcess —— 退避/熔断的**接线**（纯函数之外，�
 
   test('首次崩溃等待 base（默认 750ms），不是 2×base', async () => {
     // 首延必须是 base：计数在算延迟前不能自增（否则计数 1 取 2^1 = 2×base，首延变成 1500ms）
-    const logs = await runCrashLoop({ DSH_PET_RESTART_BASE_MS: '1' }, 20);
+    const logs = await runCrashLoop({ BLUE_FISH_RESTART_BASE_MS: '1' }, 20);
     const first = logs.find((l) => l.includes('restarting in'));
     assert.ok(first, '应有一条重启告警');
     assert.match(first, /restarting in 1ms/);
   });
 
-  test('DSH_PET_RESTART_MAX_FAILURES 真的接进判定：设 3 → 第 3 次就熔断', async () => {
-    // DSH_PET_RESTART_MAX_FAILURES 必须接进判定：不能只出现在日志文案里、判定仍用默认值 12
-    const logs = await runCrashLoop({ DSH_PET_RESTART_BASE_MS: '1', DSH_PET_RESTART_MAX_FAILURES: '3' }, 60);
+  test('BLUE_FISH_RESTART_MAX_FAILURES 真的接进判定：设 3 → 第 3 次就熔断', async () => {
+    // BLUE_FISH_RESTART_MAX_FAILURES 必须接进判定：不能只出现在日志文案里、判定仍用默认值 12
+    const logs = await runCrashLoop({ BLUE_FISH_RESTART_BASE_MS: '1', BLUE_FISH_RESTART_MAX_FAILURES: '3' }, 60);
     const tripped = logs.find((l) => l.includes('circuit breaker tripped'));
     assert.ok(tripped, '按用户设定的阈值应熔断');
     assert.match(tripped, /crashed 3 consecutive times/);
@@ -508,7 +508,7 @@ describe('helperSpawnEnv —— spawn 环境构造（issue #63：ELECTRON_RUN_AS
     try {
       const env = helperSpawnEnv(1234);
       assert.equal('ELECTRON_RUN_AS_NODE' in env, false, '必须删键：设空串会让 Electron 直接 abort');
-      assert.equal(env.DSH_PET_HOST_PID, '1234');
+      assert.equal(env.BLUE_FISH_HOST_PID, '1234');
     } finally {
       if (saved === undefined) delete process.env.ELECTRON_RUN_AS_NODE;
       else process.env.ELECTRON_RUN_AS_NODE = saved;
@@ -516,22 +516,22 @@ describe('helperSpawnEnv —— spawn 环境构造（issue #63：ELECTRON_RUN_AS
   });
 
   test('调用方在 extra 里显式给这个键 → 同样删掉（我们要的永远是真正的 Electron 主进程）', () => {
-    const env = helperSpawnEnv(7, { ELECTRON_RUN_AS_NODE: '1', DSH_PET_BRIDGE: '1' });
+    const env = helperSpawnEnv(7, { ELECTRON_RUN_AS_NODE: '1', BLUE_FISH_BRIDGE: '1' });
     assert.equal('ELECTRON_RUN_AS_NODE' in env, false);
-    assert.equal(env.DSH_PET_BRIDGE, '1');
-    assert.equal(env.DSH_PET_HOST_PID, '7');
+    assert.equal(env.BLUE_FISH_BRIDGE, '1');
+    assert.equal(env.BLUE_FISH_HOST_PID, '7');
   });
 
   test('其余宿主环境变量照常继承、extra 覆盖同名键', () => {
-    const saved = process.env.DSH_PET_TEST_MARKER;
-    process.env.DSH_PET_TEST_MARKER = 'from-host';
+    const saved = process.env.BLUE_FISH_TEST_MARKER;
+    process.env.BLUE_FISH_TEST_MARKER = 'from-host';
     try {
-      const env = helperSpawnEnv(1, { DSH_PET_TEST_MARKER: 'from-extra' });
-      assert.equal(env.DSH_PET_TEST_MARKER, 'from-extra');
-      assert.equal(helperSpawnEnv(1).DSH_PET_TEST_MARKER, 'from-host');
+      const env = helperSpawnEnv(1, { BLUE_FISH_TEST_MARKER: 'from-extra' });
+      assert.equal(env.BLUE_FISH_TEST_MARKER, 'from-extra');
+      assert.equal(helperSpawnEnv(1).BLUE_FISH_TEST_MARKER, 'from-host');
     } finally {
-      if (saved === undefined) delete process.env.DSH_PET_TEST_MARKER;
-      else process.env.DSH_PET_TEST_MARKER = saved;
+      if (saved === undefined) delete process.env.BLUE_FISH_TEST_MARKER;
+      else process.env.BLUE_FISH_TEST_MARKER = saved;
     }
   });
 });
@@ -610,7 +610,7 @@ describe('HelperProcess.stopAndWait —— 停止要等进程真正退出（issu
 
 describe('HelperProcess failed spawn recovery', () => {
   test('keeps a running child after a non-spawn error', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-live-child-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-live-child-'));
     const hp = new HelperProcess(
       { command: process.execPath, args: ['-e', 'setInterval(() => {}, 1000)'], cwd: dir },
       {},
@@ -631,7 +631,7 @@ describe('HelperProcess failed spawn recovery', () => {
       `retries ${code} after the executable is repaired`,
       { skip: code === 'EACCES' && process.platform === 'win32', timeout: 10000 },
       async () => {
-        const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-spawn-'));
+        const dir = mkdtempSync(join(tmpdir(), 'blue-fish-spawn-'));
         const command = join(dir, 'electron');
         if (code === 'EACCES') writeFileSync(command, '#!/bin/sh\nexit 0\n', { mode: 0o600 });
         const options = { command, args: ['-e', 'console.log("helper-recovered")'], cwd: dir };

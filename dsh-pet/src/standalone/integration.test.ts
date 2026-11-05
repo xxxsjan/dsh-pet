@@ -39,10 +39,10 @@ let savedElectron: string | undefined;
 before(async () => {
   home = mkdtempSync(join(tmpdir(), 'dsh-pet-standalone-'));
   savedHome = process.env.DSH_HOME;
-  savedElectron = process.env.DSH_PET_ELECTRON_PATH;
+  savedElectron = process.env.BLUE_FISH_ELECTRON_PATH;
   process.env.DSH_HOME = home;
   // 指向一个真实存在的可执行文件：万一走到拉起分支也不会真的下载 Electron
-  process.env.DSH_PET_ELECTRON_PATH = process.execPath;
+  process.env.BLUE_FISH_ELECTRON_PATH = process.execPath;
 
   const routes: RegisteredRoute[] = [];
   const portRef = { value: 0 };
@@ -69,8 +69,8 @@ after(async () => {
   await server?.close().catch(() => {});
   if (savedHome === undefined) delete process.env.DSH_HOME;
   else process.env.DSH_HOME = savedHome;
-  if (savedElectron === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
-  else process.env.DSH_PET_ELECTRON_PATH = savedElectron;
+  if (savedElectron === undefined) delete process.env.BLUE_FISH_ELECTRON_PATH;
+  else process.env.BLUE_FISH_ELECTRON_PATH = savedElectron;
   rmSync(home, { recursive: true, force: true });
 });
 
@@ -97,7 +97,7 @@ test('real plugin chat routes cannot bypass the standalone capability using enco
       await response.text();
     }
     // 带上有效凭证时，编码后的名字会走到真实插件的参数校验，最终报 pet-required。
-    const response = await fetch(prefix + '%63hat', { headers: { 'X-DSH-Pet-Token': security.token } });
+    const response = await fetch(prefix + '%63hat', { headers: { 'X-Blue-Fish-Token': security.token } });
     assert.equal(response.status, 200);
     assert.equal(((await response.json()) as { reason: string }).reason, 'pet-required');
   } finally {

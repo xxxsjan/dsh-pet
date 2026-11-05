@@ -66,7 +66,7 @@ describe('configPathsFor —— 配置路径推导（host/index.ts 那份的镜�
     });
   });
 
-  test('自定义 DSH_HOME → {home}/dsh-pet', () => {
+  test('自定义 DSH_HOME → {home}/blue-fish', () => {
     const paths = configPathsFor('/pkg', '/tmp/custom-dsh');
     assert.deepEqual(paths, {
       defaultFile: join('/pkg', 'assets', 'config.jsonc'),

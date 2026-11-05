@@ -21,7 +21,7 @@ type MemoryFile = Record<string, Record<string, { messages: Messages }>>;
 
 /** 临时工作区：默认配置指回仓库，用户层为空。 */
 function tempConfig(): { configPaths: ConfigPaths; clean: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-orphans-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-orphans-test-'));
   const configPaths: ConfigPaths = {
     defaultFile: fileURLToPath(new URL('../../../assets/config.jsonc', import.meta.url)),
     userFile: join(dir, 'main-config.jsonc'),

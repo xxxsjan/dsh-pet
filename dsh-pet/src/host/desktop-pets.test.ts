@@ -36,7 +36,7 @@ function fixture(initial: { display: string; trayEnabled?: boolean }): {
   writeRaw: (raw: string) => void;
   cleanup: () => void;
 } {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-desktop-pets-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-desktop-pets-'));
   const paths: ConfigPaths = {
     defaultFile: join(dir, 'default.jsonc'),
     userFile: join(dir, 'main-config.jsonc'),

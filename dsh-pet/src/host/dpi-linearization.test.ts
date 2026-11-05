@@ -8,7 +8,7 @@
  * 渲染成 924 点宽、窗口 1848×1487 点，而同一份配置在浏览器 overlay 里是 462 CSS 像素。
  *
  * 本文件钉三件事：① 纯判定规则：darwin 一律不启用；win32/linux 维持原行为；探测子进程与
- * DSH_PET_FORCE_DSF='0' 各自的短路；强制值与渲染端缩放的两步换算；② 端到端不变量：macOS 的宠物
+ * BLUE_FISH_FORCE_DSF='0' 各自的短路；强制值与渲染端缩放的两步换算；② 端到端不变量：macOS 的宠物
  * 尺寸必须等于配置值，而 Windows 150% 屏仍按 1.5 补偿；③ 源码守卫：平台例外只住在
  * dpi-linearization.js 里、main.js 只接线（漏了 require 则 helper 启动即崩）。
  *
@@ -41,7 +41,7 @@ describe('shouldLinearize —— 平台例外（本 PR 的修复）', () => {
     assert.equal(shouldLinearize({ platform: 'win32', dpiProbe: false, forceDsf: '1' }), true);
   });
 
-  test('DSH_PET_FORCE_DSF=0 关掉整个机制（任何平台都认）', () => {
+  test('BLUE_FISH_FORCE_DSF=0 关掉整个机制（任何平台都认）', () => {
     assert.equal(shouldLinearize({ platform: 'win32', dpiProbe: false, forceDsf: '0' }), false);
     assert.equal(shouldLinearize({ platform: 'linux', dpiProbe: false, forceDsf: 0 }), false);
   });

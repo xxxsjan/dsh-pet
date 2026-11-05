@@ -11,7 +11,7 @@
 /** 看门狗节拍（ms）：shell 重建任务栏后，最迟这么久把按钮摘回去 */
 const TASKBAR_WATCHDOG_TICK_MS = 3000;
 
-/** 看门狗默认开关；生产由 main.js 按 DSH_PET_TASKBAR_WATCHDOG 环境变量覆盖 */
+/** 看门狗默认开关；生产由 main.js 按 BLUE_FISH_TASKBAR_WATCHDOG 环境变量覆盖 */
 const TASKBAR_WATCHDOG_ENABLED = true;
 
 /**
@@ -28,7 +28,7 @@ function shouldRunTaskbarWatchdog(platform, enabled = TASKBAR_WATCHDOG_ENABLED) 
 /**
  * 解析环境变量开关：只有显式 `0` / `false` 才关闭，缺失或写坏时保持开启。
  *
- * @param raw - `DSH_PET_TASKBAR_WATCHDOG` 的原始值。
+ * @param raw - `BLUE_FISH_TASKBAR_WATCHDOG` 的原始值。
  * @returns 是否启用看门狗。
  */
 function taskbarWatchdogEnabledFromEnv(raw) {

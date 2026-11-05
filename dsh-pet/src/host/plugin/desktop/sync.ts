@@ -4,7 +4,7 @@
  * 两种形态走同一条入口：双进程（插件 / 独立模式）重启子进程；单进程（打包应用）没有
  * 子进程可重启，改让内嵌 helper 按新配置重建窗口。
  * 不自己停拉进程（归 ./spawn），不重算配置（归 ./pets）。
- * 依赖显式传入（见输入类型），模块内只读一个进程级事实：DSH_PET_IN_PROCESS。
+ * 依赖显式传入（见输入类型），模块内只读一个进程级事实：BLUE_FISH_IN_PROCESS。
  * @module dsh-pet/src/host/plugin/desktop/sync
  */
 import type { DesktopHelperDeps } from './types.ts';
@@ -26,7 +26,7 @@ export function createDesktopSync(deps: DesktopSyncInput) {
   const { log, logDesktopDecision, desktopPetList, getObsCaptureOn, startHelper, stopHelperAndWait } = deps;
 
   /** 同进程内跑 helper（打包应用）：没有子进程可重启，只能让 helper 自己重建窗口。 */
-  const inProcessHost = process.env.DSH_PET_IN_PROCESS === '1';
+  const inProcessHost = process.env.BLUE_FISH_IN_PROCESS === '1';
 
   let desktopSyncQueue: Promise<void> = Promise.resolve();
 
@@ -38,8 +38,8 @@ export function createDesktopSync(deps: DesktopSyncInput) {
         if (inProcessHost) {
           // 先把新列表与窗口形态喂给渲染侧，再让它关窗重建：只动窗口、不动宿主进程，
           // 位置与运行状态都留着（整应用重启会把它们一起清掉）。
-          process.env.DSH_PET_PETS = JSON.stringify(desktopPetList());
-          process.env.DSH_PET_OBS_CAPTURE = getObsCaptureOn() ? '1' : '0';
+          process.env.BLUE_FISH_PETS = JSON.stringify(desktopPetList());
+          process.env.BLUE_FISH_OBS_CAPTURE = getObsCaptureOn() ? '1' : '0';
           await (globalThis as { __dshPetRebuildUi?: RebuildHook }).__dshPetRebuildUi?.();
           return;
         }
@@ -47,7 +47,7 @@ export function createDesktopSync(deps: DesktopSyncInput) {
         startHelper();
       })
       .catch((e: unknown) => {
-        log.warn(`[dsh-pet] 重启桌面 Helper 失败：${e instanceof Error ? e.message : String(e)}`);
+        log.warn(`[blue-fish] 重启桌面 Helper 失败：${e instanceof Error ? e.message : String(e)}`);
       });
     return desktopSyncQueue;
   };

@@ -13,7 +13,7 @@
 const HOST_POLL_MS = 2000;
 
 /**
- * 解析宿主 PID（DSH_PET_HOST_PID，宿主 spawn 时注入）。
+ * 解析宿主 PID（BLUE_FISH_HOST_PID，宿主 spawn 时注入）。
  * 非法或未设返回 0，调用方据此不做探测——宁可留着一个桌宠等人来关，也不误退。
  */
 function parseHostPid(raw) {

@@ -118,7 +118,7 @@ async function loadAi() {
   }
 }
 
-const THEME_KEY = 'dsh_pet_ui_theme';
+const THEME_KEY = 'blue_fish_ui_theme';
 
 function readTheme() {
   try {

@@ -106,7 +106,7 @@ test('persists only in isolated home, redacts keys, supports keep and clear, rel
 test('旧配置文件缺后加字段：铺默认值后仍可读，不因 strict 校验整体失败', async () => {
   const home = mkdtempSync(join(tmpdir(), 'pet-ai-legacy-'));
   try {
-    mkdirSync(join(home, 'dsh-pet'), { recursive: true });
+    mkdirSync(join(home, 'blue-fish'), { recursive: true });
     // 升级前的落盘形状：没有 balanceProvider。
     writeFileSync(
       join(home, 'dsh-pet', 'standalone-ai.json'),

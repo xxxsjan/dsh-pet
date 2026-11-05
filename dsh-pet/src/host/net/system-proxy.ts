@@ -29,7 +29,7 @@ export function resolveOutboundProxyUrl(): string | undefined {
   if (fromEnv) return normalizeProxyUrl(fromEnv);
 
   // 测试可关系统代理探测，强制走直连路径（再由用例 mock fetch）。
-  if (process.env.DSH_PET_DISABLE_SYSTEM_PROXY === '1') return undefined;
+  if (process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY === '1') return undefined;
 
   if (process.platform === 'win32') return readWindowsSystemProxyUrl();
   return undefined;

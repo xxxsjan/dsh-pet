@@ -21,7 +21,7 @@ const GIF = Buffer.concat([Buffer.from('GIF89a', 'latin1'), Buffer.alloc(8)]);
 let dir = '';
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-avatar-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-avatar-'));
 });
 
 beforeEach(() => {

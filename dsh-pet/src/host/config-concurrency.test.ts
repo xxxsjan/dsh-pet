@@ -30,10 +30,10 @@ let token = '';
 let context: ReturnType<typeof createStandaloneContext>;
 let server: StandaloneServer;
 const previousHome = process.env.DSH_HOME;
-const previousInProcess = process.env.DSH_PET_IN_PROCESS;
+const previousInProcess = process.env.BLUE_FISH_IN_PROCESS;
 
 before(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-config-concurrency-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-config-concurrency-'));
   const pkg = join(dir, 'package');
   mkdirSync(join(pkg, 'assets'), { recursive: true });
   copyFileSync(new URL('../../assets/config.jsonc', import.meta.url), join(pkg, 'assets/config.jsonc'));
@@ -57,7 +57,7 @@ before(async () => {
   await bundle.close();
   const home = join(dir, 'home');
   process.env.DSH_HOME = home;
-  process.env.DSH_PET_IN_PROCESS = '1';
+  process.env.BLUE_FISH_IN_PROCESS = '1';
   mkdirSync(join(home, 'blue-fish/pet'), { recursive: true });
   file = join(home, 'dsh-pet/main-config.jsonc');
   packFile = join(home, 'blue-fish/pet/pack-config.jsonc');
@@ -86,15 +86,15 @@ after(async () => {
   await context?.dispose();
   if (previousHome === undefined) delete process.env.DSH_HOME;
   else process.env.DSH_HOME = previousHome;
-  if (previousInProcess === undefined) delete process.env.DSH_PET_IN_PROCESS;
-  else process.env.DSH_PET_IN_PROCESS = previousInProcess;
+  if (previousInProcess === undefined) delete process.env.BLUE_FISH_IN_PROCESS;
+  else process.env.BLUE_FISH_IN_PROCESS = previousInProcess;
   if (dir) rmSync(dir, { recursive: true, force: true });
 });
 
 async function request(path: string, method = 'GET', body?: unknown) {
   const response = await fetch(base + path, {
     method,
-    headers: { 'X-DSH-Pet-Token': token, 'content-type': 'application/json' },
+    headers: { 'X-Blue-Fish-Token': token, 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return {

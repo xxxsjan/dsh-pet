@@ -87,7 +87,7 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
       return okResult({ ok: true, ...status });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      deps.log.warn?.(`[dsh-pet][douyin] start failed: ${message}`);
+      deps.log.warn?.(`[blue-fish][douyin] start failed: ${message}`);
       return failResult('internal-error', message);
     }
   }

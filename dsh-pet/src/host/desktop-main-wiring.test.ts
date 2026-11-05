@@ -90,10 +90,10 @@ test('给定一只宠物：主进程会建窗，并加载存在的 index.html', 
     if (request === 'electron') return createFakeElectron(created);
     return originalLoad.call(this, request, ...rest);
   };
-  process.env.DSH_PET_PETS = JSON.stringify([{ id: 'main', size: 462 }]);
-  process.env.DSH_PET_ELECTRON_PATH = process.execPath;
-  delete process.env.DSH_PET_BRIDGE;
-  delete process.env.DSH_PET_APP_MODE;
+  process.env.BLUE_FISH_PETS = JSON.stringify([{ id: 'main', size: 462 }]);
+  process.env.BLUE_FISH_ELECTRON_PATH = process.execPath;
+  delete process.env.BLUE_FISH_BRIDGE;
+  delete process.env.BLUE_FISH_APP_MODE;
 
   try {
     require(fileURLToPath(new URL('../../runtime/electron-helper/main.js', import.meta.url)));

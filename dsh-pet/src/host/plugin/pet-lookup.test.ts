@@ -17,7 +17,7 @@ import { PollStateStore } from '../state.ts';
 
 /** 建一套临时配置：一只可见宠物 + 一句拒绝台词。 */
 function harness(): { lookup: ReturnType<typeof createPetLookup>; state: PollStateStore; cleanup: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-sleep-gate-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-sleep-gate-'));
   const paths: ConfigPaths = {
     defaultFile: join(dir, 'default.jsonc'),
     userFile: join(dir, 'main-config.jsonc'),

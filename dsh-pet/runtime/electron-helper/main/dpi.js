@@ -21,7 +21,7 @@ const { shouldLinearize, resolveForcedScale, resolvePetScale } = require('../dpi
  * @param deps.linuxPointer - Linux 的 X11 指针提供者；其它平台传 null。
  * @param deps.dpiProbe - 本次是否是「只打印缩放」的探测子进程。
  * @param deps.dpiMark - 探测输出里的标记前缀。
- * @param deps.forceDsf - DSH_PET_FORCE_DSF 原始值（未设置即 undefined）。
+ * @param deps.forceDsf - BLUE_FISH_FORCE_DSF 原始值（未设置即 undefined）。
  */
 function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, forceDsf }) {
   /**
@@ -53,7 +53,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
     try {
       writeFileSync(dpiCacheFile(), JSON.stringify({ scaleFactor: value }), 'utf8');
     } catch (e) {
-      console.error('[dsh-pet-desktop-helper] write dpi cache failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] write dpi cache failed:', String(e && e.message ? e.message : e));
     }
   }
 
@@ -67,7 +67,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
   /** 拉起探测子进程读主屏 scaleFactor（同一个 electron + 同一个 main.js，走 dpiProbe 分支） */
   function probePrimaryScale() {
     const opts = {
-      env: { ...process.env, DSH_PET_DPI_PROBE: '1', DSH_PET_BRIDGE: '0', DSH_PET_SMOKE: '0' },
+      env: { ...process.env, BLUE_FISH_DPI_PROBE: '1', BLUE_FISH_BRIDGE: '0', BLUE_FISH_SMOKE: '0' },
       timeout: 20000,
       encoding: 'utf8',
       windowsHide: true,
@@ -91,7 +91,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
           .filter(Boolean)
           .join(' ');
         console.error(
-          '[dsh-pet-desktop-helper] dpi probe failed:',
+          '[blue-fish-desktop-helper] dpi probe failed:',
           String(e && e.message ? e.message : e).split('\n')[0],
           detail,
         );
@@ -119,7 +119,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
       }
     } catch (error) {
       console.error(
-        '[dsh-pet-desktop-helper] dpi 探测失败，按不补偿继续:',
+        '[blue-fish-desktop-helper] dpi 探测失败，按不补偿继续:',
         String(error && error.message ? error.message : error),
       );
       PRIMARY_SCALE = 0;
@@ -133,7 +133,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
    */
   function petScale() {
     return resolvePetScale({
-      baseScale: process.env.DSH_PET_SCALE,
+      baseScale: process.env.BLUE_FISH_SCALE,
       primaryScale: PRIMARY_SCALE,
       forcedScale: FORCED_SCALE,
     });

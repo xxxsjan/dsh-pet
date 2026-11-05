@@ -150,7 +150,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
     // 裸 origin 在默认浏览器里必然 401。令牌等价登录态，只在与目标同 origin 时启用，
     // 绝不让它被带去别的站点；取不到该变量时行为与以前一致。
     let target = url;
-    const authed = process.env.DSH_PET_SITE_URL || '';
+    const authed = process.env.BLUE_FISH_SITE_URL || '';
     if (/^https?:[/][/]/.test(authed)) {
       try {
         if (new URL(authed).origin === new URL(url).origin) target = authed;
@@ -159,7 +159,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
       }
     }
     shell.openExternal(target).catch((error) => {
-      console.error('[dsh-pet-desktop-helper] openExternal failed:', error);
+      console.error('[blue-fish-desktop-helper] openExternal failed:', error);
     });
   };
 
@@ -175,7 +175,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
     if (openTarget === 'desktop') {
       // 协议未注册（绿色版 / 注册表被清）时回落成打开站点，至少不是"点了没反应"
       focusDesktopApp().catch((error) => {
-        console.error('[dsh-pet-desktop-helper] open dsh:// failed, falling back to site:', error);
+        console.error('[blue-fish-desktop-helper] open dsh:// failed, falling back to site:', error);
         openSite(url);
       });
       return;
@@ -187,7 +187,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
   ipcMain.on('pet:focus-host', () => {
     if (openTarget !== 'desktop') return;
     focusDesktopApp().catch((error) => {
-      console.warn('[dsh-pet-desktop-helper] focus host failed:', error && error.message);
+      console.warn('[blue-fish-desktop-helper] focus host failed:', error && error.message);
     });
   });
 

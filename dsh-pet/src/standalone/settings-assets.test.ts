@@ -25,7 +25,7 @@ describe('loadSettingsAssets —— 按 mtime 热读', () => {
   });
 
   test('mtime 变化后再次读取拿到新内容', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-settings-shell-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-settings-shell-'));
     const shell = join(dir, 'settings-shell.js');
     const cache: SettingsAssetsCache = {};
     try {
@@ -54,7 +54,7 @@ describe('loadSettingsAssets —— 按 mtime 热读', () => {
   });
 
   test('mtime 未变时复用同一份缓存对象', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-settings-shell-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-settings-shell-'));
     const shell = join(dir, 'settings-shell.js');
     const cache: SettingsAssetsCache = {};
     try {

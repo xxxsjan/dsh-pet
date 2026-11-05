@@ -16,8 +16,8 @@ import { downloadArtifact } from '@electron/get';
 import extract from '@electron-internal/extract-zip';
 
 const HOME = process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.dsh');
-const VERSION = process.env.DSH_PET_ELECTRON_VERSION || '43.3.0';
-const MIRROR = process.env.DSH_PET_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
+const VERSION = process.env.BLUE_FISH_ELECTRON_VERSION || '43.3.0';
+const MIRROR = process.env.BLUE_FISH_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
 const TARGET_DIR = resolve(HOME, 'electron');
 
 const PLAT = process.platform;

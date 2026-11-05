@@ -12,7 +12,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 /** 与宿主 sign-client 对齐的 stdout / globalThis 前缀。 */
-const SIGN_PREFIX = 'dsh-pet-douyin-sign:';
+const SIGN_PREFIX = 'blue-fish-douyin-sign:';
 const GLOBAL_KEY = '__dshPetDouyinSignBaseUrl';
 
 /**
@@ -131,7 +131,7 @@ function startDouyinSignBridge({ BrowserWindow, helperDir }) {
     } catch {
       /* ignore */
     }
-    console.error('[dsh-pet-desktop-helper] douyin sign bridge: ' + url);
+    console.error('[blue-fish-desktop-helper] douyin sign bridge: ' + url);
   }
 
   server = http.createServer(async (req, res) => {
@@ -163,7 +163,7 @@ function startDouyinSignBridge({ BrowserWindow, helperDir }) {
 
   server.on('error', (e) => {
     console.error(
-      '[dsh-pet-desktop-helper] douyin sign server error:',
+      '[blue-fish-desktop-helper] douyin sign server error:',
       String(e && e.message ? e.message : e),
     );
   });
@@ -175,7 +175,7 @@ function startDouyinSignBridge({ BrowserWindow, helperDir }) {
     // 预热隐藏窗，避免第一次 start 才加载 webmssdk
     void ensureWindow().catch((e) => {
       console.error(
-        '[dsh-pet-desktop-helper] douyin sign preload failed:',
+        '[blue-fish-desktop-helper] douyin sign preload failed:',
         e instanceof Error ? e.message : String(e),
       );
     });

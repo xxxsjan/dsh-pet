@@ -145,7 +145,7 @@ async function previewVoice() {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: VOICE_PREVIEW_TEXT, voice: g.voiceName, rate: rate }),
     });
     if (token !== previewSeq) return;

@@ -20,7 +20,7 @@ export function createStandaloneLogger(options: StandaloneLoggerOptions = {}): S
     return createFileLogger({
       file: options.file,
       base: console,
-      debugEnabled: process.env.DSH_PET_LOG_DEBUG === '1',
+      debugEnabled: process.env.BLUE_FISH_LOG_DEBUG === '1',
     });
   }
   const stamp = (): string => new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -32,7 +32,7 @@ export function createStandaloneLogger(options: StandaloneLoggerOptions = {}): S
     warn: (message) => write('WARN ', message),
     error: (message) => write('ERROR', message),
     debug: (message) => {
-      if (process.env.DSH_PET_STANDALONE_DEBUG === '1') write('DEBUG', message);
+      if (process.env.BLUE_FISH_STANDALONE_DEBUG === '1') write('DEBUG', message);
     },
   };
 }

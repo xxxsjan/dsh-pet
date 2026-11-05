@@ -119,8 +119,8 @@ async function callApi(method, path, body) {
     credentials: 'same-origin',
     cache: 'no-store',
     headers: body
-      ? { 'X-DSH-Pet-Token': TOKEN, 'Content-Type': 'application/json' }
-      : { 'X-DSH-Pet-Token': TOKEN },
+      ? { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' }
+      : { 'X-Blue-Fish-Token': TOKEN },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json().catch(() => null);

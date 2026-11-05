@@ -47,7 +47,7 @@ export function runCheck(logger: StandaloneLogger): number {
     `文件宠物目录    ${paths.petDir}${existsSync(paths.petDir) ? '' : '（不存在）'}`,
     `内置默认配置    ${paths.defaultFile}${existsSync(paths.defaultFile) ? '' : '  ✗ 缺失'}`,
     `Electron        ${electron ?? `未发现（首次运行会下载到 ${electronLandingDir()}）`}`,
-    `图形显示环境    ${hasGraphicalDisplay() ? '有' : '无（桌面小窗会跳过；远程桌面/Xvfb 可设 DSH_PET_DESKTOP_FORCE=1）'}`,
+    `图形显示环境    ${hasGraphicalDisplay() ? '有' : '无（桌面小窗会跳过；远程桌面/Xvfb 可设 BLUE_FISH_DESKTOP_FORCE=1）'}`,
   ];
 
   const fail = (message: string): number => {

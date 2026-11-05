@@ -64,7 +64,7 @@ function jsonOf(res: RouteResult): { status: number; obj: Record<string, unknown
 
 before(() => {
   savedHome = process.env.DSH_HOME;
-  root = mkdtempSync(join(tmpdir(), 'dsh-pet-obs-capture-'));
+  root = mkdtempSync(join(tmpdir(), 'blue-fish-obs-capture-'));
   process.env.DSH_HOME = root;
 });
 

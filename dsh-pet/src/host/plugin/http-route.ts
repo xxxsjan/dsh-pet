@@ -103,13 +103,13 @@ export function registerHttpRoute(ctx: HostContext, handlePetRoute: HttpRouteHan
                 sendJson(res, 413, failureBody('payload-too-large', 'request body too large'));
               else if (code !== 'client-aborted') {
                 // 未预期异常：真实原因只进日志，响应里只回分类文案（可能含绝对路径，不外泄）
-                ctx.logger?.warn?.(`[dsh-pet] route failed: ${e instanceof Error ? e.message : String(e)}`);
-                sendJson(res, 500, failureBody('internal-error', 'dsh-pet: internal error'));
+                ctx.logger?.warn?.(`[blue-fish] route failed: ${e instanceof Error ? e.message : String(e)}`);
+                sendJson(res, 500, failureBody('internal-error', 'blue-fish: internal error'));
               }
             }
           }
         },
       }),
-    `dsh-pet: ${ROUTE_SEGMENT} asset route`,
+    `blue-fish: ${ROUTE_SEGMENT} asset route`,
   );
 }

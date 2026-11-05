@@ -72,7 +72,7 @@ export async function handleChatRoutes(deps: PetRouteDeps, input: RouteInput): P
         // 按空历史处理并记一行日志，不因为一条坏数据让整个历史接口报错。
         const list = Array.isArray(rawMessages) ? rawMessages.filter((m) => m && typeof m.content === 'string') : [];
         if (rawMessages !== undefined && !Array.isArray(rawMessages)) {
-          log.error(`[dsh-pet] 记忆结构异常（messages 不是数组）pet=${petId}，按空历史处理：${memoryPath}`);
+          log.error(`[blue-fish] 记忆结构异常（messages 不是数组）pet=${petId}，按空历史处理：${memoryPath}`);
         }
         // 传了 ?rounds= 就用传的（含 0 = 空历史），没传才回落到配置
         const rounds = roundsOverride ?? memoryRounds(who.conf);
@@ -134,7 +134,7 @@ async function postChat(
   if (text.length > 2000) return failResult('bad-request', '消息过长（限 2000 字）');
   const queryText = query.toString();
   const bodyText = typeof body === 'string' ? body : JSON.stringify(parsed);
-  deps.log.info(`[dsh-pet] POST /chat?${queryText} pet=${petId} text=${text} body=${bodyText}`);
+  deps.log.info(`[blue-fish] POST /chat?${queryText} pet=${petId} text=${text} body=${bodyText}`);
   // 图片缺省时直接返回空结论，下面的调用与加入图片前逐字一致（回归测试钉的就是这条）
   const admitted = await admitImage(deps, parsed.attachment);
   if (!admitted.ok) return admitted.res;

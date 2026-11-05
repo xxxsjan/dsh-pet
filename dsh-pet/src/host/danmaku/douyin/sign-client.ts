@@ -7,7 +7,7 @@
  */
 
 /** stdout / globalThis 共用的签名桥 URL 前缀。 */
-export const DOUYIN_SIGN_PREFIX = 'dsh-pet-douyin-sign:';
+export const DOUYIN_SIGN_PREFIX = 'blue-fish-douyin-sign:';
 
 /** globalThis 上挂签名桥基址的键。 */
 export const DOUYIN_SIGN_GLOBAL_KEY = '__dshPetDouyinSignBaseUrl';

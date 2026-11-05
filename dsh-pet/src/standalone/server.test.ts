@@ -259,11 +259,11 @@ describe('listenStandaloneServer —— 端口与关闭', () => {
     const server = await listenStandaloneServer({ routes: [pluginLikeRoute()], logger: silent, security, port: 0 });
     closers.push(server.close);
     const inside = await fetch(`http://127.0.0.1:${server.port}/pet-233/state`, {
-      headers: { 'X-DSH-Pet-Token': security.token },
+      headers: { 'X-Blue-Fish-Token': security.token },
     });
     assert.equal(inside.status, 200);
     const outside = await fetch(`http://127.0.0.1:${server.port}/whatever`, {
-      headers: { 'X-DSH-Pet-Token': security.token },
+      headers: { 'X-Blue-Fish-Token': security.token },
     });
     assert.equal(outside.status, 404);
   });
@@ -308,7 +308,7 @@ describe('HTTP boundary protects every route and settings', () => {
       ];
       for (const headers of headersList) {
         assert.equal(
-          (await fetch(base + '/health', { headers: { ...headers, 'X-DSH-Pet-Token': security.token } })).status,
+          (await fetch(base + '/health', { headers: { ...headers, 'X-Blue-Fish-Token': security.token } })).status,
           403,
           JSON.stringify(headers),
         );
@@ -323,12 +323,12 @@ describe('HTTP boundary protects every route and settings', () => {
       });
       assert.equal(wrongHost, 403);
       assert.equal(calls, 0);
-      const response = await fetch(base + '/pet-233/config', { headers: { 'X-DSH-Pet-Token': security.token } });
+      const response = await fetch(base + '/pet-233/config', { headers: { 'X-Blue-Fish-Token': security.token } });
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('access-control-allow-origin'), null);
       assert.equal(response.headers.get('access-control-allow-headers'), null);
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-      assert.equal((await fetch(base + '/shutdown', { headers: { 'X-DSH-Pet-Token': security.token } })).status, 405);
+      assert.equal((await fetch(base + '/shutdown', { headers: { 'X-Blue-Fish-Token': security.token } })).status, 405);
     } finally {
       await server.close();
     }
@@ -359,7 +359,7 @@ describe('HTTP boundary protects every route and settings', () => {
     const server = await listenStandaloneServer({ port: 0, security, logger: silent, routes: [], ai });
     try {
       const base = `http://127.0.0.1:${server.port}`;
-      const headers = { 'X-DSH-Pet-Token': security.token, 'Content-Type': 'application/json' };
+      const headers = { 'X-Blue-Fish-Token': security.token, 'Content-Type': 'application/json' };
       const shell = await fetch(base + '/standalone-ai/');
       assert.equal(shell.status, 200);
       assert.match(shell.headers.get('content-security-policy') ?? '', /default-src 'none'/);
@@ -393,7 +393,7 @@ describe('HTTP boundary protects every route and settings', () => {
         (
           await fetch(base + '/standalone-ai/settings', {
             method: 'POST',
-            headers: { 'X-DSH-Pet-Token': security.token, 'Content-Type': 'text/plain' },
+            headers: { 'X-Blue-Fish-Token': security.token, 'Content-Type': 'text/plain' },
             body: '{}',
           })
         ).status,
@@ -450,7 +450,7 @@ describe('HTTP boundary protects every route and settings', () => {
     try {
       const result = await fetch(`http://127.0.0.1:${server.port}/pet-233/config`, {
         method: 'POST',
-        headers: { 'X-DSH-Pet-Token': security.token },
+        headers: { 'X-Blue-Fish-Token': security.token },
         body: 'x'.repeat(1024 * 1024 + 1),
       });
       assert.equal(result.status, 413);
@@ -489,7 +489,7 @@ test('bounded body replay preserves plugin readBody; chunked and stalled inputs 
     const url = `http://127.0.0.1:${server.port}/plugin`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'X-DSH-Pet-Token': security.token },
+      headers: { 'X-Blue-Fish-Token': security.token },
       body: '中文 body',
     });
     assert.equal(await response.text(), '中文 body');
@@ -498,7 +498,7 @@ test('bounded body replay preserves plugin readBody; chunked and stalled inputs 
       return new Promise((resolve, reject) => {
         const req = httpRequest(
           url,
-          { method: 'POST', headers: { 'X-DSH-Pet-Token': security.token, 'Transfer-Encoding': 'chunked' } },
+          { method: 'POST', headers: { 'X-Blue-Fish-Token': security.token, 'Transfer-Encoding': 'chunked' } },
           (res) => {
             res.resume();
             resolve(res.statusCode ?? 0);

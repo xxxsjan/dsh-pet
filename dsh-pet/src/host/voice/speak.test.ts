@@ -24,7 +24,7 @@ async function withService(
   run: (voice: VoiceService, root: string) => Promise<void>,
   synthesize?: (input: SynthInput) => Promise<void>,
 ): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-svc-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-svc-'));
   try {
     const voice = createVoiceService({
       userRoot: root,
@@ -84,7 +84,7 @@ test('合法请求：返回 mp3 路径，文件确实落盘', () =>
   }));
 
 test('同一输入第二次：命中缓存，不再调用合成', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-hit-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-hit-'));
   try {
     let calls = 0;
     const voice = createVoiceService({
@@ -149,7 +149,7 @@ test('isQueueStale —— 排队久了就丢弃', () => {
 });
 
 test('排队等到客户端早已放弃：直接丢弃，不再白合成一次', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-stale-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-stale-'));
   let release: () => void = () => undefined;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -182,7 +182,7 @@ test('排队等到客户端早已放弃：直接丢弃，不再白合成一次',
 });
 
 test('Fish 引擎：走 synthesizeFish，缓存键含模型', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-fish-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-fish-'));
   let fishCalls = 0;
   let edgeCalls = 0;
   try {
@@ -219,7 +219,7 @@ test('Fish 引擎：走 synthesizeFish，缓存键含模型', async () => {
 });
 
 test('注册了第三方实现：合成走它，内置一次都不调', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-provider-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-provider-'));
   let edgeCalls = 0;
   let providerCalls = 0;
   const dispose = registerVoiceProvider({
@@ -248,7 +248,7 @@ test('注册了第三方实现：合成走它，内置一次都不调', async ()
 });
 
 test('第三方返回空字节：判 generate-error，不留下 0 字节文件', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-empty-'));
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-empty-'));
   const dispose = registerVoiceProvider({ id: 'my-tts', name: '我的语音', synthesize: async () => new Uint8Array() });
   try {
     const voice = createVoiceService({ userRoot: root, synthesize: async () => undefined });

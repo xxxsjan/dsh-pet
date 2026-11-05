@@ -85,7 +85,7 @@ interface Suite {
 }
 
 function cases(suite: Suite): void {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-config-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-config-test-'));
   try {
     const paths: ConfigPaths = {
       defaultFile: join(dir, 'default.jsonc'),
@@ -216,7 +216,7 @@ describe('readAllConfig —— animations.sleep（可选段）校验', () => {
 
 /** 跑一趟 readAllConfig：base 为内置默认（可注入表情包开关），overlay 为用户层 */
 function withBase(baseExtra: Record<string, unknown>, overlay?: Record<string, unknown>): ConfigPaths {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-config-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-config-test-'));
   const paths: ConfigPaths = {
     defaultFile: join(dir, 'default.jsonc'),
     userFile: join(dir, 'main-config.jsonc'),
@@ -234,7 +234,7 @@ function saveOnce(body: Record<string, unknown>, existing?: Record<string, unkno
 
 /** 建一套路径：默认文件 = BASE；用户层原文由调用方给（可带注释） */
 function pathsWithUser(raw: string | null): { paths: ConfigPaths; dir: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-user-config-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blue-fish-user-config-'));
   const paths: ConfigPaths = {
     defaultFile: join(dir, 'default.jsonc'),
     userFile: join(dir, 'main-config.jsonc'),
@@ -1165,7 +1165,7 @@ describe('readAllConfig —— 宠物固定合并（缺失取默认 / 非法回�
 describe('syncUserConfigFromDefault —— 同步（内置默认原文写入用户层）', () => {
   /** 默认文件写入给定原文；用户文件故意放在尚不存在的子目录里（验证父目录自建） */
   function fixture(raw: string): { paths: ConfigPaths; dir: string } {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-sync-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-sync-test-'));
     const paths: ConfigPaths = {
       defaultFile: join(dir, 'default.jsonc'),
       userFile: join(dir, 'dsh-pet', 'main-config.jsonc'),
@@ -1266,7 +1266,7 @@ describe('文件宠物条目 —— 全局默认（用户层作基座）+ 种类
     overlay?: Record<string, unknown>;
     pack?: Record<string, unknown>;
   }): Record<string, Record<string, unknown>> {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-pack-base-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-pack-base-'));
     try {
       const petDir = join(dir, 'pet');
       const paths: ConfigPaths = {

@@ -46,7 +46,7 @@ const readSource = (rel: string): string => readFileSync(fileURLToPath(new URL(r
 
 describe('flattenConfigPets —— 成品 → 渲染列表的唯一填充点', () => {
   test('真实内置默认配置：每只实例的条目级字段齐全（含 physics.throwPower）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-flatten-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-flatten-'));
     try {
       const merged = readAllConfig({
         defaultFile: fileURLToPath(new URL('../../assets/config.jsonc', import.meta.url)),

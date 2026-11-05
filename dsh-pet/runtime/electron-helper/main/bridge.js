@@ -54,7 +54,7 @@ function createBridge({ isBridge, prefix, origin, token }) {
     const server = http.createServer((req, res) => {
       if (req.method !== 'POST' || req.url !== '/respond') {
         res.writeHead(404, { 'content-type': 'text/plain' });
-        res.end('dsh-pet: not found');
+        res.end('blue-fish: not found');
         return;
       }
       let raw = '';
@@ -66,28 +66,28 @@ function createBridge({ isBridge, prefix, origin, token }) {
           res.end('ok');
         } catch {
           res.writeHead(400, { 'content-type': 'text/plain' });
-          res.end('dsh-pet: bad payload');
+          res.end('blue-fish: bad payload');
         }
       });
       req.on('error', () => {
         res.writeHead(400, { 'content-type': 'text/plain' });
-        res.end('dsh-pet: bad payload');
+        res.end('blue-fish: bad payload');
       });
     });
     server.on('error', (e) => {
-      console.error('[dsh-pet-desktop-helper] bridge callback server error:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] bridge callback server error:', String(e && e.message ? e.message : e));
     });
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address();
       bridgeCallbackUrl = 'http://127.0.0.1:' + (addr && typeof addr === 'object' ? addr.port : 0) + '/respond';
-      console.error('[dsh-pet-desktop-helper] bridge callback: ' + bridgeCallbackUrl);
+      console.error('[blue-fish-desktop-helper] bridge callback: ' + bridgeCallbackUrl);
     });
     return server;
   }
 
   /** 处理一个渲染端请求：拼宿主请求行 → 等应答 → 组装 Response（素材读盘） */
   async function handleBridgeRequest(request) {
-    const url = new URL(request.url); // dsh-pet-bridge://dsh-pet/pet/...
+    const url = new URL(request.url); // blue-fish-bridge://dsh-pet/pet/...
     const method = request.method || 'GET';
     let body;
     // PATCH 也带体（待办的部分更新）：漏读会让宿主收到空体，把一次正常修改当成坏 JSON。
@@ -126,8 +126,8 @@ function createBridge({ isBridge, prefix, origin, token }) {
           headers: { ...headers, 'content-length': String(data.length), 'accept-ranges': 'bytes' },
         });
       } catch (e) {
-        console.error('[dsh-pet-desktop-helper] bridge file read failed:', resp.file, e);
-        return new Response('dsh-pet: asset read failed', { status: 500, headers });
+        console.error('[blue-fish-desktop-helper] bridge file read failed:', resp.file, e);
+        return new Response('blue-fish: asset read failed', { status: 500, headers });
       }
     }
     return new Response(resp.body ?? '', { status: resp.status || 200, headers });
@@ -140,7 +140,7 @@ function createBridge({ isBridge, prefix, origin, token }) {
       method,
       headers: {
         ...(body ? { 'content-type': 'application/json' } : {}),
-        ...(token ? { 'X-DSH-Pet-Token': token } : {}),
+        ...(token ? { 'X-Blue-Fish-Token': token } : {}),
       },
       body,
     });

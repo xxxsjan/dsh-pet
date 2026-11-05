@@ -33,7 +33,7 @@ test('only the local main renderer receives the capability, scoped to the API or
   };
   const endpoint = 'http://127.0.0.1:3080/pet-233/chat';
   const ownFrame = { url: renderer + '?petIndex=0', parent: null };
-  assert.equal(send(endpoint, ownFrame)['X-DSH-Pet-Token'], 'private-token');
+  assert.equal(send(endpoint, ownFrame)['X-Blue-Fish-Token'], 'private-token');
   for (const frame of [
     undefined,
     null,
@@ -56,6 +56,6 @@ test('only the local main renderer receives the capability, scoped to the API or
     'http://127.0.0.1:3080/standalone-ai/settings',
     'invalid-url',
   ]) {
-    assert.equal(send(url, ownFrame)['X-DSH-Pet-Token'], undefined);
+    assert.equal(send(url, ownFrame)['X-Blue-Fish-Token'], undefined);
   }
 });

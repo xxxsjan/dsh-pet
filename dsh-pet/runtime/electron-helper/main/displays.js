@@ -27,7 +27,7 @@ function createDisplaySync({ screen, petWindows, dpi }) {
       petWindows.keepOffTaskbar(win);
       win.webContents.send('pet:displays', geo);
     }
-    console.error('[dsh-pet-desktop-helper] displays changed: ' + JSON.stringify(geo));
+    console.error('[blue-fish-desktop-helper] displays changed: ' + JSON.stringify(geo));
     // 主屏缩放可能一起变了：线性化生效期间 screen API 只报被强制的值，真实值只能靠探测子进程拿；
     // 不一致就刷新缓存，下次启动自动用上。
     if (dpi.forcedScale > 0) {
@@ -35,7 +35,7 @@ function createDisplaySync({ screen, petWindows, dpi }) {
         const real = dpi.probePrimaryScale();
         if (real > 0 && Math.abs(real - dpi.primaryScale) > 1e-6) {
           console.error(
-            '[dsh-pet-desktop-helper] primary scaleFactor changed ' +
+            '[blue-fish-desktop-helper] primary scaleFactor changed ' +
               dpi.primaryScale +
               ' -> ' +
               real +

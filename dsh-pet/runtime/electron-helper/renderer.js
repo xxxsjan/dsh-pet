@@ -10,7 +10,7 @@
 
 // 配置（大声报错；失败 5s 重试）
 function showError(message) {
-  console.error('[dsh-pet] ' + message);
+  console.error('[blue-fish] ' + message);
   window.__dshPetDebug.configOk = false;
   errorEl.textContent = 'dsh-pet 配置错误：' + message;
   errorEl.classList.add('visible');
@@ -88,11 +88,11 @@ async function boot() {
       // 安静关掉、不弹条、不重试。托盘是否还在看 main 条目的 trayEnabled，与这里无关。
       // 宿主流由 syncDesktop() 在配置变化时重建 Helper；手动流需自行重启。
       hideError();
-      console.info('[dsh-pet] no desktop pets; closing this helper window (tray kept only if trayEnabled)');
+      console.info('[blue-fish] no desktop pets; closing this helper window (tray kept only if trayEnabled)');
       window.close();
       return;
     }
-    // 本窗口只承载一只宠物：petIndex 由主进程按 DSH_PET_PETS 顺序注入
+    // 本窗口只承载一只宠物：petIndex 由主进程按 BLUE_FISH_PETS 顺序注入
     const pet = pets[CONFIG.petIndex];
     if (!pet) {
       showError('petIndex=' + CONFIG.petIndex + ' 超出桌面宠物列表（共 ' + pets.length + ' 只），本窗口不创建宠物');
@@ -110,7 +110,7 @@ async function boot() {
     // 首次失败先静默（多半是启动竞态，见 bootFailures 的说明），下一次 5s 重试仍失败才报。
     bootFailures += 1;
     if (bootFailures > 1) showError(msg);
-    else console.error('[dsh-pet] ' + msg + ' (first boot, retrying)');
+    else console.error('[blue-fish] ' + msg + ' (first boot, retrying)');
     scheduleReboot();
   }
 }

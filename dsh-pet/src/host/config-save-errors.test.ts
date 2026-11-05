@@ -26,10 +26,10 @@ let previousHome: string | undefined;
 
 before(async () => {
   previousHome = process.env.DSH_HOME;
-  home = mkdtempSync(join(tmpdir(), 'dsh-pet-save-errors-'));
+  home = mkdtempSync(join(tmpdir(), 'blue-fish-save-errors-'));
   process.env.DSH_HOME = home;
   file = join(home, 'dsh-pet', 'main-config.jsonc');
-  mkdirSync(join(home, 'dsh-pet'), { recursive: true });
+  mkdirSync(join(home, 'blue-fish'), { recursive: true });
   const routes: ReturnType<typeof createStandaloneContext>['routes'] = [];
   context = createStandaloneContext({ port: 0, routes, logger });
   apply(context.ctx);

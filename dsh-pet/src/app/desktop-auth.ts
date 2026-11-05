@@ -60,7 +60,7 @@ export function installDesktopAuth(session: DesktopSession, origin: string, rend
         page.origin === 'null' &&
         page.href.split(/[?#]/, 1)[0] === renderer
       ) {
-        headers['X-DSH-Pet-Token'] = token;
+        headers['X-Blue-Fish-Token'] = token;
       }
     } catch {
       // frame 缺失/已销毁或地址非法时，一律不授予凭证。

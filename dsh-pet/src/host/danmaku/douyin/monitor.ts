@@ -198,7 +198,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
   function noteError(err: unknown): void {
     lastError = err instanceof Error ? err.message : String(err);
-    log.warn?.(`[dsh-pet][douyin] ${lastError}`);
+    log.warn?.(`[blue-fish][douyin] ${lastError}`);
   }
 
   function pruneDedup(now = Date.now()): void {
@@ -228,7 +228,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       const dropped = pendingChats.shift();
       if (dropped) {
         log.info?.(
-          `[dsh-pet][douyin] chat queue full, drop oldest kind=${dropped.kind} pending=${pendingChats.length}`,
+          `[blue-fish][douyin] chat queue full, drop oldest kind=${dropped.kind} pending=${pendingChats.length}`,
         );
       }
     }
@@ -245,15 +245,15 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         const petId = (resolvePetId() || 'main').trim() || 'main';
         try {
           log.info?.(
-            `[dsh-pet][douyin] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
+            `[blue-fish][douyin] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
           );
           const r = await chatWithPet(petId, job.prompt);
           if (!r.ok) {
-            log.warn?.(`[dsh-pet][douyin] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
+            log.warn?.(`[blue-fish][douyin] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
           }
         } catch (e) {
           log.warn?.(
-            `[dsh-pet][douyin] chat exception kind=${job.kind}: ${e instanceof Error ? e.message : String(e)}`,
+            `[blue-fish][douyin] chat exception kind=${job.kind}: ${e instanceof Error ? e.message : String(e)}`,
           );
         }
       }
@@ -301,7 +301,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       if (!cookieMap.get('ttwid')) cookieMap.set('ttwid', info.ttwid);
 
       log.info?.(
-        `[dsh-pet][douyin] connect room=${info.roomId} title=${info.title || '-'} anchor=${info.anchor || '-'} replyChat=${replyChat} thankGift=${thankGift}`,
+        `[blue-fish][douyin] connect room=${info.roomId} title=${info.title || '-'} anchor=${info.anchor || '-'} replyChat=${replyChat} thankGift=${thankGift}`,
       );
 
       const socket = new WebSocket(wsUrl, {
@@ -376,7 +376,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     if (isDup(key)) return;
     chatCount += 1;
     pushFeed('chat', nick, content);
-    log.info?.(`[dsh-pet][douyin] chat nick=${nick} text=${content}`);
+    log.info?.(`[blue-fish][douyin] chat nick=${nick} text=${content}`);
     if (replyChat) {
       enqueueChat(
         `[直播弹幕] 观众「${nick}」说：${content}\n请用你的人设简短回复这条弹幕（一两句即可）。`,
@@ -426,7 +426,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
     // 可连击：中间帧只更新件数，定稿（repeatEnd=1）再感谢/计数
     if (combo && repeatEnd !== 1) {
-      log.debug?.(`[dsh-pet][douyin] gift combo pending nick=${nick} gift=${giftName} x${count}`);
+      log.debug?.(`[blue-fish][douyin] gift combo pending nick=${nick} gift=${giftName} x${count}`);
       return;
     }
     const finalCount = Math.max(count, giftCounts.get(key) || count);
@@ -435,7 +435,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
     giftCount += 1;
     pushFeed('gift', nick, giftName, finalCount);
-    log.info?.(`[dsh-pet][douyin] gift nick=${nick} gift=${giftName} x${finalCount}`);
+    log.info?.(`[blue-fish][douyin] gift nick=${nick} gift=${giftName} x${finalCount}`);
     if (thankGift) {
       enqueueChat(
         `[直播礼物] 观众「${nick}」送出了「${giftName}」×${finalCount}。\n请用你的人设简短感谢对方（一两句即可）。`,
@@ -485,7 +485,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         else if (m.method === 'WebcastGiftMessage') handleGiftPayload(m);
       } catch (e) {
         log.debug?.(
-          `[dsh-pet][douyin] decode failed method=${m.method}: ${e instanceof Error ? e.message : String(e)}`,
+          `[blue-fish][douyin] decode failed method=${m.method}: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
     }
@@ -524,7 +524,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     teardownSocket();
     listening = false;
     if (pendingChats.length) {
-      log.info?.(`[dsh-pet][douyin] stop: clear chat queue dropped=${pendingChats.length}`);
+      log.info?.(`[blue-fish][douyin] stop: clear chat queue dropped=${pendingChats.length}`);
       pendingChats.length = 0;
     }
     return status();
@@ -532,7 +532,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
   function setOptions(input: Partial<DouyinMonitorOptions>): DouyinMonitorStatus {
     applyOptions(input);
-    log.info?.(`[dsh-pet][douyin] options replyChat=${replyChat} thankGift=${thankGift}`);
+    log.info?.(`[blue-fish][douyin] options replyChat=${replyChat} thankGift=${thankGift}`);
     return status();
   }
 

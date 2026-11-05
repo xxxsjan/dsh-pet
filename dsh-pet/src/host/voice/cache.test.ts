@@ -11,7 +11,7 @@ import { cacheKey, cachePath, ensureCacheDir, pruneCache } from './cache.ts';
 
 /** 在一个独立临时目录里跑用例，结束后清理。 */
 async function withDir(run: (dir: string) => Promise<void>): Promise<void> {
-  const dir = await mkdtemp(join(tmpdir(), 'dsh-pet-voice-cache-'));
+  const dir = await mkdtemp(join(tmpdir(), 'blue-fish-voice-cache-'));
   try {
     await run(dir);
   } finally {

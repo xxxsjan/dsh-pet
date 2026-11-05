@@ -337,11 +337,11 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /id="save"[^>]*form="settings"/);
   assert.match(settingsScript, /modelSave\.hidden = name !== 'model'/);
   assert.match(settingsScript, /history\.replaceState/);
-  assert.match(settingsScript, /X-DSH-Pet-Token/);
+  assert.match(settingsScript, /X-Blue-Fish-Token/);
   assert.match(settingsScript, /voice\/speak/);
   assert.match(settingsScript, /试听/);
   // 主题偏好可写 localStorage；密钥/令牌与 sessionStorage、cookie、innerHTML 仍禁止。
-  assert.match(settingsScript, /dsh_pet_ui_theme/);
+  assert.match(settingsScript, /blue_fish_ui_theme/);
   assert.doesNotMatch(settingsScript, /sessionStorage|document\.cookie|innerHTML/);
   assert.doesNotMatch(
     settingsScript,
@@ -357,7 +357,7 @@ test('启动：地址片段被清掉，密钥框清空并显示已保存', async
   assert.equal(page.element('apiKey').value, '');
   assert.equal(page.element('key-state').textContent, '已保存 · 不回显');
   assert.ok(
-    page.aiRequests().every(({ options }) => options.headers['X-DSH-Pet-Token'] === 'process-capability'),
+    page.aiRequests().every(({ options }) => options.headers['X-Blue-Fish-Token'] === 'process-capability'),
     'AI 请求必须带本次运行的访问令牌',
   );
 });
@@ -384,7 +384,7 @@ test('查询余额：选了服务商才可点，结果拼成一行金额并带�
   await settle();
 
   assert.equal(balanceRequests().length, 1);
-  assert.equal(balanceRequests()[0].options.headers['X-DSH-Pet-Token'], 'process-capability');
+  assert.equal(balanceRequests()[0].options.headers['X-Blue-Fish-Token'], 'process-capability');
   assert.match(result.textContent, /CNY 12\.34/);
   assert.equal(result.dataset.ok, 'true');
   assert.equal(button.disabled, false, '查询结束后按钮恢复可点');
@@ -424,7 +424,7 @@ test('拉取模型：用表单草稿请求端点，选中后写回输入框并�
     baseUrl: 'https://draft.test/v1',
     apiKey: 'draft-key',
   });
-  assert.equal(modelRequests()[0].options.headers['X-DSH-Pet-Token'], 'process-capability');
+  assert.equal(modelRequests()[0].options.headers['X-Blue-Fish-Token'], 'process-capability');
   assert.match(page.element('model-result').textContent, /已拉取 2 个模型/);
   assert.equal(page.element('model').value, 'x', '拉取本身不得改动已填的模型');
 

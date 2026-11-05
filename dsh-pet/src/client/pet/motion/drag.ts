@@ -156,7 +156,7 @@ const stamp = (): string => new Date().toTimeString().slice(0, 8);
 
 /** 一行带时刻与宠物 id 的日志：客户端统一前缀，便于按宠物 grep。 */
 const log = (petId: string, message: string): void => {
-  console.log('[dsh-pet] ' + stamp() + ' pet=' + petId + ' ' + message);
+  console.log('[blue-fish] ' + stamp() + ' pet=' + petId + ' ' + message);
 };
 
 /**

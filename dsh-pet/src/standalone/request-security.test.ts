@@ -191,7 +191,7 @@ test('首次头部认证后换取会话 cookie，刷新时凭 cookie 继续，�
     true,
   );
   const cookie = first.headers['set-cookie'] ?? '';
-  assert.match(cookie, /^dsh_pet_token=[^;]+; HttpOnly; SameSite=Strict; Path=\/$/);
+  assert.match(cookie, /^blue_fish_token=[^;]+; HttpOnly; SameSite=Strict; Path=\/$/);
   assert.equal(cookie.includes(security.token), true);
   assert.equal(cookie.includes('Max-Age'), false, '会话 cookie 不该带 Max-Age');
 
@@ -199,7 +199,7 @@ test('首次头部认证后换取会话 cookie，刷新时凭 cookie 继续，�
   const refreshed = response();
   assert.equal(
     security.authorize(
-      request({ cookie: `other=1; dsh_pet_token=${security.token}; tail=2` }),
+      request({ cookie: `other=1; blue_fish_token=${security.token}; tail=2` }),
       refreshed as unknown as ServerResponse,
     ),
     true,
@@ -210,7 +210,7 @@ test('首次头部认证后换取会话 cookie，刷新时凭 cookie 继续，�
 test('cookie 必须是本进程令牌：别的进程的值、错形状与空值一律拒绝', () => {
   const security = createRequestSecurity();
   const foreign = createRequestSecurity();
-  for (const cookie of [`dsh_pet_token=${foreign.token}`, 'dsh_pet_token=short', 'dsh_pet_token=', 'dsh_pet_token']) {
+  for (const cookie of [`blue_fish_token=${foreign.token}`, 'blue_fish_token=short', 'blue_fish_token=', 'blue_fish_token']) {
     const res = response();
     assert.equal(security.authorize(request({ cookie }), res as unknown as ServerResponse), false, cookie);
     assert.equal(res.status, 403);

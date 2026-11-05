@@ -47,7 +47,7 @@ test('app rejects untrusted file origins and hosts while authenticated desktop c
   ]);
   try {
     const path = server.base + '/pet-233/chat';
-    const token = { 'X-DSH-Pet-Token': server.security.token };
+    const token = { 'X-Blue-Fish-Token': server.security.token };
     const blockedHeaders: Array<Record<string, string>> = [
       { Origin: 'null', 'Sec-Fetch-Site': 'cross-site' },
       { ...token, Origin: 'https://evil.test' },
@@ -112,7 +112,7 @@ test('invalid URL and percent encodings return 400 and leave the app service ava
     });
     assert.equal(malformed, 400);
     assert.equal(
-      (await fetch(server.base + '/pet-233/%ZZ', { headers: { 'X-DSH-Pet-Token': server.security.token } }))
+      (await fetch(server.base + '/pet-233/%ZZ', { headers: { 'X-Blue-Fish-Token': server.security.token } }))
         .status,
       400,
     );
@@ -146,7 +146,7 @@ test('app caps request bodies before plugins/settings and catches synchronous an
     (message) => logs.push(message),
   );
   try {
-    const headers = { 'X-DSH-Pet-Token': server.security.token };
+    const headers = { 'X-Blue-Fish-Token': server.security.token };
     for (const [path, bytes] of [
       ['/pet-233/config', MAX_REQUEST_BYTES],
       ['/standalone-ai/settings', MAX_SETTINGS_BYTES],

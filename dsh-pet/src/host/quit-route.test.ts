@@ -11,7 +11,7 @@
  *   ② 有该能力 → canQuit:true，POST 触发且 reason 正确；
  *   ③ 桌面端接线（源码守卫）：BRIDGE 下不得自己退，必须 POST /quit；退出不得调 syncDesktop。
  *
- * 用 `DSH_PET_IN_PROCESS=1` 让 `launchHelper` 短路：本测试只关心路由，绝不真的拉起 Electron。
+ * 用 `BLUE_FISH_IN_PROCESS=1` 让 `launchHelper` 短路：本测试只关心路由，绝不真的拉起 Electron。
  * 用 Node 内置 test runner（node:test），不引入任何 npm 依赖。
  */
 import { after, before, describe, test } from 'node:test';
@@ -67,14 +67,14 @@ class FakeRes extends Writable {
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-quit-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-quit-'));
   savedHome = process.env.DSH_HOME;
-  savedElectron = process.env.DSH_PET_ELECTRON_PATH;
-  savedInProcess = process.env.DSH_PET_IN_PROCESS;
+  savedElectron = process.env.BLUE_FISH_ELECTRON_PATH;
+  savedInProcess = process.env.BLUE_FISH_IN_PROCESS;
   process.env.DSH_HOME = join(dir, 'home');
   // 命中一个已存在的文件；再加下面的 IN_PROCESS 双保险 —— 本测试绝不 spawn
-  process.env.DSH_PET_ELECTRON_PATH = process.execPath;
-  process.env.DSH_PET_IN_PROCESS = '1';
+  process.env.BLUE_FISH_ELECTRON_PATH = process.execPath;
+  process.env.BLUE_FISH_IN_PROCESS = '1';
 
   let handler: ((req: unknown, res: unknown) => Promise<void>) | undefined;
   const noop = (): void => {};
@@ -134,10 +134,10 @@ after(() => {
   }
   if (savedHome === undefined) delete process.env.DSH_HOME;
   else process.env.DSH_HOME = savedHome;
-  if (savedElectron === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
-  else process.env.DSH_PET_ELECTRON_PATH = savedElectron;
-  if (savedInProcess === undefined) delete process.env.DSH_PET_IN_PROCESS;
-  else process.env.DSH_PET_IN_PROCESS = savedInProcess;
+  if (savedElectron === undefined) delete process.env.BLUE_FISH_ELECTRON_PATH;
+  else process.env.BLUE_FISH_ELECTRON_PATH = savedElectron;
+  if (savedInProcess === undefined) delete process.env.BLUE_FISH_IN_PROCESS;
+  else process.env.BLUE_FISH_IN_PROCESS = savedInProcess;
   rmSync(dir, { recursive: true, force: true });
 });
 

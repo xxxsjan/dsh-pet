@@ -65,9 +65,9 @@ class FakeRes extends Writable {
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-routes-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-routes-'));
   const home = join(dir, 'home');
-  const userRoot = join(home, 'dsh-pet');
+  const userRoot = join(home, 'blue-fish');
   // 合法素材：pet pack 自己的目录（中文名）+ 主素材池
   mkdirSync(join(userRoot, 'pet', `${CN_PET}-animation`), { recursive: true });
   writeFileSync(join(userRoot, 'pet', `${CN_PET}-animation`, 'test.webm'), OWN);
@@ -85,10 +85,10 @@ before(() => {
   writeFileSync(join(dir, 'outside-memes', 'leak.png'), SECRET);
 
   savedHome = process.env.DSH_HOME;
-  savedElectron = process.env.DSH_PET_ELECTRON_PATH;
+  savedElectron = process.env.BLUE_FISH_ELECTRON_PATH;
   process.env.DSH_HOME = home;
   // 命中一个已存在的文件：桌面 Helper 无论走哪条分支都不会真的下载/拉起
-  process.env.DSH_PET_ELECTRON_PATH = process.execPath;
+  process.env.BLUE_FISH_ELECTRON_PATH = process.execPath;
 
   let handler: ((req: unknown, res: unknown) => Promise<void>) | undefined;
   const noop = (): void => {};
@@ -166,8 +166,8 @@ after(() => {
   }
   if (savedHome === undefined) delete process.env.DSH_HOME;
   else process.env.DSH_HOME = savedHome;
-  if (savedElectron === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
-  else process.env.DSH_PET_ELECTRON_PATH = savedElectron;
+  if (savedElectron === undefined) delete process.env.BLUE_FISH_ELECTRON_PATH;
+  else process.env.BLUE_FISH_ELECTRON_PATH = savedElectron;
   rmSync(dir, { recursive: true, force: true });
 });
 

@@ -2,7 +2,7 @@
  * Helper 进程的拉起与停止：定位 Electron、注入环境、退避重试与熔断。
  *
  * 不算宠物列表（归 ./pets），不决定何时重启（归 ./sync 的调用方）。
- * 依赖显式传入（见输入类型），模块内只读两个进程级环境事实：`DSH_PET_IN_PROCESS` 与 `process.versions.electron`。
+ * 依赖显式传入（见输入类型），模块内只读两个进程级环境事实：`BLUE_FISH_IN_PROCESS` 与 `process.versions.electron`。
  * @module dsh-pet/src/host/plugin/desktop/spawn
  */
 import { join } from 'node:path';
@@ -79,7 +79,7 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
 
   let portWaitAttempts = 0;
 
-  const inProcessHost = process.env.DSH_PET_IN_PROCESS === '1';
+  const inProcessHost = process.env.BLUE_FISH_IN_PROCESS === '1';
 
   const launchHelper = (electronPath: string | undefined): void => {
     if (inProcessHost) return; // 应用模式：窗口由本进程建，绝不 spawn
@@ -93,10 +93,10 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
       // 「连尝试都没有」且没有任何线索。这里只加可见性，重试节奏与次数保持原样。
       portWaitAttempts += 1;
       if (portWaitAttempts === 1) {
-        log.info(`[dsh-pet] webServer 端口尚未就绪（port=${String(port)}），每 500ms 重试拉起桌面 Helper`);
+        log.info(`[blue-fish] webServer 端口尚未就绪（port=${String(port)}），每 500ms 重试拉起桌面 Helper`);
       } else if (portWaitAttempts % 20 === 0) {
         log.warn(
-          `[dsh-pet] 已等待 webServer 端口 ${(portWaitAttempts * 500) / 1000}s 仍未就绪` +
+          `[blue-fish] 已等待 webServer 端口 ${(portWaitAttempts * 500) / 1000}s 仍未就绪` +
             `（port=${String(port)}），桌面 Helper 尚未拉起`,
         );
       }
@@ -130,21 +130,21 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
       {
         electronPath,
         env: {
-          DSH_PET_CONFIG_URL: configUrl,
+          BLUE_FISH_CONFIG_URL: configUrl,
           // 已鉴权站点 URL（含本进程启动令牌）：只供 helper 的「打开」首项使用，任何日志都不许出现它
-          DSH_PET_SITE_URL: siteUrl,
+          BLUE_FISH_SITE_URL: siteUrl,
           // 宿主形态决定菜单首项的去向与文案（同名「打开」项，三种形态三种语义）：
           //   desktop    = DSH 桌面应用 → 唤起应用主窗口（helper 走 dsh://open）
           //   standalone = 独立模式 → 本机 AI 设置页
           //   web        = dsh web → DSH 站点
-          DSH_PET_OPEN_TARGET: resolveOpenTarget(siteUrl, isDesktopHost()),
-          DSH_PET_SCALE: '1',
-          // 打开 bridge 协议：main.js 注册 dsh-pet-bridge scheme，把渲染端请求经管道转给宿主
-          DSH_PET_BRIDGE: '1',
+          BLUE_FISH_OPEN_TARGET: resolveOpenTarget(siteUrl, isDesktopHost()),
+          BLUE_FISH_SCALE: '1',
+          // 打开 bridge 协议：main.js 注册 blue-fish-bridge scheme，把渲染端请求经管道转给宿主
+          BLUE_FISH_BRIDGE: '1',
           // 每只桌面宠物一个局部小窗口：透传宠物列表（[{id,size}]）
-          DSH_PET_PETS: JSON.stringify(desktopPetList()),
+          BLUE_FISH_PETS: JSON.stringify(desktopPetList()),
           // OBS 窗口捕获：helper 建窗时读它决定透明/不透明（与 main 配置 obsCaptureEnabled 同步）
-          DSH_PET_OBS_CAPTURE: getObsCaptureOn() ? '1' : '0',
+          BLUE_FISH_OBS_CAPTURE: getObsCaptureOn() ? '1' : '0',
         },
         // bridge 协议处理器 = HTTP 路由同一份 handlePetRoute（业务逻辑唯一，两端天然一致）；
         // 形状转换在 ./bridge-response，本模块只管把请求转进去。
@@ -175,7 +175,7 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
       if (!noDesktopSkipped) {
         noDesktopSkipped = true;
         log.info(
-          `[dsh-pet] 无桌面宠物（display 均为 web/none）且无需保留托盘（tray=${getTrayOn()}），已跳过桌面 Helper 启动`,
+          `[blue-fish] 无桌面宠物（display 均为 web/none）且无需保留托盘（tray=${getTrayOn()}），已跳过桌面 Helper 启动`,
         );
       }
       return;
@@ -186,8 +186,8 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
       if (!displayWarned) {
         displayWarned = true;
         log.warn(
-          '[dsh-pet] 未检测到图形显示环境（DISPLAY/WAYLAND_DISPLAY 均为空），已跳过桌面宠物。' +
-            '浏览器内宠物不受影响；如需在服务器上启用桌面模式，请配置 Xvfb 后设置 DSH_PET_DESKTOP_FORCE=1。',
+          '[blue-fish] 未检测到图形显示环境（DISPLAY/WAYLAND_DISPLAY 均为空），已跳过桌面宠物。' +
+            '浏览器内宠物不受影响；如需在服务器上启用桌面模式，请配置 Xvfb 后设置 BLUE_FISH_DESKTOP_FORCE=1。',
         );
       }
       return;
@@ -200,10 +200,10 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
     // 诊断日志（issue #168）：只报「没找到」不够用——最常见的情形是「文件明明存在」，
     // 但不在实际查询的路径上（DSH_HOME 不一致）。把真正查的路径一起打出来。
     log.warn(
-      `[dsh-pet] 未找到 Electron 可执行文件：DSH_HOME=${dshHomeDir()}，查找路径=${defaultElectronExe()}` +
-        `，DSH_PET_ELECTRON_PATH=${process.env.DSH_PET_ELECTRON_PATH ?? '(未设置)'}`,
+      `[blue-fish] 未找到 Electron 可执行文件：DSH_HOME=${dshHomeDir()}，查找路径=${defaultElectronExe()}` +
+        `，BLUE_FISH_ELECTRON_PATH=${process.env.BLUE_FISH_ELECTRON_PATH ?? '(未设置)'}`,
     );
-    log.warn(`[dsh-pet] 开始下载 Electron 到 ${defaultElectronExe()} ...`);
+    log.warn(`[blue-fish] 开始下载 Electron 到 ${defaultElectronExe()} ...`);
     electronEnsure = ensureElectronDownload({
       // 下载全过程写进工作状态气泡（用户没有控制台，只能靠它看进度与失败原因）
       onLog: ({ text, level, done }) =>
@@ -216,7 +216,7 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
           launchHelper(path);
         } else {
           log.warn(
-            '[dsh-pet] Electron download failed; desktop pet unavailable. Set DSH_PET_ELECTRON_PATH and restart, or retry later.',
+            '[blue-fish] Electron download failed; desktop pet unavailable. Set BLUE_FISH_ELECTRON_PATH and restart, or retry later.',
           );
         }
       })

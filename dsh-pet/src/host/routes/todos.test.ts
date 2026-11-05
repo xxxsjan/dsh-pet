@@ -41,7 +41,7 @@ function asJson(result: RouteResult | undefined): { status: number; obj: Record<
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-todo-route-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-todo-route-'));
 });
 
 beforeEach(() => {

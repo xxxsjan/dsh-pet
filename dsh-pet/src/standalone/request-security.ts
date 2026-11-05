@@ -8,6 +8,7 @@
  */
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { ROUTE_SEGMENT } from '../shared/constants.ts';
 
 /** 请求安全门面。 */
 export interface RequestSecurity {
@@ -32,7 +33,15 @@ function publicRead(req: IncomingMessage): boolean {
   const path = decodeURIComponent(new URL(req.url ?? '/', 'http://127.0.0.1').pathname);
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
   if (['/standalone-ai/settings', '/shutdown'].includes(path)) return false;
-  if (/^\/blue-fish-\d+\/(?:whisper|chat)(?:\/|$)/.test(path)) return false;
+  // 写操作与敏感插件路径仍要令牌；其余 ROUTE_SEGMENT 下只读资源可公开。
+  if (
+    path === `${ROUTE_SEGMENT}/whisper` ||
+    path.startsWith(`${ROUTE_SEGMENT}/whisper/`) ||
+    path === `${ROUTE_SEGMENT}/chat` ||
+    path.startsWith(`${ROUTE_SEGMENT}/chat/`)
+  ) {
+    return false;
+  }
   return (
     [
       '/',
@@ -42,12 +51,12 @@ function publicRead(req: IncomingMessage): boolean {
       '/standalone-ai/settings.css',
       '/standalone-ai/chat-panel.js',
       '/standalone-ai/icon.png',
-    ].includes(path) || /^\/blue-fish-\d+\//.test(path)
+    ].includes(path) || path === ROUTE_SEGMENT || path.startsWith(`${ROUTE_SEGMENT}/`)
   );
 }
 
 /** 设置页凭据 cookie：首次带令牌访问后下发，刷新时替代已从地址栏清掉的令牌。 */
-const TOKEN_COOKIE = 'dsh_pet_token';
+const TOKEN_COOKIE = 'blue_fish_token';
 
 /** 令牌的固定形状：32 字节 base64url。形状校验先跑，定时安全比较才有等长前提。 */
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{43}$/;
@@ -117,7 +126,7 @@ export function createRequestSecurity(): RequestSecurity {
       }
       if (fromHeader && readTokenCookie(req) !== token) {
         // 会话级 cookie：不设 Max-Age，关掉浏览器即失效，同一进程内刷新继续可用。
-        // Path 取根：对话面板要调 /blue-fish-<n>/chat 这类插件路由，限定在 /standalone-ai/ 会让它拿不到凭据。
+        // Path 取根：对话面板要调 ROUTE_SEGMENT 下的 /chat 等插件路由，限定在 /standalone-ai/ 会让它拿不到凭据。
         res.setHeader('set-cookie', `${TOKEN_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/`);
       }
       return true;

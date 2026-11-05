@@ -51,14 +51,14 @@ function createTray({
   /** 写回某只宠物的 display：宿主写完配置会重启本进程，响应可能永远不回（同 sprite.js 的 setPetDisplay） */
   function traySetPetDisplay(id, display) {
     hostRequest('POST', petRoute + '/pet-display', JSON.stringify({ id, display })).catch((e) => {
-      console.error('[dsh-pet-desktop-helper] tray pet-display failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] tray pet-display failed:', String(e && e.message ? e.message : e));
     });
   }
 
   /** 写回 OBS 窗口捕获开关：宿主写盘后会重启 / 重建窗口，响应可能永远不回 */
   function traySetObsCapture(enabled) {
     hostRequest('POST', petRoute + '/obs-capture', JSON.stringify({ enabled })).catch((e) => {
-      console.error('[dsh-pet-desktop-helper] tray obs-capture failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] tray obs-capture failed:', String(e && e.message ? e.message : e));
     });
   }
 
@@ -68,7 +68,7 @@ function createTray({
     let img = nativeImage.createFromPath(file);
     if (img.isEmpty()) {
       // 读不到图标 = 托盘不可见但菜单逻辑照跑，最难查的一种坏法：必须留下能定位的日志
-      console.error('[dsh-pet-desktop-helper] tray icon missing or unreadable: ' + file);
+      console.error('[blue-fish-desktop-helper] tray icon missing or unreadable: ' + file);
       return img;
     }
     img = img.resize({ width: 16, height: 16 });
@@ -88,7 +88,7 @@ function createTray({
     try {
       return JSON.parse((await hostRequest('GET', petRoute + '/quit')).body || '{}').canQuit === true;
     } catch (e) {
-      console.error('[dsh-pet-desktop-helper] quit capability probe failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] quit capability probe failed:', String(e && e.message ? e.message : e));
       return false;
     }
   }
@@ -124,7 +124,7 @@ function createTray({
       }
       // 交给宿主停机：它会先停本进程再退，所以这条请求不用等结果
       hostRequest('POST', petRoute + '/quit').catch((e) => {
-        console.error('[dsh-pet-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
+        console.error('[blue-fish-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
       });
     };
     const obsCapture = !!(merged && merged.main && merged.main.obsCaptureEnabled === true);
@@ -136,7 +136,7 @@ function createTray({
             showPets?.();
           } catch (e) {
             console.error(
-              '[dsh-pet-desktop-helper] tray showPets failed:',
+              '[blue-fish-desktop-helper] tray showPets failed:',
               String(e && e.message ? e.message : e),
             );
           }
@@ -178,7 +178,7 @@ function createTray({
       // Windows 上 setContextMenu 只接管右键，左键默认什么都不做（macOS 相反：左键即弹菜单）
       if (platform.leftClickPopsMenu) tray.on('click', () => tray.popUpContextMenu());
     } catch (e) {
-      console.error('[dsh-pet-desktop-helper] tray init failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] tray init failed:', String(e && e.message ? e.message : e));
     }
   }
 
@@ -189,7 +189,7 @@ function createTray({
       const menu = await buildMenu();
       if (menu !== null) tray.setContextMenu(menu);
     } catch (e) {
-      console.error('[dsh-pet-desktop-helper] tray refresh failed:', String(e && e.message ? e.message : e));
+      console.error('[blue-fish-desktop-helper] tray refresh failed:', String(e && e.message ? e.message : e));
     }
   }
 
@@ -202,7 +202,7 @@ function createTray({
       try {
         tray.destroy();
       } catch (e) {
-        console.error('[dsh-pet-desktop-helper] tray destroy failed:', String(e && e.message ? e.message : e));
+        console.error('[blue-fish-desktop-helper] tray destroy failed:', String(e && e.message ? e.message : e));
       }
       tray = null;
     },

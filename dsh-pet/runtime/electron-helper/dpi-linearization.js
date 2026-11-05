@@ -13,7 +13,7 @@
  *
  * @param o.platform - process.platform。
  * @param o.dpiProbe - 本进程是否就是探测子进程（探测子进程再做一次会无限递归）。
- * @param o.forceDsf - DSH_PET_FORCE_DSF 原始值（'0' = 关闭本机制；正数 = 排障用覆盖）。
+ * @param o.forceDsf - BLUE_FISH_FORCE_DSF 原始值（'0' = 关闭本机制；正数 = 排障用覆盖）。
  * @returns 是否启用。
  */
 function shouldLinearize(o = {}) {

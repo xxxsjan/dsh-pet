@@ -159,7 +159,7 @@ export async function generateChat(input: ChatGenerateInput): Promise<ChatGenera
     if (i + 1 < candidates.length) {
       defaultLog(
         'warn',
-        `dsh-pet: 对话用 ${modelLabel(sel)} 生成失败（${result.message ?? result.reason}），回落到 ${modelLabel(candidates[i + 1])}`,
+        `blue-fish: 对话用 ${modelLabel(sel)} 生成失败（${result.message ?? result.reason}），回落到 ${modelLabel(candidates[i + 1])}`,
       );
     }
   }
@@ -248,7 +248,7 @@ async function generateWith(ctx: { llm?: unknown }, once: GenerateOnce): Promise
   const approxTokens = textTokens + framingTokens;
   defaultLog(
     'info',
-    `[dsh-pet] chat → model tokens≈${approxTokens}` +
+    `[blue-fish] chat → model tokens≈${approxTokens}` +
       `（文本≈${textTokens} + 消息开销≈${framingTokens}` +
       `${image !== undefined ? '；含附图，图片 token 未计入' : ''}；粗算）` +
       ` provider=${sel.provider} model=${sel.model}`,

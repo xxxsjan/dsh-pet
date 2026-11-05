@@ -18,7 +18,7 @@ import { DESKTOP_APP_NAME, profileNameFrom, storageEntries } from './storage-pat
 
 /** 各平台的注入输入（基准目录全部写死，避免用到真实环境） */
 const base = {
-  userDataRoot: '/dsh-home/dsh-pet',
+  userDataRoot: '/dsh-home/blue-fish',
   electronDir: '/dsh-home/electron',
   home: '/home/u',
   packageRoot: '/dsh-home/profiles/web/node_modules/dsh-pet',
@@ -94,11 +94,11 @@ describe('storageEntries —— 逐平台路径推导', () => {
   });
 
   test('exists 由磁盘即时判定（真实存在的目录为 true，未创建的为 false）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-storage-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-storage-test-'));
     try {
       const mk = () =>
         storageEntries({
-          userDataRoot: join(dir, 'dsh-pet'),
+          userDataRoot: join(dir, 'blue-fish'),
           electronDir: join(dir, 'electron'),
           home: dir,
           packageRoot: dir,
@@ -109,7 +109,7 @@ describe('storageEntries —— 逐平台路径推导', () => {
       assert.equal(mk().find((e) => e.key === 'package')?.exists, true);
       assert.equal(mk().find((e) => e.key === 'userData')?.exists, false);
 
-      mkdirSync(join(dir, 'dsh-pet'), { recursive: true });
+      mkdirSync(join(dir, 'blue-fish'), { recursive: true });
       assert.equal(mk().find((e) => e.key === 'userData')?.exists, true);
     } finally {
       rmSync(dir, { recursive: true, force: true });

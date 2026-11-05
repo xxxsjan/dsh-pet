@@ -580,8 +580,8 @@ export function douyinDanmakuPageHtml(): string {
   </div>
   <script>
     const BASE = ${JSON.stringify(base)};
-    const CACHE_KEY = 'dsh_pet_douyin_danmaku_form_v1';
-    const THEME_KEY = 'dsh_pet_ui_theme';
+    const CACHE_KEY = 'blue_fish_douyin_danmaku_form_v1';
+    const THEME_KEY = 'blue_fish_ui_theme';
     const el = (id) => document.getElementById(id);
     function readTheme() {
       try {

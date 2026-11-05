@@ -260,10 +260,10 @@ for (const lang of ['en', 'zh']) {
           labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent),
         );
       assert.deepEqual(clipped, []);
-      if (process.env.DSH_PET_UI_ARTIFACTS) {
-        mkdirSync(process.env.DSH_PET_UI_ARTIFACTS, { recursive: true });
+      if (process.env.BLUE_FISH_UI_ARTIFACTS) {
+        mkdirSync(process.env.BLUE_FISH_UI_ARTIFACTS, { recursive: true });
         await page.screenshot({
-          path: join(process.env.DSH_PET_UI_ARTIFACTS, 'settings-' + lang + '-' + width + '.png'),
+          path: join(process.env.BLUE_FISH_UI_ARTIFACTS, 'settings-' + lang + '-' + width + '.png'),
           fullPage: true,
         });
       }

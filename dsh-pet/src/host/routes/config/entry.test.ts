@@ -109,7 +109,7 @@ function writePack(file: string): void {
 }
 
 before(() => {
-  root = mkdtempSync(join(tmpdir(), 'dsh-pet-config-entry-'));
+  root = mkdtempSync(join(tmpdir(), 'blue-fish-config-entry-'));
   savedHome = process.env.DSH_HOME;
   // 告警日志落在这个临时 home 下，别污染真实用户目录。
   process.env.DSH_HOME = join(root, 'home');

@@ -57,7 +57,7 @@ describe('isWritableDir —— 必须真的写进去才算可写', () => {
 });
 
 describe('resolveUserDataDir —— 回退决策', () => {
-  const currentDir = join('appdata', 'dsh-pet-electron-helper');
+  const currentDir = join('appdata', 'blue-fish-electron-helper');
   const dshHome = join('root', '.dsh');
 
   test('原目录可写：不改变目录', () => {

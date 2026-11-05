@@ -68,7 +68,7 @@ public static class DshPetExStyle {
     (error) => {
       if (error) {
         console.error(
-          '[dsh-pet-desktop-helper] win32 exstyle apply failed:',
+          '[blue-fish-desktop-helper] win32 exstyle apply failed:',
           String(error && error.message ? error.message : error),
         );
       }

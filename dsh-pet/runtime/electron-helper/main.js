@@ -66,10 +66,10 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 // 逐字一致（测试直接读本文件比对，改名不同步就红）。
 // 应用模式（本文件被 src/app/main.ts 同进程 require）：双击启动的用户没有终端，托盘必须有「退出」；
 // 手动 start-desktop 流同理，BRIDGE 模式则由宿主决定能否退（见 startTray 的 quitApp）。
-const APP_MODE = process.env.DSH_PET_APP_MODE === '1';
+const APP_MODE = process.env.BLUE_FISH_APP_MODE === '1';
 // 只供同进程应用自己的请求使用，绝不出现在渲染端地址或日志里。
-const APP_TOKEN = APP_MODE ? process.env.DSH_PET_APP_TOKEN : undefined;
-app.setName('dsh-pet-electron-helper');
+const APP_TOKEN = APP_MODE ? process.env.BLUE_FISH_APP_TOKEN : undefined;
+app.setName('blue-fish-electron-helper');
 // Windows 任务栏分组：不设 AppUserModelID 时窗口归到 electron.exe 名下，任务栏按钮意外出现就显示
 // Electron 默认图标。必须在 ready 之前调用；独立应用与 DSH 内 helper 用不同 ID，避免被合成一组。
 if (process.platform === 'win32') {
@@ -79,7 +79,7 @@ if (process.platform === 'win32') {
 if (APP_MODE) app.setPath('userData', path.join(app.getPath('appData'), 'dsh-pet'));
 
 /** DPI 探测子进程模式：不建窗口，只把主屏 scaleFactor 打到 stdout 就退出（见 probePrimaryScale） */
-const DPI_PROBE = process.env.DSH_PET_DPI_PROBE === '1';
+const DPI_PROBE = process.env.BLUE_FISH_DPI_PROBE === '1';
 /** 探测进程的输出标记（父进程按它抓值） */
 const DPI_MARK = 'blue-fish-primary-scale:';
 // 宿主存活：宿主退出后 stdout/stderr 的读端一起消失，helper 下一次写（每秒至少一条 /state 轮询）
@@ -113,17 +113,17 @@ const userDataDecision = resolveUserDataDir({
 });
 if (userDataDecision.fallback) {
   app.setPath('userData', userDataDecision.dir);
-  console.error('[dsh-pet-desktop-helper] userData 不可写，回退到', userDataDecision.dir);
+  console.error('[blue-fish-desktop-helper] userData 不可写，回退到', userDataDecision.dir);
 } else if (userDataDecision.error) {
   console.error(
-    '[dsh-pet-desktop-helper] userData 回退失败:',
+    '[blue-fish-desktop-helper] userData 回退失败:',
     String(userDataDecision.error.message || userDataDecision.error),
   );
 }
 
-// ② 宿主探测：DSH_PET_HOST_PID 由宿主 spawn 时注入；未注入或非法 → 0 → 不探测（不误退）。
+// ② 宿主探测：BLUE_FISH_HOST_PID 由宿主 spawn 时注入；未注入或非法 → 0 → 不探测（不误退）。
 // DPI 探测实例是一次性短命进程（父进程是 helper 而不是宿主），不参与这套机制。
-const HOST_PID = parseHostPid(process.env.DSH_PET_HOST_PID);
+const HOST_PID = parseHostPid(process.env.BLUE_FISH_HOST_PID);
 if (!DPI_PROBE && HOST_PID > 0) {
   setInterval(() => {
     if (hostIsGone(HOST_PID)) exitForDeadHost();
@@ -139,8 +139,8 @@ if (process.platform === 'win32') {
   // GPU 进程沙箱会在初始化阶段以 STATUS_BREAKPOINT 反复崩掉，浏览器进程随即以 0x80000003 退出，
   // helper 每起必崩而宿主只看到一行无信息量的退出码。关掉 GPU 沙箱即可恢复（单测过：
   // --disable-gpu 与 --use-angle 无效，--disable-gpu-sandbox 有效）。本进程只渲染本地素材、
-  // 不加载不可信内容；需要保留沙箱的环境设 DSH_PET_GPU_SANDBOX=1。
-  if (process.env.DSH_PET_GPU_SANDBOX !== '1') {
+  // 不加载不可信内容；需要保留沙箱的环境设 BLUE_FISH_GPU_SANDBOX=1。
+  if (process.env.BLUE_FISH_GPU_SANDBOX !== '1') {
     app.commandLine.appendSwitch('disable-gpu-sandbox');
   }
 }
@@ -158,27 +158,27 @@ const dpi = createDpi({
   linuxPointer,
   dpiProbe: DPI_PROBE,
   dpiMark: DPI_MARK,
-  forceDsf: process.env.DSH_PET_FORCE_DSF,
+  forceDsf: process.env.BLUE_FISH_FORCE_DSF,
 });
 
-/** bridge 模式：DSH_PET_BRIDGE=1（宿主注入）。开启时注册 dsh-pet-bridge scheme + 管道转发 */
-const BRIDGE = process.env.DSH_PET_BRIDGE === '1';
+/** bridge 模式：BLUE_FISH_BRIDGE=1（宿主注入）。开启时注册 blue-fish-bridge scheme + 管道转发 */
+const BRIDGE = process.env.BLUE_FISH_BRIDGE === '1';
 
 /** 菜单首项的去向（宿主按自身形态注入）：
  *  'desktop'    = DSH 桌面应用 → 唤起应用主窗口；
  *  'standalone' = 独立模式 → 打开本机 AI 设置页；
  *  'web'        = dsh web / 手写 start-desktop（无该变量）→ 默认浏览器打开站点。 */
-const OPEN_TARGET_RAW = process.env.DSH_PET_OPEN_TARGET;
+const OPEN_TARGET_RAW = process.env.BLUE_FISH_OPEN_TARGET;
 const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' || OPEN_TARGET_RAW === 'standalone' ? OPEN_TARGET_RAW : 'web';
 /** 协议行前缀（与 helper-process.ts 的 BRIDGE_PREFIX 一致） */
-const BRIDGE_PREFIX = 'dsh-pet-bridge:';
+const BRIDGE_PREFIX = 'blue-fish-bridge:';
 
 if (BRIDGE) {
   // 自定义 scheme：standard（可解析 URL）+ secure（按 https 对待）+ supportFetchAPI（fetch 可用）
   // + stream（视频流）+ corsEnabled（让 CORS 规则生效，配合响应里的 ACAO 头放行 file:// 源页面）
   protocol.registerSchemesAsPrivileged([
     {
-      scheme: 'dsh-pet-bridge',
+      scheme: 'blue-fish-bridge',
       privileges: {
         standard: true,
         secure: true,
@@ -191,7 +191,7 @@ if (BRIDGE) {
   ]);
 }
 
-// bridge 协议：渲染端的每个 fetch 落到 dsh-pet-bridge://，protocol.handle 把请求以一行 JSON 写
+// bridge 协议：渲染端的每个 fetch 落到 blue-fish-bridge://，protocol.handle 把请求以一行 JSON 写
 // stdout 转发宿主。宿主应答不走近 0 号管道（Electron 主进程在 Windows 上收不到 piped stdin），
 // 所以本进程开一个 127.0.0.1 随机端口 HTTP 回调，按 id 唤醒等待中的请求；素材只回绝对路径，
 // 由本进程自行读盘应答（二进制不过管道）。协议行统一前缀 BRIDGE_PREFIX，宿主据此区分协议与日志。
@@ -204,7 +204,7 @@ if (BRIDGE) {
 // 本进程（syncDesktop），新进程按新配置重建菜单，所以不需要「重建菜单刷新勾选」的逻辑。
 
 const PET_ROUTE = '/pet-233';
-const ORIGIN = new URL(process.env.DSH_PET_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config').origin;
+const ORIGIN = new URL(process.env.BLUE_FISH_CONFIG_URL || 'http://127.0.0.1:3080/pet-233/config').origin;
 const TRAY_PLATFORM = trayPlatform(process.platform);
 
 /** 与宿主的通道：bridge 走管道 + 本地回调，否则 HTTP 直连。 */
@@ -222,7 +222,7 @@ const petWindows = createWindows({
   platform: TRAY_PLATFORM,
   shouldReassertTopmost,
   topmostLevel,
-  taskbarWatchdogEnabled: taskbarWatchdogEnabledFromEnv(process.env.DSH_PET_TASKBAR_WATCHDOG),
+  taskbarWatchdogEnabled: taskbarWatchdogEnabledFromEnv(process.env.BLUE_FISH_TASKBAR_WATCHDOG),
 });
 /** 托盘：显示开关与退出入口。 */
 const tray = createTray({
@@ -242,10 +242,10 @@ const tray = createTray({
 
 /**
  * 应用模式的重建钩子：同进程里没有「重启 helper 进程」这条路，宿主改完显示位置会调它——
- * 关窗 → 按新的 DSH_PET_PETS 重建 → 刷新托盘勾选。
+ * 关窗 → 按新的 BLUE_FISH_PETS 重建 → 刷新托盘勾选。
  * 双进程模式不注册：那边重启进程本身就是重建，注册了反而多一条没人走的路径。
  */
-if (process.env.DSH_PET_IN_PROCESS === '1') {
+if (process.env.BLUE_FISH_IN_PROCESS === '1') {
   globalThis.__dshPetRebuildUi = async () => {
     // closeAll 已暂停兜底泵并卸 forward 钩子；再让出一拍给 Windows 卸 WH_MOUSE_LL，
     // 紧挨着再建窗容易叠钩子，重载配置时表现为光标整机变慢。
@@ -265,7 +265,7 @@ app.whenReady().then(() => {
     return;
   }
   console.error(
-    '[dsh-pet-desktop-helper] displays: ' +
+    '[blue-fish-desktop-helper] displays: ' +
       JSON.stringify(petWindows.geometry()) +
       ' forcedScaleFactor=' +
       (dpi.forcedScale || 'off') +
@@ -277,10 +277,10 @@ app.whenReady().then(() => {
 
   if (BRIDGE) {
     // 自定义 scheme 接住渲染端全部请求（配置/余额/碎碎念/广播/素材）
-    protocol.handle('dsh-pet-bridge', (request) =>
+    protocol.handle('blue-fish-bridge', (request) =>
       bridge.handle(request).catch((e) => {
-        console.error('[dsh-pet-desktop-helper] bridge handler error:', String(e && e.message ? e.message : e));
-        return new Response('dsh-pet: bridge error', {
+        console.error('[blue-fish-desktop-helper] bridge handler error:', String(e && e.message ? e.message : e));
+        return new Response('blue-fish: bridge error', {
           status: 502,
           headers: { 'access-control-allow-origin': '*' },
         });
@@ -316,15 +316,15 @@ app.whenReady().then(() => {
       douyinSign.stop();
     } catch (e) {
       console.error(
-        '[dsh-pet-desktop-helper] douyin sign stop failed:',
+        '[blue-fish-desktop-helper] douyin sign stop failed:',
         String(e && e.message ? e.message : e),
       );
     }
   });
 
-  // 冒烟自检（默认关闭）：DSH_PET_SMOKE=1 时延时截图到 DSH_PET_SMOKE_OUT 后退出，
+  // 冒烟自检（默认关闭）：BLUE_FISH_SMOKE=1 时延时截图到 BLUE_FISH_SMOKE_OUT 后退出，
   // 用于验证窗口/渲染/动画链路。
-  if (process.env.DSH_PET_SMOKE === '1') {
+  if (process.env.BLUE_FISH_SMOKE === '1') {
     runSmokeCheck({
       app,
       windows: petWindows.state.windows,
@@ -345,7 +345,7 @@ app.on('before-quit', () => {
   try {
     tray.destroy();
   } catch (e) {
-    console.error('[dsh-pet-desktop-helper] tray destroy failed:', String(e && e.message ? e.message : e));
+    console.error('[blue-fish-desktop-helper] tray destroy failed:', String(e && e.message ? e.message : e));
   }
 });
 
@@ -353,6 +353,6 @@ app.on('window-all-closed', () => {
   // 托盘常驻：桌面上没有宠物也要留着，否则「全关掉」就再也切不回来
   if (tray.exists()) return;
   // 应用模式：窗口是被重建钩子关掉的，不是用户要退出——留着进程等下一次重建
-  if (process.env.DSH_PET_IN_PROCESS === '1') return;
+  if (process.env.BLUE_FISH_IN_PROCESS === '1') return;
   app.quit();
 });

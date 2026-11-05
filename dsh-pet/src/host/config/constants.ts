@@ -78,17 +78,17 @@ const warnedKeys = new Set<string>();
 export function warnOnce(key: string, message: string): void {
   if (warnedKeys.has(key)) return;
   warnedKeys.add(key);
-  defaultLog('warn', 'dsh-pet: ' + message);
+  defaultLog('warn', 'blue-fish: ' + message);
 }
 
 /** 配置路径集（宿主组装好后传入，单一事实来源） */
 export interface ConfigPaths {
   /** 包内 assets/config.jsonc（内置默认，绝对正确） */
   defaultFile: string;
-  /** ~/.blue-fish/main-config.jsonc（用户主配置，可编辑层；JSONC——允许注释；自定义 DSH_HOME 时为 $DSH_HOME/dsh-pet/…） */
+  /** ~/.blue-fish/main-config.jsonc（用户主配置，可编辑层；JSONC——允许注释；自定义 DSH_HOME 时为 $DSH_HOME/blue-fish/…） */
   userFile: string;
   /** 同目录下旧扩展名 main-config.json：读取回落 + 启动时迁移（见 migrateUserConfig） */
   legacyUserFile?: string;
-  /** ~/.blue-fish/pet（文件宠物目录；自定义 DSH_HOME 时为 $DSH_HOME/dsh-pet/pet） */
+  /** ~/.blue-fish/pet（文件宠物目录；自定义 DSH_HOME 时为 $DSH_HOME/blue-fish/pet） */
   petDir: string;
 }
