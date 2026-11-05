@@ -54,7 +54,7 @@ describe('SettingsDialog —— 确认弹窗', () => {
     assert.ok(texts(tree).includes('confirmTitle'));
     const all = buttons(tree);
     assert.equal(all.length, 2);
-    assert.equal(all[1].props.className, 'dsh-pet-cfg__btn is-danger');
+    assert.equal(all[1].props.className, 'blue-fish-cfg__btn is-danger');
   });
 
   test('只剩一只：只给「知道了」，没有确认按钮', () => {
@@ -76,7 +76,7 @@ describe('SettingsDialog —— 确认弹窗', () => {
   test('同步：确认按钮是主色（不是危险色）', () => {
     const { tree } = render({ kind: 'sync' });
     const all = buttons(tree);
-    assert.equal(all[1].props.className, 'dsh-pet-cfg__btn is-primary');
+    assert.equal(all[1].props.className, 'blue-fish-cfg__btn is-primary');
     assert.equal(all[1].props.children, 'sync');
   });
 

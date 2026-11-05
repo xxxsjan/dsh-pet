@@ -91,48 +91,48 @@ function makeButton(className: string, text?: string): HTMLButtonElement {
 
 /** 建整个选择器的 DOM（尚未挂进文档）。 */
 function buildPickerDom(): PickerDom {
-  const el = makeButton('dsh-pet-todo-due', '无期限');
+  const el = makeButton('blue-fish-todo-due', '无期限');
   el.setAttribute('aria-haspopup', 'dialog');
   el.setAttribute('aria-expanded', 'false');
   el.setAttribute('aria-label', '提醒时间（可选）');
 
-  const calendar = make('div', 'dsh-pet-todo-cal');
+  const calendar = make('div', 'blue-fish-todo-cal');
   calendar.setAttribute('role', 'dialog');
   calendar.setAttribute('aria-label', '选择提醒时间');
 
-  const head = make('div', 'dsh-pet-todo-cal-head');
-  const prev = makeButton('dsh-pet-todo-cal-nav', '‹');
+  const head = make('div', 'blue-fish-todo-cal-head');
+  const prev = makeButton('blue-fish-todo-cal-nav', '‹');
   prev.dataset.act = 'prev';
   prev.setAttribute('aria-label', '上个月');
-  const title = make('span', 'dsh-pet-todo-cal-title');
-  const next = makeButton('dsh-pet-todo-cal-nav', '›');
+  const title = make('span', 'blue-fish-todo-cal-title');
+  const next = makeButton('blue-fish-todo-cal-nav', '›');
   next.dataset.act = 'next';
   next.setAttribute('aria-label', '下个月');
   head.append(prev, title, next);
 
-  const week = make('div', 'dsh-pet-todo-cal-week');
+  const week = make('div', 'blue-fish-todo-cal-week');
   for (const name of WEEK_HEAD) {
     const cell = make('span', '');
     cell.textContent = name;
     week.appendChild(cell);
   }
-  const grid = make('div', 'dsh-pet-todo-cal-grid');
+  const grid = make('div', 'blue-fish-todo-cal-grid');
 
-  const foot = make('div', 'dsh-pet-todo-cal-foot');
-  const today = makeButton('dsh-pet-todo-cal-act', '今天');
+  const foot = make('div', 'blue-fish-todo-cal-foot');
+  const today = makeButton('blue-fish-todo-cal-act', '今天');
   today.dataset.act = 'today';
-  const clear = makeButton('dsh-pet-todo-cal-act', '清除');
+  const clear = makeButton('blue-fish-todo-cal-act', '清除');
   clear.dataset.act = 'clear';
-  const grow = make('span', 'dsh-pet-todo-cal-grow');
-  const hourChip = makeButton('dsh-pet-todo-cal-chip', '09');
+  const grow = make('span', 'blue-fish-todo-cal-grow');
+  const hourChip = makeButton('blue-fish-todo-cal-chip', '09');
   hourChip.dataset.act = 'hour';
   hourChip.setAttribute('aria-label', '选择小时');
-  const colon = make('span', 'dsh-pet-todo-cal-colon');
+  const colon = make('span', 'blue-fish-todo-cal-colon');
   colon.textContent = ':';
-  const minuteChip = makeButton('dsh-pet-todo-cal-chip', '00');
+  const minuteChip = makeButton('blue-fish-todo-cal-chip', '00');
   minuteChip.dataset.act = 'minute';
   minuteChip.setAttribute('aria-label', '选择分钟');
-  const done = makeButton('dsh-pet-todo-cal-act', '完成');
+  const done = makeButton('blue-fish-todo-cal-act', '完成');
   done.dataset.act = 'done';
   foot.append(today, clear, grow, hourChip, colon, minuteChip, done);
 
@@ -154,7 +154,7 @@ function dueMs(state: PickerState): number | null {
 
 /** 造一个日历格：选中态同时写进 class 与 aria。 */
 function cellButton(text: string, selected: boolean): HTMLButtonElement {
-  const button = makeButton('dsh-pet-todo-cal-cell', text);
+  const button = makeButton('blue-fish-todo-cal-cell', text);
   button.classList.toggle('is-sel', selected);
   button.setAttribute('aria-pressed', String(selected));
   return button;
@@ -208,7 +208,7 @@ function renderPicker(dom: PickerDom, state: PickerState): void {
       : '选择分钟';
   dom.prev.hidden = !day;
   dom.next.hidden = !day;
-  dom.grid.className = 'dsh-pet-todo-cal-grid is-' + state.mode;
+  dom.grid.className = 'blue-fish-todo-cal-grid is-' + state.mode;
   dom.grid.textContent = '';
   if (day) renderDays(dom, state);
   else renderNumbers(dom, state);

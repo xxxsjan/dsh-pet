@@ -10,7 +10,7 @@ import type { jsx } from 'react/jsx-runtime';
 import type { SettingsRuntime } from './runtime.ts';
 
 /** 输入框与下拉框共用的类名。 */
-export const INPUT_CLASS = 'dsh-pet-cfg__inp';
+export const INPUT_CLASS = 'blue-fish-cfg__inp';
 
 /**
  * 数字输入的统一属性：非受控 + 失焦提交。
@@ -109,26 +109,26 @@ export function makeUiKit(rt: Pick<SettingsRuntime, 'h' | 't'>): SettingsUiKit {
 
   /** 问号：气泡的圆形触发元素。用 `<i>` 而不是 `<button>`——它只展示说明，点了不该有行为，也不该进 Tab 顺序。 */
   const q = (text: string): ReturnType<typeof jsx> =>
-    h('i', { className: 'dsh-pet-cfg__q', ...tip(text), 'aria-label': text, role: 'img', children: '?' });
+    h('i', { className: 'blue-fish-cfg__q', ...tip(text), 'aria-label': text, role: 'img', children: '?' });
 
   return {
     tip,
     q,
     cardHead: (title, hint) =>
       h('div', {
-        className: 'dsh-pet-cfg__cardHead',
+        className: 'blue-fish-cfg__cardHead',
         children: [
-          h('span', { key: 't', className: 'dsh-pet-cfg__cardTitle', children: title }),
+          h('span', { key: 't', className: 'blue-fish-cfg__cardTitle', children: title }),
           hint ? q(hint) : null,
         ],
       }),
     field: (label, control, hint) =>
       h('div', {
-        className: 'dsh-pet-cfg__field',
+        className: 'blue-fish-cfg__field',
         children: [
           h('span', {
             key: 'l',
-            className: 'dsh-pet-cfg__flabel',
+            className: 'blue-fish-cfg__flabel',
             children: hint ? [label, q(hint)] : label,
           }),
           control,
@@ -136,7 +136,7 @@ export function makeUiKit(rt: Pick<SettingsRuntime, 'h' | 't'>): SettingsUiKit {
       }),
     toggleCell: (label, value, disabled, onToggle) =>
       h('div', {
-        className: 'dsh-pet-cfg__toggle',
+        className: 'blue-fish-cfg__toggle',
         children: [
           h('label', {
             key: 'l',
@@ -156,28 +156,28 @@ export function makeUiKit(rt: Pick<SettingsRuntime, 'h' | 't'>): SettingsUiKit {
       }),
     foldCard: (options) =>
       h('div', {
-        className: 'dsh-pet-cfg__card is-fold' + (options.open ? ' is-open' : ''),
+        className: 'blue-fish-cfg__card is-fold' + (options.open ? ' is-open' : ''),
         children: [
           // 整行可点：标题、问号与箭头都在按钮里。问号自己拦掉冒泡，点它只出气泡、不开合。
           h('button', {
             key: 'head',
             type: 'button',
-            className: 'dsh-pet-cfg__foldToggle',
+            className: 'blue-fish-cfg__foldToggle',
             'aria-expanded': options.open,
             'aria-controls': options.id,
             onClick: options.onToggle,
             children: [
-              h('span', { key: 't', className: 'dsh-pet-cfg__cardTitle', children: options.title }),
+              h('span', { key: 't', className: 'blue-fish-cfg__cardTitle', children: options.title }),
               h('span', {
                 key: 'q',
-                className: 'dsh-pet-cfg__qWrap',
+                className: 'blue-fish-cfg__qWrap',
                 onClick: (e: ReactNS.MouseEvent<HTMLSpanElement>) => e.stopPropagation(),
                 children: q(options.hint),
               }),
               // 箭头：展开时转 180°，与模型选择器的展开指示一致。
               h('i', {
                 key: 'c',
-                className: 'dsh-pet-cfg__chevron' + (options.open ? ' is-open' : ''),
+                className: 'blue-fish-cfg__chevron' + (options.open ? ' is-open' : ''),
                 'aria-hidden': 'true',
               }),
             ],
@@ -186,11 +186,11 @@ export function makeUiKit(rt: Pick<SettingsRuntime, 'h' | 't'>): SettingsUiKit {
           h('div', {
             key: 'body',
             id: options.id,
-            className: 'dsh-pet-cfg__fold',
+            className: 'blue-fish-cfg__fold',
             'aria-hidden': options.open ? undefined : 'true',
             children: h('div', {
-              className: 'dsh-pet-cfg__foldClip',
-              children: h('div', { className: 'dsh-pet-cfg__foldBody', children: options.body }),
+              className: 'blue-fish-cfg__foldClip',
+              children: h('div', { className: 'blue-fish-cfg__foldBody', children: options.body }),
             }),
           }),
         ],

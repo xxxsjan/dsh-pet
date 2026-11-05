@@ -53,7 +53,7 @@ Object.assign(PetSprite.prototype, {
   renderBubble() {
     // 待办面板占气泡槽且优先级最高：它是用户主动打开的窗口，其余气泡一律让位。
     // 面板是外部塞进来的 DOM，重建 innerHTML 会把它自己抹掉，所以这一段只补显隐与让位。
-    this.bubble.classList.toggle('dsh-pet-todo-bubble', this.todoOpen);
+    this.bubble.classList.toggle('blue-fish-todo-bubble', this.todoOpen);
     if (this.todoOpen) {
       this.bubble.classList.remove('is-whisper', 'is-clickable', 'is-expanded', S.MEME_BUBBLE_CLASS);
       this.bubble.classList.add('is-on');
@@ -104,14 +104,14 @@ Object.assign(PetSprite.prototype, {
     this.bubble.innerHTML = '';
     if (slot === 'work') {
       const line = document.createElement('div');
-      line.className = 'pet-bub-row';
+      line.className = 'blue-fish-bub-row';
       line.textContent = this.workText;
       this.bubble.appendChild(line);
     } else if (slot === 'whisper') {
       // 配图（shared 生成的 <img> + 共用样式）：先看图再读话
       if (whisperImg) this.bubble.appendChild(whisperImg);
       const line = document.createElement('div');
-      line.className = 'pet-bub-row';
+      line.className = 'blue-fish-bub-row';
       line.textContent = this.whisperView[0]?.text ?? '';
       this.bubble.appendChild(line);
       // 语音状态角标：idle 时什么都不加；failed 用静音喇叭，表示这句没念出来
@@ -120,7 +120,7 @@ Object.assign(PetSprite.prototype, {
         S.injectMemeBubbleCss(); // 角标样式与配图同一份 CSS，两端共用
         const badge = document.createElement('span');
         badge.className =
-          'dsh-pet-voice-badge' + (voice === 'loading' ? ' is-loading' : '') + (voice === 'failed' ? ' is-failed' : '');
+          'blue-fish-voice-badge' + (voice === 'loading' ? ' is-loading' : '') + (voice === 'failed' ? ' is-failed' : '');
         badge.setAttribute('aria-hidden', 'true');
         if (voice === 'ready') badge.textContent = '🔊';
         else if (voice === 'failed') badge.textContent = '🔇';
@@ -140,10 +140,10 @@ Object.assign(PetSprite.prototype, {
       if (hasTier) {
         // deepseek 余额单行：余额（峰/谷）¥x — 档位字着色
         const line = document.createElement('div');
-        line.className = 'pet-bub-row';
+        line.className = 'blue-fish-bub-row';
         for (const r of rows) {
           const span = document.createElement('span');
-          if (r.role === 'tier') span.className = 'pet-bub-tier pet-bub-tier-' + r.tier;
+          if (r.role === 'tier') span.className = 'blue-fish-bub-tier blue-fish-bub-tier-' + r.tier;
           span.textContent = r.text;
           line.appendChild(span);
         }
@@ -153,21 +153,21 @@ Object.assign(PetSprite.prototype, {
           // 展开态一行 = 一个窗口：窗口名 + 进度条 + 已用百分比 + 重置倒计时，四段 flex 同行，条吃剩余宽度。
           if (r.role === 'quota') {
             const row = document.createElement('div');
-            row.className = 'pet-bub-quota';
+            row.className = 'blue-fish-bub-quota';
             const label = document.createElement('span');
-            label.className = 'pet-bub-quota-label';
+            label.className = 'blue-fish-bub-quota-label';
             label.textContent = r.label;
             const bar = document.createElement('span');
-            bar.className = 'pet-bub-quota-bar';
+            bar.className = 'blue-fish-bub-quota-bar';
             const fill = document.createElement('i');
-            fill.className = 'pet-bub-quota-fill pet-bub-quota-' + r.tone;
+            fill.className = 'blue-fish-bub-quota-fill blue-fish-bub-quota-' + r.tone;
             fill.style.width = Math.max(0, Math.min(100, r.percent)) + '%';
             bar.appendChild(fill);
             const used = document.createElement('span');
-            used.className = 'pet-bub-quota-used';
+            used.className = 'blue-fish-bub-quota-used';
             used.textContent = r.usedText;
             const reset = document.createElement('span');
-            reset.className = 'pet-bub-quota-reset';
+            reset.className = 'blue-fish-bub-quota-reset';
             reset.textContent = r.resetText;
             row.append(label, bar, used, reset);
             this.bubble.appendChild(row);
@@ -176,10 +176,10 @@ Object.assign(PetSprite.prototype, {
           // 用量页：三行两列，总量是唯一大字；进/出各一处强调色，其余次级灰。
           if (r.role === 'usage') {
             const box = document.createElement('div');
-            box.className = 'pet-bub-usage';
+            box.className = 'blue-fish-bub-usage';
             const line = (cells) => {
               const row = document.createElement('div');
-              row.className = 'pet-bub-usage-line';
+              row.className = 'blue-fish-bub-usage-line';
               for (const cell of cells) {
                 const span = document.createElement('span');
                 span.className = cell.cls;
@@ -190,40 +190,40 @@ Object.assign(PetSprite.prototype, {
             };
             // 进出比例条：宽度即真实占比，输入通常压倒性占多数，条偏单色属正常。
             const bar = document.createElement('div');
-            bar.className = 'pet-bub-usage-bar';
+            bar.className = 'blue-fish-bub-usage-bar';
             if (r.inputPercent !== undefined) {
               const inBar = document.createElement('i');
-              inBar.className = 'pet-bub-usage-bar-in';
+              inBar.className = 'blue-fish-bub-usage-bar-in';
               inBar.style.width = r.inputPercent + '%';
               const outBar = document.createElement('i');
-              outBar.className = 'pet-bub-usage-bar-out';
+              outBar.className = 'blue-fish-bub-usage-bar-out';
               outBar.style.width = 100 - r.inputPercent + '%';
               bar.append(inBar, outBar);
             }
             box.append(
               line([
-                { cls: 'pet-bub-usage-title', text: r.title },
-                { cls: 'pet-bub-usage-total', text: r.total },
+                { cls: 'blue-fish-bub-usage-title', text: r.title },
+                { cls: 'blue-fish-bub-usage-total', text: r.total },
               ]),
             );
             if (r.inputPercent !== undefined) box.appendChild(bar);
             box.append(
               line([
-                { cls: 'pet-bub-usage-in', text: r.input },
-                { cls: 'pet-bub-usage-out', text: r.output },
+                { cls: 'blue-fish-bub-usage-in', text: r.input },
+                { cls: 'blue-fish-bub-usage-out', text: r.output },
               ]),
               line([
-                { cls: 'pet-bub-usage-period', text: r.period },
-                { cls: 'pet-bub-usage-spend', text: r.spend },
+                { cls: 'blue-fish-bub-usage-period', text: r.period },
+                { cls: 'blue-fish-bub-usage-spend', text: r.spend },
               ]),
             );
             this.bubble.appendChild(box);
             continue;
           }
           const div = document.createElement('div');
-          if (r.role === 'error') div.className = 'pet-bub-err';
-          else if (r.role === 'sub') div.className = 'pet-bub-row pet-bub-sub';
-          else div.className = 'pet-bub-row';
+          if (r.role === 'error') div.className = 'blue-fish-bub-err';
+          else if (r.role === 'sub') div.className = 'blue-fish-bub-row blue-fish-bub-sub';
+          else div.className = 'blue-fish-bub-row';
           div.textContent = r.text;
           this.bubble.appendChild(div);
         }

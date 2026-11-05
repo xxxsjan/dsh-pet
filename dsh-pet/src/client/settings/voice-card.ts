@@ -100,7 +100,7 @@ export function makeVoiceCard(
             field(
               t('fishApiKeyLabel'),
               h('div', {
-                className: 'dsh-pet-cfg__stack',
+                className: 'blue-fish-cfg__stack',
                 children: [
                   h('input', {
                     type: 'password',
@@ -113,7 +113,7 @@ export function makeVoiceCard(
                   }),
                   props.hasFishApiKey
                     ? h('label', {
-                        className: 'dsh-pet-cfg__check',
+                        className: 'blue-fish-cfg__check',
                         children: [
                           h('input', {
                             type: 'checkbox',
@@ -149,10 +149,10 @@ export function makeVoiceCard(
             field(
               t('fishCustomVoiceLabel'),
               h('div', {
-                className: 'dsh-pet-cfg__stack',
+                className: 'blue-fish-cfg__stack',
                 children: [
                   h('div', {
-                    className: 'dsh-pet-cfg__grid2',
+                    className: 'blue-fish-cfg__grid2',
                     children: [
                       h('input', {
                         type: 'text',
@@ -174,7 +174,7 @@ export function makeVoiceCard(
                   }),
                   h('button', {
                     type: 'button',
-                    className: 'dsh-pet-cfg__btn',
+                    className: 'blue-fish-cfg__btn',
                     disabled: props.busy || draftId.trim() === '',
                     onClick: () => {
                       props.onAddFishVoice(draftId, draftLabel);
@@ -185,18 +185,18 @@ export function makeVoiceCard(
                   }),
                   props.fishCustomVoices.length > 0
                     ? h('ul', {
-                        className: 'dsh-pet-cfg__list',
+                        className: 'blue-fish-cfg__list',
                         children: props.fishCustomVoices.map((voice) =>
                           h('li', {
                             key: voice.id,
-                            className: 'dsh-pet-cfg__listRow',
+                            className: 'blue-fish-cfg__listRow',
                             children: [
                               h('span', {
                                 children: voice.label === voice.id ? voice.id : `${voice.label}（${voice.id}）`,
                               }),
                               h('button', {
                                 type: 'button',
-                                className: 'dsh-pet-cfg__btn is-ghost is-sm',
+                                className: 'blue-fish-cfg__btn is-ghost is-sm',
                                 disabled: props.busy,
                                 onClick: () => props.onRemoveFishVoice(voice.id),
                                 children: t('fishCustomVoiceRemove'),
@@ -214,11 +214,11 @@ export function makeVoiceCard(
         : [];
 
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('voiceTitle'), t('voiceHint')),
         h('div', {
-          className: 'dsh-pet-cfg__grid3',
+          className: 'blue-fish-cfg__grid3',
           children: [
             toggleCell('voiceEnabled', props.enabled, props.busy, props.onToggle),
             toggleCell('voiceWhisperEnabled', props.whisperEnabled, props.busy, props.onWhisperToggle),
@@ -243,7 +243,7 @@ export function makeVoiceCard(
         ),
         ...fishBlocks,
         h('div', {
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [
             h(picker, {
               label: t('voiceNameLabel'),

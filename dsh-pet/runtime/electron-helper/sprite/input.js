@@ -289,7 +289,7 @@ Object.assign(PetSprite.prototype, {
     const rects = [];
     // 控件矩形 = 主进程允许接收点击的区域，矩形外继续穿透。可点的余额气泡悬在余量区，不登记就点不到。
     const controls = [
-      ...document.querySelectorAll('.dsh-pet-menu-column, .dsh-pet-chat, .dsh-pet-todo, .pet-bubble.is-clickable'),
+      ...document.querySelectorAll('.blue-fish-menu-column, .blue-fish-chat, .blue-fish-todo, .blue-fish-bubble.is-clickable'),
     ];
     for (const el of this.inputRegionElements) {
       if (!controls.includes(el)) {

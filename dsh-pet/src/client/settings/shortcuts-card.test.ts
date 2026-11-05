@@ -139,10 +139,10 @@ describe('ShortcutsCard —— 快捷键卡', () => {
 
   test('是折叠卡，默认收起（与页尾两张参考卡同一套骨架）', () => {
     const all = nodes(render());
-    const card = all.find((node) => String(node.props?.className ?? '').includes('dsh-pet-cfg__card'));
+    const card = all.find((node) => String(node.props?.className ?? '').includes('blue-fish-cfg__card'));
     assert.ok(String(card?.props?.className).includes('is-fold'), '应该是折叠卡');
     assert.ok(!String(card?.props?.className).includes('is-open'), '默认不该展开');
-    const toggle = all.find((node) => String(node.props?.className ?? '').includes('dsh-pet-cfg__foldToggle'));
+    const toggle = all.find((node) => String(node.props?.className ?? '').includes('blue-fish-cfg__foldToggle'));
     assert.equal(toggle?.props?.['aria-expanded'], false);
     assert.equal(toggle?.props?.['aria-controls'], 'pet-cfg-shortcuts');
   });

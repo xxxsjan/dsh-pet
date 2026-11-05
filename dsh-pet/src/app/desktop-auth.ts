@@ -46,7 +46,7 @@ export function installDesktopAuth(session: DesktopSession, origin: string, rend
     const headers = { ...details.requestHeaders };
     // 重定向后的请求不得把凭证带去别的目标。
     for (const name of Object.keys(headers)) {
-      if (name.toLowerCase() === 'x-dsh-pet-token') delete headers[name];
+      if (name.toLowerCase() === 'x-blue-fish-token') delete headers[name];
     }
     try {
       const target = new URL(details.url);

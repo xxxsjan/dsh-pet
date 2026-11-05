@@ -87,7 +87,7 @@ test(
           display: screen.getPrimaryDisplay().bounds,
           scale: screen.getPrimaryDisplay().scaleFactor,
         }));
-        const hit = await page.locator('.pet-hit').boundingBox();
+        const hit = await page.locator('.blue-fish-hit').boundingBox();
         t.diagnostic(JSON.stringify({ ...actual, hit }));
         assert.equal(actual.zoom, 1);
         assert.equal(actual.bounds.width, 300);
@@ -121,9 +121,9 @@ test(
         const s = sprites[0], r = s.hit.getBoundingClientRect();
         s.onContextMenu(new MouseEvent('contextmenu', {clientX:r.x+r.width/2, clientY:r.y+r.height/2}));
       })()`);
-        await page.waitForSelector('.dsh-pet-menu-column');
+        await page.waitForSelector('.blue-fish-menu-column');
         const metrics = await page.evaluate(`(() => {
-        const s = sprites[0], menu = document.querySelector('.dsh-pet-menu-column');
+        const s = sprites[0], menu = document.querySelector('.blue-fish-menu-column');
         const rect = menu.getBoundingClientRect();
         return { y: s.pos.y + VIEW.y - s.margin.t + rect.y,
           font: parseFloat(getComputedStyle(menu).fontSize) };
@@ -131,7 +131,7 @@ test(
         const workTop = await app.evaluate(({ screen }) => screen.getPrimaryDisplay().workArea.y);
         assert.ok(metrics.y >= workTop);
         assert.ok(metrics.font <= 16, `menu font unexpectedly doubled: ${metrics.font}`);
-        const menu = await page.locator('.dsh-pet-menu-column').first().boundingBox();
+        const menu = await page.locator('.blue-fish-menu-column').first().boundingBox();
         const win = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getContentBounds());
         await app.evaluate(
           ({ screen }, point) => {
@@ -173,9 +173,9 @@ test(
 
       await t.test('chat input stays usable while its surrounding transparent area passes through', async () => {
         await page.evaluate('sprites[0].showChatFromMenu()');
-        await page.waitForSelector('.dsh-pet-chat');
+        await page.waitForSelector('.blue-fish-chat');
         const bounds = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getContentBounds());
-        const chat = await page.locator('.dsh-pet-chat').boundingBox();
+        const chat = await page.locator('.blue-fish-chat').boundingBox();
         await app.evaluate(
           ({ screen }, p) => {
             screen.getCursorScreenPoint = () => p;
@@ -189,9 +189,9 @@ test(
           app.evaluate(({ BrowserWindow }) => !BrowserWindow.getAllWindows()[0].testIgnoring),
         );
         await page
-          .locator('.dsh-pet-chat-input')
+          .locator('.blue-fish-chat-input')
           .fill('测试输入：长文本增长后仍然可以点击聊天框，旁边的应用保持可点击。'.repeat(4));
-        const expanded = await page.locator('.dsh-pet-chat').boundingBox();
+        const expanded = await page.locator('.blue-fish-chat').boundingBox();
         assert.ok(expanded.height > chat.height);
         await app.evaluate(
           ({ screen }, p) => {

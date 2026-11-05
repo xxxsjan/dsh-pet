@@ -410,12 +410,12 @@ export function makePetConfigSection(
     // 卡片顺序即阅读顺序：先编辑宠物，再改全局默认（宽屏两列），最后是落盘位置与弹窗。
     return h('section', {
       ref: rootRef,
-      className: 'dsh-pet-cfg',
+      className: 'blue-fish-cfg',
       style: { maxWidth: '1080px' },
       children: [
         // 标题：intro 与「额外宠物」说明都收进问号。
         h('h2', {
-          className: 'dsh-pet-cfg__title',
+          className: 'blue-fish-cfg__title',
           children: [
             t('nav'),
             q(packCount > 0 ? t('intro') + '\n' + t('extraPetsHint').replace('{n}', String(packCount)) : t('intro')),
@@ -441,7 +441,7 @@ export function makePetConfigSection(
           onRemove: requestRemove,
         }),
         h('div', {
-          className: 'dsh-pet-cfg__flow',
+          className: 'blue-fish-cfg__flow',
           children: [
             h(GlobalCard, { busy, values: globalFlags, onChange: setGlobalFlag }),
             h(VoiceCard, {
@@ -532,7 +532,7 @@ export function makePetConfigSection(
 
         // 保存按钮以下是参考类卡片：只读说明，改不改都不用点保存；宽屏同样两列排布。
         h('div', {
-          className: 'dsh-pet-cfg__flow',
+          className: 'blue-fish-cfg__flow',
           children: [
             h(ShortcutsCard, {}),
             // 落盘位置两张卡都靠 meta，读不到就整块不出现。

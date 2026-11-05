@@ -68,10 +68,10 @@ export function makeShortcutsCard(rt: SettingsRuntime, ctx: ShortcutHost): Funct
     /** 一行：左边动作名，右边键帽。 */
     const row = (label: string, keys: string) =>
       h('div', {
-        className: 'dsh-pet-cfg__field',
+        className: 'blue-fish-cfg__field',
         children: [
-          h('span', { key: 'l', className: 'dsh-pet-cfg__flabel', children: t(label) }),
-          h('span', { key: 'v', className: 'dsh-pet-cfg__note', children: keys }),
+          h('span', { key: 'l', className: 'blue-fish-cfg__flabel', children: t(label) }),
+          h('span', { key: 'v', className: 'blue-fish-cfg__note', children: keys }),
         ],
       });
 
@@ -80,11 +80,11 @@ export function makeShortcutsCard(rt: SettingsRuntime, ctx: ShortcutHost): Funct
       title: t('shortcutCardTitle'),
       hint: t('shortcutCardHint'),
       body: [
-        h('p', { key: 'petTitle', className: 'dsh-pet-cfg__cardTitle', children: t('shortcutGroupPet') }),
-        h('p', { key: 'petHint', className: 'dsh-pet-cfg__note', children: t('shortcutGroupPetHint') }),
+        h('p', { key: 'petTitle', className: 'blue-fish-cfg__cardTitle', children: t('shortcutGroupPet') }),
+        h('p', { key: 'petHint', className: 'blue-fish-cfg__note', children: t('shortcutGroupPetHint') }),
         h('div', {
           key: 'petRows',
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [
             row('shortcutRowChat', CHAT_HOTKEY_HINT),
             row('shortcutRowHold', HEAR_HOTKEY_HINT),
@@ -95,11 +95,11 @@ export function makeShortcutsCard(rt: SettingsRuntime, ctx: ShortcutHost): Funct
             row('shortcutRowDisplay', DISPLAY_HOTKEY_HINTS.join(' · ')),
           ],
         }),
-        h('p', { key: 'globalTitle', className: 'dsh-pet-cfg__cardTitle', children: t('shortcutGroupGlobal') }),
-        h('p', { key: 'globalHint', className: 'dsh-pet-cfg__note', children: t('shortcutGroupGlobalHint') }),
+        h('p', { key: 'globalTitle', className: 'blue-fish-cfg__cardTitle', children: t('shortcutGroupGlobal') }),
+        h('p', { key: 'globalHint', className: 'blue-fish-cfg__note', children: t('shortcutGroupGlobalHint') }),
         h('div', {
           key: 'globalRows',
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [
             row('shortcutRowChat', keycaps.open),
             row('shortcutRowHear', keycaps.hear),

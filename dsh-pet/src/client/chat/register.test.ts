@@ -60,7 +60,7 @@ describe('registerPetChatTab —— 右侧栏对话标签', () => {
     assert.deepEqual(fake.calls, [
       'type:pet-chat',
       'inject:sidebar.right.pane.tab',
-      'slot:sidebar.right.pane.tab:dsh-pet-chat',
+      'slot:sidebar.right.pane.tab:blue-fish-chat',
     ]);
   });
 

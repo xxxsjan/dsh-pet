@@ -195,7 +195,7 @@ export function roundNode(
   const { h } = rt;
   const selected = state.selected.includes(round.ts);
   // 多选模式下整轮是一张可点的卡片：选中给浅底，未选中透明（与豆包一致）
-  const className = 'pet-chat-round' + (state.selecting ? ' is-selecting' : '') + (selected ? ' is-selected' : '');
+  const className = 'blue-fish-chat-round' + (state.selecting ? ' is-selecting' : '') + (selected ? ' is-selected' : '');
   return h('div', {
     key: String(round.ts),
     className,
@@ -224,7 +224,7 @@ export function roundNode(
           })
         : null,
       h('div', {
-        className: 'pet-chat-round-body',
+        className: 'blue-fish-chat-round-body',
         children: [
           round.user === undefined
             ? null

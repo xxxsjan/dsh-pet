@@ -140,7 +140,7 @@ export function createCardEntry(rt: CardEntryRuntime) {
     /** 挂载对话弹窗：弹窗贴在身体命中区右上角，视频框右上角不等于宠物右上角；超出视口夹回。 */
     const mountChat = (seed: { image?: File; encoded?: EncodedImage }): void => {
       if (chatRef.current) chatRef.current.close();
-      const hitRect = stage()?.querySelector('.dsh-pet-hit')?.getBoundingClientRect();
+      const hitRect = stage()?.querySelector('.blue-fish-hit')?.getBoundingClientRect();
       chatRef.current = mountChatDialog({
         petId: cfgRef.current.id,
         baseUrl: ROUTE_PATH + '/chat',
@@ -193,7 +193,7 @@ export function createCardEntry(rt: CardEntryRuntime) {
         openChat();
         return;
       }
-      existing.el.querySelector<HTMLTextAreaElement>('.dsh-pet-chat-input')?.focus();
+      existing.el.querySelector<HTMLTextAreaElement>('.blue-fish-chat-input')?.focus();
     };
 
     /** 截一帧塞进对话；截不到时照样开弹窗，把原因写在弹窗里——静默失败会被当成快捷键坏了。 */

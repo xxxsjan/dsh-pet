@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 import { expandUseRefs, installSectionNavIcon, svgMaskUri, symbolIn } from './nav-icon.ts';
 
 /** 标记属性名（与模块内 MARK 一致；这里独立写一份，避免测试跟着实现改名而失效）。 */
-const MARK = 'data-dsh-pet-nav';
+const MARK = 'data-blue-fish-nav';
 
 /** camelCase → `data-` 属性名（复刻 `dataset` 的映射规则）。 */
 function dataName(key: string): string {
@@ -366,7 +366,7 @@ describe('installSectionNavIcon —— 设置面板导航换图标', () => {
       const dispose = installSectionNavIcon({ label: () => '桌宠配置', renderSvg: fakeRenderer().renderSvg });
       poke();
 
-      const styles = doc.head.querySelectorAll('style[data-plugin-css="dsh-pet/nav-icon.css"]');
+      const styles = doc.head.querySelectorAll('style[data-plugin-css="blue-fish/nav-icon.css"]');
       assert.equal(styles.length, 1);
       const css = styles[0].textContent;
       assert.ok(css.includes('[' + MARK + '] [class*="navIcon"]{display:none}'));

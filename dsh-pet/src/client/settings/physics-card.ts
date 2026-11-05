@@ -45,11 +45,11 @@ export function makePhysicsCard(rt: SettingsRuntime): FunctionComponent<PhysicsC
       );
 
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('physicsTitle'), t('physicsHint')),
         h('div', {
-          className: 'dsh-pet-cfg__grid4',
+          className: 'blue-fish-cfg__grid4',
           children: [
             physField('gravity', '50', '0'),
             physField('restitution', '0.01', '0'),
@@ -58,7 +58,7 @@ export function makePhysicsCard(rt: SettingsRuntime): FunctionComponent<PhysicsC
           ],
         }),
         h('div', {
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [
             toggleCell('physicsCeilingBounce', physics.ceilingBounce, busy, (v) =>
               props.onChange({ ceilingBounce: v }),

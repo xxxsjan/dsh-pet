@@ -32,15 +32,15 @@ export function makePetTabs(rt: Pick<SettingsRuntime, 'h' | 't'>): FunctionCompo
 
   return function PetTabs(props: PetTabsProps) {
     return h('div', {
-      className: 'dsh-pet-cfg__tabs',
+      className: 'blue-fish-cfg__tabs',
       children: [
-        h('span', { key: 'label', className: 'dsh-pet-cfg__tabsLabel', children: t('petsLabel') }),
+        h('span', { key: 'label', className: 'blue-fish-cfg__tabsLabel', children: t('petsLabel') }),
         ...props.pets.map((pet) =>
           h('button', {
             key: pet.id,
             type: 'button',
             onClick: () => props.onSelect(pet.id),
-            className: 'dsh-pet-cfg__tab' + (pet.id === props.selId ? ' is-active' : ''),
+            className: 'blue-fish-cfg__tab' + (pet.id === props.selId ? ' is-active' : ''),
             children:
               (pet.name || pet.id) +
               ' (' +
@@ -55,7 +55,7 @@ export function makePetTabs(rt: Pick<SettingsRuntime, 'h' | 't'>): FunctionCompo
           type: 'button',
           onClick: props.onAdd,
           disabled: props.busy,
-          className: 'dsh-pet-cfg__tab is-ghost',
+          className: 'blue-fish-cfg__tab is-ghost',
           children: '+ ' + t('add'),
         }),
       ],

@@ -86,7 +86,7 @@ export const LOG_MAX_PENDING = 1000;
  */
 export function redactSensitive(text: string): string {
   return text
-    .replace(/(x-dsh-pet-token["'\s:=]+)[A-Za-z0-9_-]{16,}/gi, '$1***')
+    .replace(/(x-blue-fish-token["'\s:=]+)[A-Za-z0-9_-]{16,}/gi, '$1***')
     .replace(/(token["'\s:=]+)[A-Za-z0-9_-]{32,}/gi, '$1***')
     .replace(/(#token=)[A-Za-z0-9_-]{16,}/g, '$1***')
     .replace(/(DSH_PET_SITE_URL=)\S+/g, '$1***');

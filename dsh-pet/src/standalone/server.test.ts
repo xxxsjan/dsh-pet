@@ -64,7 +64,7 @@ function call(listener: (req: IncomingMessage, res: ServerResponse) => void, url
     {
       method,
       url,
-      headers: { host: '127.0.0.1:3080', 'x-dsh-pet-token': security.token },
+      headers: { host: '127.0.0.1:3080', 'x-blue-fish-token': security.token },
       socket: { localPort: 3080 },
     } as unknown as IncomingMessage,
     res as unknown as ServerResponse,

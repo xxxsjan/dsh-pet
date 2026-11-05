@@ -46,7 +46,7 @@ export function makeTodoBubble(rt: TodoBubbleRuntime) {
       const panel = createTodoPanel({
         onClose: () => closeRef.current(),
         // 点宠物本体不收起：拖它走是常见需求，收起就没法一边看清单一边挪位置。
-        keepOpenOn: (target) => target instanceof Element && target.closest('.dsh-pet-hit') !== null,
+        keepOpenOn: (target) => target instanceof Element && target.closest('.blue-fish-hit') !== null,
       });
       host.appendChild(panel.el);
       return () => panel.dispose();
@@ -54,7 +54,7 @@ export function makeTodoBubble(rt: TodoBubbleRuntime) {
 
     return h('div', {
       ref: hostRef,
-      className: 'dsh-pet-bubble dsh-pet-todo-bubble' + (on ? ' is-on' : ''),
+      className: 'blue-fish-bubble blue-fish-todo-bubble' + (on ? ' is-on' : ''),
     });
   };
 }

@@ -35,7 +35,7 @@ export function mountContextMenu(opts: {
       ? clamp
       : { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
   const root = document.createElement('div');
-  root.className = 'dsh-pet-menu';
+  root.className = 'blue-fish-menu';
   root.style.left = '0px';
   root.style.top = '0px';
   root.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -70,7 +70,7 @@ export function mountContextMenu(opts: {
       panel: { w: panel.offsetWidth, h: panel.offsetHeight },
       item: { left: rect.left, right: rect.right, top: rect.top },
       parent: { left: pr.left, right: pr.right, top: pr.top },
-      others: Array.from(root.querySelectorAll<HTMLElement>('.dsh-pet-menu-column'))
+      others: Array.from(root.querySelectorAll<HTMLElement>('.blue-fish-menu-column'))
         .filter((p) => p !== panel && p.style.display !== 'none')
         .map((p) => {
           const b = p.getBoundingClientRect();
@@ -86,21 +86,21 @@ export function mountContextMenu(opts: {
    *  面板先入 DOM、子面板后入，层级越深绘制越靠上（子菜单盖在父菜单上层）。 */
   const buildPanel = (nodes: MenuNode[]): HTMLElement => {
     const panel = document.createElement('div');
-    panel.className = 'dsh-pet-menu-column';
+    panel.className = 'blue-fish-menu-column';
     panel.style.display = 'none';
     // 桌面 clamp：把列高封顶到可视矩形内（否则 62vh 相对的是窗口高度，可视区更小时仍会溢出被裁）
     if (clamp) panel.style.maxHeight = Math.min(460, Math.max(120, c.h - 16)) + 'px';
     root.appendChild(panel);
     for (const node of nodes) {
       const item = document.createElement('div');
-      item.className = 'dsh-pet-menu-item';
+      item.className = 'blue-fish-menu-item';
       if (isBranchNode(node)) {
-        item.classList.add('dsh-pet-menu-branch');
+        item.classList.add('blue-fish-menu-branch');
         const label = document.createElement('span');
-        label.className = 'dsh-pet-menu-label';
+        label.className = 'blue-fish-menu-label';
         label.textContent = node.label;
         const arrow = document.createElement('span');
-        arrow.className = 'dsh-pet-menu-arrow';
+        arrow.className = 'blue-fish-menu-arrow';
         arrow.textContent = '▸';
         item.appendChild(label);
         item.appendChild(arrow);
@@ -118,7 +118,7 @@ export function mountContextMenu(opts: {
         // 只给配图叶子带 thumb，其余项结构不变（不占位、不改变行高）。
         if (node.thumb) {
           const thumb = document.createElement('img');
-          thumb.className = 'dsh-pet-menu-thumb';
+          thumb.className = 'blue-fish-menu-thumb';
           thumb.src = node.thumb;
           thumb.alt = '';
           thumb.draggable = false;
@@ -127,16 +127,16 @@ export function mountContextMenu(opts: {
           thumb.decoding = 'async';
           item.appendChild(thumb);
           // 图与文字的间距单独收窄（菜单默认 14px 是给「文字 ↔ 箭头」的，配图看着太散）
-          item.classList.add('dsh-pet-menu-item-pic');
+          item.classList.add('blue-fish-menu-item-pic');
         }
         const label = document.createElement('span');
-        label.className = 'dsh-pet-menu-label';
+        label.className = 'blue-fish-menu-label';
         label.textContent = node.label;
         item.appendChild(label);
         // 右侧灰色提示（如快捷键）：与 label 同一 flex 行，space-between 自动贴右
         if (node.hint) {
           const hint = document.createElement('span');
-          hint.className = 'dsh-pet-menu-hint';
+          hint.className = 'blue-fish-menu-hint';
           hint.textContent = node.hint;
           item.appendChild(hint);
         }

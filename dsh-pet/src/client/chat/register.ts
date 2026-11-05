@@ -11,7 +11,7 @@ import { injectPanelCss } from './styles.ts';
 import { disposeTip } from './tooltip.ts';
 
 /** 标签实现身份；同时也是正文与标题插槽的 key。 */
-const TAB_ID = 'dsh-pet-chat';
+const TAB_ID = 'blue-fish-chat';
 /** 标签类型；`openTab` 按它打开。 */
 const TAB_KIND = 'pet-chat';
 /** 标签头与指南页卡片的文案。 */

@@ -21,7 +21,7 @@ function makeDeps(): { deps: PetRouteDeps; calls: DeleteCall[] } {
   const deps = {
     configPaths: {},
     log: { error: () => {}, info: () => {}, warn: () => {} },
-    memoryPath: '/tmp/dsh-pet-memory.json',
+    memoryPath: '/tmp/blue-fish-memory.json',
     memoryRounds: () => 5,
     readMemory: async () => ({}),
     requirePet: () => ({ ok: true, petId: 'main', entry: 'main', conf: {} }),

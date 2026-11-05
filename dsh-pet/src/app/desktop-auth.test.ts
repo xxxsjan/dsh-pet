@@ -24,7 +24,7 @@ test('only the local main renderer receives the capability, scoped to the API or
   const send = (url: string, frame?: { url: string; parent: unknown } | null) => {
     let result: Record<string, string> = {};
     listener!(
-      { url, frame, requestHeaders: { 'content-type': 'application/json', 'x-dsh-pet-token': 'stale-token' } },
+      { url, frame, requestHeaders: { 'content-type': 'application/json', 'x-blue-fish-token': 'stale-token' } },
       (response) => {
         result = response.requestHeaders;
       },
@@ -44,7 +44,7 @@ test('only the local main renderer receives the capability, scoped to the API or
   ]) {
     const headers = send(endpoint, frame);
     assert.equal(
-      Object.keys(headers).some((name) => name.toLowerCase() === 'x-dsh-pet-token'),
+      Object.keys(headers).some((name) => name.toLowerCase() === 'x-blue-fish-token'),
       false,
     );
     assert.equal(headers['content-type'], 'application/json');

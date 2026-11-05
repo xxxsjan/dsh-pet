@@ -81,7 +81,7 @@ if (APP_MODE) app.setPath('userData', path.join(app.getPath('appData'), 'dsh-pet
 /** DPI 探测子进程模式：不建窗口，只把主屏 scaleFactor 打到 stdout 就退出（见 probePrimaryScale） */
 const DPI_PROBE = process.env.DSH_PET_DPI_PROBE === '1';
 /** 探测进程的输出标记（父进程按它抓值） */
-const DPI_MARK = 'dsh-pet-primary-scale:';
+const DPI_MARK = 'blue-fish-primary-scale:';
 // 宿主存活：宿主退出后 stdout/stderr 的读端一起消失，helper 下一次写（每秒至少一条 /state 轮询）
 // 拿到 EPIPE；未处理的流错误会成为未捕获异常，而 Electron 的默认处理器只弹框、不退出——桌宠就此
 // 卡死、进程赖着不走。两条路缺一不可：① 管道守卫，任何一次写失败都不许变成异常，断开即退（只在

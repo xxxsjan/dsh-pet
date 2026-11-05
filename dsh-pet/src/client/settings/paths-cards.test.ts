@@ -58,7 +58,7 @@ const byId = (tree: unknown, id: string): Node | undefined => flatten(tree).find
 describe('paths-cards —— 折叠卡', () => {
   test('默认收起：按钮 aria-expanded 为 false，正文在树上但 aria-hidden', () => {
     const tree = make(false).ConfigMetaCard({ paths: meta });
-    const button = byClass(tree, 'dsh-pet-cfg__foldToggle');
+    const button = byClass(tree, 'blue-fish-cfg__foldToggle');
     assert.ok(button);
     assert.equal(button.props['aria-expanded'], false);
     assert.equal(button.props['aria-controls'], 'pet-cfg-paths-meta');
@@ -66,35 +66,35 @@ describe('paths-cards —— 折叠卡', () => {
     const body = byId(tree, 'pet-cfg-paths-meta');
     assert.ok(body);
     assert.equal(body.props['aria-hidden'], 'true');
-    const card = byClass(tree, 'dsh-pet-cfg__card');
+    const card = byClass(tree, 'blue-fish-cfg__card');
     assert.ok(String(card?.props.className).includes('is-fold'));
     assert.ok(!String(card?.props.className).includes('is-open'));
   });
 
   test('展开态：aria-expanded 为 true，去掉 aria-hidden 并挂上 is-open', () => {
     const tree = make(true).ConfigMetaCard({ paths: meta });
-    const button = byClass(tree, 'dsh-pet-cfg__foldToggle');
+    const button = byClass(tree, 'blue-fish-cfg__foldToggle');
     assert.equal(button?.props['aria-expanded'], true);
     assert.equal(byId(tree, 'pet-cfg-paths-meta')?.props['aria-hidden'], undefined);
-    const card = byClass(tree, 'dsh-pet-cfg__card');
+    const card = byClass(tree, 'blue-fish-cfg__card');
     assert.ok(String(card?.props.className).includes('is-open'));
   });
 
   test('点标题行回传取反后的状态', () => {
     const closed: boolean[] = [];
-    const closedButton = byClass(make(false, closed).ConfigMetaCard({ paths: meta }), 'dsh-pet-cfg__foldToggle');
+    const closedButton = byClass(make(false, closed).ConfigMetaCard({ paths: meta }), 'blue-fish-cfg__foldToggle');
     (closedButton?.props.onClick as () => void)();
     assert.deepEqual(closed, [true]);
 
     const open: boolean[] = [];
-    const openButton = byClass(make(true, open).ConfigMetaCard({ paths: meta }), 'dsh-pet-cfg__foldToggle');
+    const openButton = byClass(make(true, open).ConfigMetaCard({ paths: meta }), 'blue-fish-cfg__foldToggle');
     (openButton?.props.onClick as () => void)();
     assert.deepEqual(open, [false]);
   });
 
   test('点问号只拦冒泡、不切换开合', () => {
     const seen: boolean[] = [];
-    const wrap = byClass(make(false, seen).ConfigMetaCard({ paths: meta }), 'dsh-pet-cfg__qWrap');
+    const wrap = byClass(make(false, seen).ConfigMetaCard({ paths: meta }), 'blue-fish-cfg__qWrap');
     assert.ok(wrap);
     let stopped = false;
     (wrap.props.onClick as (e: { stopPropagation: () => void }) => void)({
@@ -110,25 +110,25 @@ describe('paths-cards —— 折叠卡', () => {
     const cards = make(false);
     const metaTree = cards.ConfigMetaCard({ paths: meta });
     const storageTree = cards.StorageCard({ paths: meta });
-    assert.equal(byClass(metaTree, 'dsh-pet-cfg__foldToggle')?.props['aria-controls'], 'pet-cfg-paths-meta');
-    assert.equal(byClass(storageTree, 'dsh-pet-cfg__foldToggle')?.props['aria-controls'], 'pet-cfg-paths-storage');
+    assert.equal(byClass(metaTree, 'blue-fish-cfg__foldToggle')?.props['aria-controls'], 'pet-cfg-paths-meta');
+    assert.equal(byClass(storageTree, 'blue-fish-cfg__foldToggle')?.props['aria-controls'], 'pet-cfg-paths-storage');
   });
 });
 
 describe('paths-cards —— 内容不因折叠而变', () => {
   test('高级配置列出五条路径与日志说明', () => {
     const tree = make(false).ConfigMetaCard({ paths: meta });
-    const rows = flatten(tree).filter((node) => String(node.props?.className ?? '').includes('dsh-pet-cfg__path'));
+    const rows = flatten(tree).filter((node) => String(node.props?.className ?? '').includes('blue-fish-cfg__path'));
     assert.equal(rows.length, 5);
-    assert.ok(flatten(tree).some((node) => node.props?.className === 'dsh-pet-cfg__note'));
+    assert.ok(flatten(tree).some((node) => node.props?.className === 'blue-fish-cfg__note'));
   });
 
   test('卸载与存储：两条路径、卸载命令与三步说明', () => {
     const tree = make(false).StorageCard({ paths: meta });
-    const rows = flatten(tree).filter((node) => String(node.props?.className ?? '').includes('dsh-pet-cfg__path'));
+    const rows = flatten(tree).filter((node) => String(node.props?.className ?? '').includes('blue-fish-cfg__path'));
     assert.equal(rows.length, 2);
-    assert.ok(flatten(tree).some((node) => node.props?.className === 'dsh-pet-cfg__cmd'));
-    const notes = flatten(tree).filter((node) => node.props?.className === 'dsh-pet-cfg__note');
+    assert.ok(flatten(tree).some((node) => node.props?.className === 'blue-fish-cfg__cmd'));
+    const notes = flatten(tree).filter((node) => node.props?.className === 'blue-fish-cfg__note');
     assert.equal(notes.length, 3);
   });
 

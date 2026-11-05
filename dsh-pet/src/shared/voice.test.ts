@@ -68,7 +68,7 @@ function stubBrowser(sink?: { volumes: number[] }): () => void {
       return Promise.resolve();
     }
   };
-  URL.createObjectURL = () => 'blob:dsh-pet-test';
+  URL.createObjectURL = () => 'blob:blue-fish-test';
   URL.revokeObjectURL = () => undefined;
   return () => {
     (globalThis as { Audio?: unknown }).Audio = previousAudio;

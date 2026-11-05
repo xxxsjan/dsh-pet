@@ -63,8 +63,8 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 /** 造一个可折叠区：高度靠 grid-template-rows 在 0fr 与 1fr 之间过渡，内容高度是 auto 也能动画。 */
 function fold(className: string, children: HTMLElement[]): HTMLDivElement {
-  const outer = element('div', 'dsh-pet-todo-fold ' + className);
-  const clip = element('div', 'dsh-pet-todo-foldClip');
+  const outer = element('div', 'blue-fish-todo-fold ' + className);
+  const clip = element('div', 'blue-fish-todo-foldClip');
   clip.append(...children);
   outer.appendChild(clip);
   return outer;
@@ -76,45 +76,45 @@ function fold(className: string, children: HTMLElement[]): HTMLDivElement {
  * @returns 面板需要的全部元素引用。
  */
 export function createTodoPanelParts(): TodoPanelParts {
-  const root = element('div', 'dsh-pet-todo');
+  const root = element('div', 'blue-fish-todo');
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-label', '待办事项');
 
-  const head = element('div', 'dsh-pet-todo-head');
-  const title = element('span', 'dsh-pet-todo-title', '待办事项');
-  const count = element('span', 'dsh-pet-todo-count', '0 项未完成');
+  const head = element('div', 'blue-fish-todo-head');
+  const title = element('span', 'blue-fish-todo-title', '待办事项');
+  const count = element('span', 'blue-fish-todo-count', '0 项未完成');
   count.setAttribute('aria-live', 'polite');
-  const closeButton = element('button', 'dsh-pet-todo-close', '✕');
+  const closeButton = element('button', 'blue-fish-todo-close', '✕');
   closeButton.type = 'button';
   closeButton.setAttribute('aria-label', '关闭待办面板');
   head.append(title, count, closeButton);
 
-  const form = element('form', 'dsh-pet-todo-form');
-  const input = element('input', 'dsh-pet-todo-input');
+  const form = element('form', 'blue-fish-todo-form');
+  const input = element('input', 'blue-fish-todo-input');
   input.type = 'text';
   input.maxLength = 200;
   input.placeholder = '记一件要做的事…';
   input.autocomplete = 'off';
   input.setAttribute('aria-label', '待办内容');
-  const row = element('div', 'dsh-pet-todo-row');
+  const row = element('div', 'blue-fish-todo-row');
   const duePicker = createDuePicker({ onOpenChange: (open) => root.classList.toggle('is-picking', open) });
-  const addButton = element('button', 'dsh-pet-todo-add', '添加');
+  const addButton = element('button', 'blue-fish-todo-add', '添加');
   addButton.type = 'submit';
   row.append(duePicker.el, addButton);
   form.append(input, row);
 
-  const error = element('div', 'dsh-pet-todo-err');
+  const error = element('div', 'blue-fish-todo-err');
   error.hidden = true;
 
-  const empty = element('div', 'dsh-pet-todo-empty', EMPTY_TEXT);
+  const empty = element('div', 'blue-fish-todo-empty', EMPTY_TEXT);
   empty.hidden = true;
 
-  const list = element('ul', 'dsh-pet-todo-list');
-  const hint = element('div', 'dsh-pet-todo-hint', '离到期越近，我会提醒得越勤快～');
+  const list = element('ul', 'blue-fish-todo-list');
+  const hint = element('div', 'blue-fish-todo-hint', '离到期越近，我会提醒得越勤快～');
 
   // 下半区两块内容轮流出现：清单态与日历态各是一个折叠区，展开收起走同一条过渡。
   // 面板高度因此跟着内容走（不留空白），切换时也是滑过去而不是硬跳。
-  const lower = element('div', 'dsh-pet-todo-lower');
+  const lower = element('div', 'blue-fish-todo-lower');
   lower.append(fold('is-cal', [duePicker.calendar]), fold('is-list', [error, empty, list, hint]));
   root.append(head, form, lower);
   return { root, form, input, duePicker, addButton, list, empty, count, closeButton, error };
@@ -166,21 +166,21 @@ export function renderTodoList(
 
 /** 渲染一条；未完成项带紧迫度，已完成项划线。 */
 function renderItem(todo: TodoItem, handlers: TodoListHandlers, now: number): HTMLLIElement {
-  const item = element('li', 'dsh-pet-todo-item' + (todo.done ? ' is-done' : ''));
+  const item = element('li', 'blue-fish-todo-item' + (todo.done ? ' is-done' : ''));
   if (!todo.done) item.dataset.urgency = todoUrgency(todo.dueAt, now);
 
-  const check = element('input', 'dsh-pet-todo-check');
+  const check = element('input', 'blue-fish-todo-check');
   check.type = 'checkbox';
   check.checked = todo.done;
   check.setAttribute('aria-label', (todo.done ? '标记未完成：' : '标记完成：') + todo.text);
   check.addEventListener('change', () => handlers.onToggle(todo, check.checked));
 
-  const main = element('div', 'dsh-pet-todo-main');
-  const text = element('div', 'dsh-pet-todo-text', todo.text);
-  const meta = element('div', 'dsh-pet-todo-meta', metaLabel(todo, now));
+  const main = element('div', 'blue-fish-todo-main');
+  const text = element('div', 'blue-fish-todo-text', todo.text);
+  const meta = element('div', 'blue-fish-todo-meta', metaLabel(todo, now));
   main.append(text, meta);
 
-  const remove = element('button', 'dsh-pet-todo-del', '✕');
+  const remove = element('button', 'blue-fish-todo-del', '✕');
   remove.type = 'button';
   remove.setAttribute('aria-label', '删除：' + todo.text);
   remove.addEventListener('click', () => {

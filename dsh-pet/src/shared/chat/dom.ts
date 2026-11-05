@@ -47,7 +47,7 @@ export interface ChatDom {
 function iconButton(title: string, icon: SVGElement): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'dsh-pet-chat-btn';
+  btn.className = 'blue-fish-chat-btn';
   btn.title = title;
   btn.setAttribute('aria-label', title);
   btn.appendChild(icon);
@@ -80,20 +80,20 @@ function enableAutoResize(input: HTMLTextAreaElement, root: HTMLElement): () => 
  */
 export function createChatDom(opts: { capture?: () => Promise<EncodedImage>; hearUrl?: string } = {}): ChatDom {
   const root = document.createElement('div');
-  root.className = 'dsh-pet-chat';
+  root.className = 'blue-fish-chat';
 
   const input = document.createElement('textarea');
-  input.className = 'dsh-pet-chat-input';
+  input.className = 'blue-fish-chat-input';
   input.placeholder = '说点什么…';
   input.maxLength = 2000;
   input.rows = 1;
 
   const err = document.createElement('div');
-  err.className = 'dsh-pet-chat-err';
+  err.className = 'blue-fish-chat-err';
   err.style.display = 'none';
 
   const hint = document.createElement('div');
-  hint.className = 'dsh-pet-chat-hint';
+  hint.className = 'blue-fish-chat-hint';
   let hintTimer = 0;
   /** 常驻提示：录音与识别期间一直显示，由调用点自己收。 */
   const showHint = (text: string): void => {
@@ -120,20 +120,20 @@ export function createChatDom(opts: { capture?: () => Promise<EncodedImage>; hea
   fileInput.style.display = 'none';
 
   const attach = document.createElement('div');
-  attach.className = 'dsh-pet-chat-attach';
+  attach.className = 'blue-fish-chat-attach';
   const thumb = document.createElement('img');
-  thumb.className = 'dsh-pet-chat-thumb';
+  thumb.className = 'blue-fish-chat-thumb';
   thumb.alt = '已选图片';
   const attachX = document.createElement('button');
   attachX.type = 'button';
-  attachX.className = 'dsh-pet-chat-attach-x';
+  attachX.className = 'blue-fish-chat-attach-x';
   attachX.textContent = '✕';
   attachX.title = '移除图片';
   attachX.setAttribute('aria-label', '移除图片');
   attach.append(thumb, attachX);
 
   const actions = document.createElement('div');
-  actions.className = 'dsh-pet-chat-actions';
+  actions.className = 'blue-fish-chat-actions';
   actions.append(pickBtn, shotBtn, micBtn, fileInput, attach);
 
   root.append(input, actions, hint, err);

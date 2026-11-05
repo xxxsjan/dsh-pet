@@ -50,7 +50,7 @@ test('encoded private routes still require a capability; invalid encodings fail 
       assert.equal(res.status, 403);
       assert.equal(
         security.authorize(
-          request({ 'x-dsh-pet-token': security.token }, path, method),
+          request({ 'x-blue-fish-token': security.token }, path, method),
           response() as unknown as ServerResponse,
         ),
         true,
@@ -61,7 +61,7 @@ test('encoded private routes still require a capability; invalid encodings fail 
     const res = response();
     assert.equal(
       security.authorize(
-        request({ 'x-dsh-pet-token': security.token }, '/pet-233/%ZZ', method),
+        request({ 'x-blue-fish-token': security.token }, '/pet-233/%ZZ', method),
         res as unknown as ServerResponse,
       ),
       false,
@@ -79,7 +79,7 @@ test('desktop file-origin exception always needs a capability and never relaxes 
   const fileHeaders = { origin: 'null', 'sec-fetch-site': 'cross-site' };
   for (const path of ['/pet-233/config', '/pet-233/chat']) {
     assert.equal(security.authorize(request(fileHeaders, path), response() as unknown as ServerResponse, true), false);
-    const headers = { ...fileHeaders, 'x-dsh-pet-token': security.token };
+    const headers = { ...fileHeaders, 'x-blue-fish-token': security.token };
     assert.equal(security.authorize(request(headers, path), response() as unknown as ServerResponse, true), true);
     assert.equal(security.authorize(request(headers, path), response() as unknown as ServerResponse), false);
     assert.equal(
@@ -107,7 +107,7 @@ test('all private reads and mutations need the header, never a query capability'
       const res = response();
       assert.equal(
         security.authorize(
-          request({ 'x-dsh-pet-token': token }, '/private?token=' + security.token, method),
+          request({ 'x-blue-fish-token': token }, '/private?token=' + security.token, method),
           res as unknown as ServerResponse,
         ),
         false,
@@ -116,7 +116,7 @@ test('all private reads and mutations need the header, never a query capability'
     }
     assert.equal(
       security.authorize(
-        request({ 'x-dsh-pet-token': security.token }, '/private', method),
+        request({ 'x-blue-fish-token': security.token }, '/private', method),
         response() as unknown as ServerResponse,
       ),
       true,
@@ -138,14 +138,14 @@ test('DNS rebinding, null/foreign origins, wrong ports and cross-site fetches fa
   for (const headers of headersList) {
     const res = response();
     assert.equal(
-      security.authorize(request({ ...headers, 'x-dsh-pet-token': security.token }), res as unknown as ServerResponse),
+      security.authorize(request({ ...headers, 'x-blue-fish-token': security.token }), res as unknown as ServerResponse),
       false,
       JSON.stringify(headers),
     );
   }
   assert.equal(
     security.authorize(
-      request({ origin: 'http://127.0.0.1:3080', 'x-dsh-pet-token': security.token }),
+      request({ origin: 'http://127.0.0.1:3080', 'x-blue-fish-token': security.token }),
       response() as unknown as ServerResponse,
     ),
     true,
@@ -187,7 +187,7 @@ test('首次头部认证后换取会话 cookie，刷新时凭 cookie 继续，�
 
   const first = response();
   assert.equal(
-    security.authorize(request({ 'x-dsh-pet-token': security.token }), first as unknown as ServerResponse),
+    security.authorize(request({ 'x-blue-fish-token': security.token }), first as unknown as ServerResponse),
     true,
   );
   const cookie = first.headers['set-cookie'] ?? '';

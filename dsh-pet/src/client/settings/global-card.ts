@@ -46,11 +46,11 @@ export function makeGlobalCard(rt: SettingsRuntime): FunctionComponent<GlobalCar
 
   return function GlobalCard(props: GlobalCardProps) {
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('globalTitle'), t('globalHint')),
         h('div', {
-          className: 'dsh-pet-cfg__grid4',
+          className: 'blue-fish-cfg__grid4',
           children: TOGGLES.map((toggle) =>
             toggleCell(toggle.label, props.values[toggle.key], props.busy, (value) =>
               props.onChange(toggle.key, value),

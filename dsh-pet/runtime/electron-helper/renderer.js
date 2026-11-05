@@ -81,7 +81,7 @@ async function boot() {
     hideError();
     // 字体族进 documentElement：对话窗/得分弹窗挂在 body 下、继承不到宠物根容器，只能走全局变量。
     // 必须等 /config 拉回来之后才设（字体族来自配置）。
-    document.documentElement.style.setProperty('--dsh-pet-font-family', S.fontStackOf(cfg.font.family));
+    document.documentElement.style.setProperty('--blue-fish-font-family', S.fontStackOf(cfg.font.family));
     const pets = cfg.pets.filter((p) => S.isDesktopVisible(p.display));
     if (pets.length === 0) {
       // 全部宠物只在网页显示是合法状态，不是配置错误：没有桌面宠物就表示本窗口没活儿干，
@@ -124,10 +124,10 @@ function injectAssets() {
     '/font/' +
     encodeURIComponent('上首软糖体') +
     '.ttf") format("truetype");font-display:swap;font-weight:400}' +
-    '.pet-hit{cursor:url("' +
+    '.blue-fish-hit{cursor:url("' +
     BASE +
     '/pic/cursor-grab.png") 16 16, grab}' +
-    '.pet-hit.dragging{cursor:url("' +
+    '.blue-fish-hit.dragging{cursor:url("' +
     BASE +
     '/pic/cursor-grabbing.png") 16 16, grabbing}';
   document.head.appendChild(style);

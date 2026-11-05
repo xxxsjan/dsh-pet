@@ -37,7 +37,7 @@ export function memeImageUrl(name: string, base = ROUTE_PATH, assetRoot = ''): s
 }
 
 /** 气泡配图 class（两端共用，样式见 MEME_BUBBLE_CSS）。 */
-export const MEME_IMG_CLASS = 'pet-bub-img';
+export const MEME_IMG_CLASS = 'blue-fish-bub-img';
 /** 带图气泡 class：取消 min-width，让气泡贴合图片宽度（否则图旁留大片空白）。 */
 export const MEME_BUBBLE_CLASS = 'has-img';
 
@@ -47,21 +47,21 @@ export const MEME_BUBBLE_CLASS = 'has-img';
  *  系数 = 0.34 ÷ 0.0455 ≈ 7.4725，默认 462px 宠物 / 21px 字号下与固定 0.34 × 宠物宽等价。
  *  max-width:100% 是兜底：关掉 followPet 把字号调小后，固定宽度的图会戳出气泡。 */
 export const MEME_BUBBLE_CSS = [
-  '.pet-bub-img{--m:var(--f,calc(var(--dsh-pet-size,var(--pet-size,462px))*0.0455));display:block;' +
+  '.blue-fish-bub-img{--m:var(--f,calc(var(--blue-fish-size,462px)*0.0455));display:block;' +
     'width:calc(var(--m)*7.4725);max-width:100%;height:auto;border-radius:calc(var(--m)*0.5714);' +
     'margin:0 auto calc(var(--m)*0.3736);object-fit:cover;pointer-events:none;user-select:none}',
-  '.pet-bubble.has-img,.dsh-pet-bubble.has-img{min-width:0}',
+  '.blue-fish-bubble.has-img{min-width:0}',
   // 语音状态角标：两端共用；绝对定位在气泡右下角，不参与文字排版、不撑高气泡。
-  '.dsh-pet-voice-badge{position:absolute;right:calc(var(--f,21px)*0.25);bottom:calc(var(--f,21px)*0.15);' +
+  '.blue-fish-voice-badge{position:absolute;right:calc(var(--f,21px)*0.25);bottom:calc(var(--f,21px)*0.15);' +
     'width:calc(var(--f,21px)*0.66);height:calc(var(--f,21px)*0.66);display:flex;align-items:center;' +
     'justify-content:center;font-size:calc(var(--f,21px)*0.5);line-height:1;opacity:.65;pointer-events:none}',
   // 加载态：只有上半圈有颜色的细环，靠旋转表达「在转」。
-  '.dsh-pet-voice-badge.is-loading::before{content:"";width:calc(var(--f,21px)*0.5);height:calc(var(--f,21px)*0.5);' +
+  '.blue-fish-voice-badge.is-loading::before{content:"";width:calc(var(--f,21px)*0.5);height:calc(var(--f,21px)*0.5);' +
     'border:1.5px solid rgba(43,43,43,.22);border-top-color:rgba(43,43,43,.7);border-radius:50%;' +
-    'animation:dsh-pet-voice-spin .8s linear infinite}',
-  '@keyframes dsh-pet-voice-spin{to{transform:rotate(360deg)}}',
+    'animation:blue-fish-voice-spin .8s linear infinite}',
+  '@keyframes blue-fish-voice-spin{to{transform:rotate(360deg)}}',
   // 失败态：静音喇叭，压一点透明度——读得出「这句没念出来」，但不抢文字。
-  '.dsh-pet-voice-badge.is-failed{opacity:.5}',
+  '.blue-fish-voice-badge.is-failed{opacity:.5}',
 ].join('');
 
 /** 只注入一次（页面已有同一标记则跳过）。 */
@@ -69,10 +69,10 @@ let memeCssInjected = false;
 export function injectMemeBubbleCss(): void {
   if (memeCssInjected || typeof document === 'undefined') return;
   memeCssInjected = true;
-  if (document.querySelector('style[data-plugin-css="dsh-pet/meme-bubble"]') !== null) return;
+  if (document.querySelector('style[data-plugin-css="blue-fish/meme-bubble"]') !== null) return;
   const tag = document.createElement('style');
-  tag.dataset.plugin = 'dsh-pet';
-  tag.dataset.pluginCss = 'dsh-pet/meme-bubble';
+  tag.dataset.plugin = 'blue-fish';
+  tag.dataset.pluginCss = 'blue-fish/meme-bubble';
   tag.textContent = MEME_BUBBLE_CSS;
   document.head.appendChild(tag);
 }

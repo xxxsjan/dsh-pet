@@ -80,7 +80,7 @@ export function resolveFontPx(font: FontConfig | undefined, size: number): { bub
 export const BUBBLE_OVERLAP_RATIO = 0.108;
 
 /** 气泡布局度量（em，基准 = 气泡正文最终字号 --f）。
- *  系数与两端渲染层 .dsh-pet-bubble 的 CSS、shared/whisper.ts 的 MEME_BUBBLE_CSS 同源，
+ *  系数与两端渲染层 .blue-fish-bubble 的 CSS、shared/whisper.ts 的 MEME_BUBBLE_CSS 同源，
  *  改任何一条 CSS 系数都必须同步这里，否则桌面窗口上边距会算少、气泡顶端被窗口切掉。 */
 export const BUBBLE_METRICS = {
   lineHeight: 1.6,

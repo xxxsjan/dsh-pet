@@ -31,16 +31,16 @@ export function makeKindTabs(rt: Pick<SettingsRuntime, 'h' | 't'>): FunctionComp
 
   return function KindTabs(props: KindTabsProps) {
     return h('div', {
-      className: 'dsh-pet-cfg__kinds',
+      className: 'blue-fish-cfg__kinds',
       children: [
-        h('span', { key: 'label', className: 'dsh-pet-cfg__tabsLabel', children: t('kindLabel') }),
+        h('span', { key: 'label', className: 'blue-fish-cfg__tabsLabel', children: t('kindLabel') }),
         ...props.kinds.map((item) =>
           h('button', {
             key: item.entry,
             type: 'button',
             disabled: props.busy,
             onClick: () => props.onSelect(item.entry),
-            className: 'dsh-pet-cfg__tab' + (item.entry === props.kind ? ' is-active' : ''),
+            className: 'blue-fish-cfg__tab' + (item.entry === props.kind ? ' is-active' : ''),
             // 主条目固定显示「内置」；文件宠物直接显示目录前缀（与素材根一致）。
             children: (item.kind === 'main' ? t('kindMain') : item.entry) + ' (' + item.count + ')',
           }),

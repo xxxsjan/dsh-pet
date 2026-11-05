@@ -40,7 +40,7 @@ describe('纯函数', () => {
   });
 
   test('redactSensitive：令牌、站点 URL 片段一律打码', () => {
-    assert.equal(redactSensitive('x-dsh-pet-token: abcdefghijklmnopqrstuvwx'), 'x-dsh-pet-token: ***');
+    assert.equal(redactSensitive('x-blue-fish-token: abcdefghijklmnopqrstuvwx'), 'x-blue-fish-token: ***');
     assert.equal(redactSensitive('打开 http://x/#token=abcdefghijklmnopqrstuvwx'), '打开 http://x/#token=***');
     assert.equal(redactSensitive('DSH_PET_SITE_URL=http://127.0.0.1:1/?t=2'), 'DSH_PET_SITE_URL=***');
     // 普通文本不动
@@ -163,11 +163,11 @@ describe('createFileLogger', () => {
   test('落盘前脱敏：令牌不进文件', async () => {
     const file = join(dir, 'redact.log');
     const logger = createFileLogger({ file, flushThreshold: 1, flushIntervalMs: 60_000 });
-    logger.info('请求头 x-dsh-pet-token: abcdefghijklmnopqrstuvwx');
+    logger.info('请求头 x-blue-fish-token: abcdefghijklmnopqrstuvwx');
     await logger.flush();
     logger.dispose();
     const text = readFileSync(file, 'utf8');
-    assert.match(text, /x-dsh-pet-token: \*\*\*/);
+    assert.match(text, /x-blue-fish-token: \*\*\*/);
     assert.ok(!text.includes('abcdefghijklmnopqrstuvwx'));
   });
 });

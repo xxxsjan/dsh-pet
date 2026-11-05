@@ -37,8 +37,8 @@ const byClass = (node: unknown, className: string): Node[] =>
 describe('field —— 字段', () => {
   test('带说明：标签后面跟一个问号，说明同时写进 data-tip 与 aria-label', () => {
     const field = ui.field('大小', h('input', {}), '高度自动 = 宽度 × 9/16');
-    const [label] = byClass(field, 'dsh-pet-cfg__flabel');
-    const question = byClass(label, 'dsh-pet-cfg__q')[0];
+    const [label] = byClass(field, 'blue-fish-cfg__flabel');
+    const question = byClass(label, 'blue-fish-cfg__q')[0];
     assert.equal(question.props['aria-label'], '高度自动 = 宽度 × 9/16', '问号必须有无障碍名');
     assert.equal(question.props['data-tip'], '高度自动 = 宽度 × 9/16');
     assert.equal(question.props.role, 'img');
@@ -51,14 +51,14 @@ describe('field —— 字段', () => {
 
   test('不带说明：标签就是纯文本，不凭空长出一个问号', () => {
     const field = ui.field('大小', h('input', {}));
-    assert.deepEqual(byClass(field, 'dsh-pet-cfg__q'), []);
-    const [label] = byClass(field, 'dsh-pet-cfg__flabel');
+    assert.deepEqual(byClass(field, 'blue-fish-cfg__q'), []);
+    const [label] = byClass(field, 'blue-fish-cfg__flabel');
     assert.equal(label.props.children, '大小');
   });
 
   test('问号不挂 data-tip-end：气泡靠 tip-layer 自动翻边，不再分左右', () => {
     const field = ui.field('大小', h('input', {}), '说明');
-    const [question] = byClass(field, 'dsh-pet-cfg__q');
+    const [question] = byClass(field, 'blue-fish-cfg__q');
     assert.equal(question.props['data-tip-end'], undefined);
   });
 });
@@ -84,7 +84,7 @@ describe('toggleCell —— 开关格', () => {
 
   test('说明固定在 `<label + Hint>` 上', () => {
     const cell = ui.toggleCell('notifyToggle', false, false, () => {});
-    const [question] = byClass(cell, 'dsh-pet-cfg__q');
+    const [question] = byClass(cell, 'blue-fish-cfg__q');
     assert.equal(question.props['aria-label'], 'notifyToggleHint');
     assert.equal(question.props['data-tip'], 'notifyToggleHint');
   });
@@ -93,10 +93,10 @@ describe('toggleCell —— 开关格', () => {
 describe('cardHead —— 卡片头', () => {
   test('标题 + 问号；没有说明时只有标题', () => {
     const withHint = ui.cardHead('宠物配置', '每只宠物独立配置');
-    const [question] = byClass(withHint, 'dsh-pet-cfg__q');
+    const [question] = byClass(withHint, 'blue-fish-cfg__q');
     assert.equal(question.props['aria-label'], '每只宠物独立配置');
 
     const without = ui.cardHead('宠物配置');
-    assert.deepEqual(byClass(without, 'dsh-pet-cfg__q'), []);
+    assert.deepEqual(byClass(without, 'blue-fish-cfg__q'), []);
   });
 });

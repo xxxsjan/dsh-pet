@@ -120,7 +120,7 @@ GET http://127.0.0.1:3080/health
 
 ```json
 {
-  "name": "dsh-pet-app",
+  "name": "blue-fish-app",
   "version": "…",
   "pid": 12345,
   "port": 3080,

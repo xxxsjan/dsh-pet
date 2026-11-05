@@ -51,14 +51,14 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
 
   return function PetCard(props: PetCardProps) {
     const { pet, busy, msg } = props;
-    if (pet === null) return h('p', { className: 'dsh-pet-cfg__note', children: t('emptyPets') });
+    if (pet === null) return h('p', { className: 'blue-fish-cfg__note', children: t('emptyPets') });
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         h('div', {
-          className: 'dsh-pet-cfg__cardHead',
+          className: 'blue-fish-cfg__cardHead',
           children: [
-            h('span', { key: 't', className: 'dsh-pet-cfg__cardTitle', children: t('petCardTitle') }),
+            h('span', { key: 't', className: 'blue-fish-cfg__cardTitle', children: t('petCardTitle') }),
             q(t('petCardHint')),
             // 右侧动作组：auto margin 挂在这层 wrapper 上，保存结果出现 / 消失时按钮位置不会跳。
             h('div', {
@@ -69,7 +69,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
                 msg.text
                   ? h('span', {
                       key: 'msg',
-                      className: 'dsh-pet-cfg__msg' + (msg.kind === 'err' ? ' is-err' : ''),
+                      className: 'blue-fish-cfg__msg' + (msg.kind === 'err' ? ' is-err' : ''),
                       children: msg.text,
                     })
                   : null,
@@ -79,7 +79,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
                   type: 'button',
                   onClick: props.onSave,
                   disabled: busy,
-                  className: 'dsh-pet-cfg__btn is-primary is-sm',
+                  className: 'blue-fish-cfg__btn is-primary is-sm',
                   ...tip(t('saveHotkey')),
                   children: t('save'),
                 }),
@@ -88,7 +88,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
                   type: 'button',
                   onClick: props.onRemove,
                   disabled: busy,
-                  className: 'dsh-pet-cfg__btn is-danger is-sm',
+                  className: 'blue-fish-cfg__btn is-danger is-sm',
                   children: t('remove'),
                 }),
               ],
@@ -98,7 +98,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
 
         // 顶部一行：头像作左列，右侧是 2×2 的输入网格。
         h('div', {
-          className: 'dsh-pet-cfg__topRow',
+          className: 'blue-fish-cfg__topRow',
           children: [
             h(AvatarCell, {
               avatarSrc: props.avatarSrc,
@@ -113,7 +113,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
         h(PositionFields, { pet, busy, onChange: props.onChange }),
 
         h('div', {
-          className: 'dsh-pet-cfg__grid4',
+          className: 'blue-fish-cfg__grid4',
           children: [
             toggleCell('balanceEnabled', !!pet.balanceEnabled, busy, (v) => props.onChange({ balanceEnabled: v })),
             toggleCell('whisperEnabled', !!pet.whisperEnabled, busy, (v) => props.onChange({ whisperEnabled: v })),
@@ -130,10 +130,10 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
         field(
           t('personaLabel'),
           h('div', {
-            className: 'dsh-pet-cfg__persona',
+            className: 'blue-fish-cfg__persona',
             children: [
               h('textarea', {
-                className: INPUT_CLASS + ' dsh-pet-cfg__area',
+                className: INPUT_CLASS + ' blue-fish-cfg__area',
                 rows: 3,
                 value: String(pet.whisperPrompt ?? ''),
                 disabled: busy,
@@ -141,7 +141,7 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
                 onChange: (e: ChangeEvent<HTMLTextAreaElement>) => props.onChange({ whisperPrompt: e.target.value }),
               }),
               h('span', {
-                className: 'dsh-pet-cfg__count',
+                className: 'blue-fish-cfg__count',
                 children: t('personaCount').replace('{n}', String(String(pet.whisperPrompt ?? '').length)),
               }),
             ],

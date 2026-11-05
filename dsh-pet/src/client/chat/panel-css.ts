@@ -229,25 +229,25 @@ export const PANEL_CSS = `
   flex: 0 0 auto;
 }
 
-.pet-chat-round {
+.blue-fish-chat-round {
   display: flex;
   align-items: flex-start;
   gap: ${px(SIZE.gap)};
 }
 
 /* 多选模式：整轮是一张可点卡片；选中给浅底，未选中透明（与豆包的选中样式一致） */
-.pet-chat-round.is-selecting {
+.blue-fish-chat-round.is-selecting {
   padding: ${px(SIZE.gapTight)} ${px(SIZE.gapWide)};
   border-radius: var(--dsw-radius-md);
   cursor: pointer;
   transition: background var(--ds-transition-duration-fast) var(--ds-ease-in-out);
 }
 
-.pet-chat-round.is-selecting:hover {
+.blue-fish-chat-round.is-selecting:hover {
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.pet-chat-round.is-selected {
+.blue-fish-chat-round.is-selected {
   background: var(--dsw-alias-bg-multi-select);
 }
 
@@ -262,7 +262,7 @@ export const PANEL_CSS = `
   opacity: 1;
 }
 
-.pet-chat-round-body {
+.blue-fish-chat-round-body {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;

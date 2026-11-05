@@ -36,17 +36,17 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
           viewport: window.innerWidth + 'x' + window.innerHeight,
           dpr: window.devicePixelRatio,
           debug: window.__dshPetDebug || null,
-          sprites: document.querySelectorAll('.pet-sprite').length,
+          sprites: document.querySelectorAll('.blue-fish-sprite').length,
           errorVisible: document.getElementById('pet-error').classList.contains('visible'),
           errorText: document.getElementById('pet-error').textContent,
-          firstBubble: (document.querySelector('.pet-bubble.is-on') || { textContent: '' }).textContent.slice(0, 120),
+          firstBubble: (document.querySelector('.blue-fish-bubble.is-on') || { textContent: '' }).textContent.slice(0, 120),
           hitCursor: (function () {
-            var hit = document.querySelector('.pet-hit');
+            var hit = document.querySelector('.blue-fish-hit');
             return hit ? getComputedStyle(hit).cursor : '';
           })(),
           dragTransform: (function () {
-            var hit = document.querySelector('.pet-hit');
-            var stage = document.querySelector('.pet-stage');
+            var hit = document.querySelector('.blue-fish-hit');
+            var stage = document.querySelector('.blue-fish-stage');
             if (!hit || !stage) return 'no-sprite';
             var out = { idle: stage.style.transform };
             hit.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 120, clientY: 120, screenX: 120, screenY: 120, pointerId: 91 }));
@@ -66,7 +66,7 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
             // 松手前停留超过 RELEASE_STALE_MS(150ms) 判为「温柔放下」（估速 null，不抛掷）——
             // 所以先等弹簧到位、再停留才松手，只测"释放瞬间是否位移"。
             var d = window.__dshPetDebug;
-            var hit = document.querySelector('.pet-hit');
+            var hit = document.querySelector('.blue-fish-hit');
             if (!d || !d.dragPos || !hit) return null;
             var P = { x: d.dragPos.x, y: d.dragPos.y };
             var T = { x: 600, y: 300 }; // 目标窗口左上角（1708×1020 工作区内，远离四边）
@@ -95,7 +95,7 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
             // 点击穿透命中判定：光标在命中区内→可交互；移出→穿透；拖拽中（pointer 已捕获）→强制可交互。
             // hitRect 是 sprite 坐标，mousemove 用窗口坐标——测试事件需加上窗口外扩余量 winMargin。
             var d = window.__dshPetDebug;
-            var hit = document.querySelector('.pet-hit');
+            var hit = document.querySelector('.blue-fish-hit');
             if (!d || !d.hitRect || !d.winMargin || !hit) return null;
             var r = d.hitRect;
             var m = d.winMargin;
@@ -114,8 +114,8 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
             window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: xOut, clientY: yOut, screenX: xOut, screenY: yOut, pointerId: 94 }));
             return out;
           })(),
-          videoSrcA: (document.querySelectorAll('.pet-sprite video')[0] || { src: '' }).src,
-          videoSrcB: (document.querySelectorAll('.pet-sprite video')[1] || { src: '' }).src,
+          videoSrcA: (document.querySelectorAll('.blue-fish-sprite video')[0] || { src: '' }).src,
+          videoSrcB: (document.querySelectorAll('.blue-fish-sprite video')[1] || { src: '' }).src,
           // 右键菜单自检：在命中区派发 contextmenu → 校验菜单挂载/根文案/子面板/运行错误
           menuSmoke: await (async function () {
             // 前面 drag/release/interactive 测试刚拖过宠：justDragged 100ms 内屏蔽右键，
@@ -123,7 +123,7 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
             await new Promise(function (resolve) {
               setTimeout(resolve, 250);
             });
-            var hit = document.querySelector('.pet-hit');
+            var hit = document.querySelector('.blue-fish-hit');
             var d = window.__dshPetDebug;
             if (!hit || !d) return null;
             var errsBefore = (d.errors || []).length;
@@ -134,7 +134,7 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
             } catch (err) {
               return { threw: String(err), menuMounted: false };
             }
-            var menu = document.querySelector('.dsh-pet-menu');
+            var menu = document.querySelector('.blue-fish-menu');
             var out = {
               threw: null,
               menuMounted: !!menu,
@@ -143,11 +143,11 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
               errsNew: (d.errors || []).length - errsBefore,
             };
             if (menu) {
-              var branch = menu.querySelector('.dsh-pet-menu-branch');
+              var branch = menu.querySelector('.blue-fish-menu-branch');
               if (branch) {
                 branch.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false, relatedTarget: menu }));
                 var panels = Array.prototype.slice.call(
-                  menu.querySelectorAll('.dsh-pet-menu-column'),
+                  menu.querySelectorAll('.blue-fish-menu-column'),
                 );
                 var visible = function () {
                   return panels.filter(function (p) {
@@ -161,7 +161,7 @@ function runSmokeCheck({ app, windows, windowIgnore, setPointerFallbackPaused })
                   return p !== panels[0];
                 })[0];
                 if (panel1) {
-                  var cat = panel1.querySelector('.dsh-pet-menu-branch');
+                  var cat = panel1.querySelector('.blue-fish-menu-branch');
                   if (cat) {
                     cat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false, relatedTarget: panel1 }));
                     await new Promise(function (resolve) {

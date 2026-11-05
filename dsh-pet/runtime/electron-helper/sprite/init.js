@@ -132,29 +132,29 @@ Object.assign(PetSprite.prototype, {
   buildDom() {
     // DOM：sprite 钉在窗口内 (margin.l, margin.t)；宠物"位置"= sprite 位置，窗口随余量外扩
     this.el = document.createElement('div');
-    this.el.className = 'pet-sprite';
+    this.el.className = 'blue-fish-sprite';
     this.el.style.left = this.margin.l + 'px';
     this.el.style.top = this.margin.t + 'px';
-    this.el.style.setProperty('--pet-size', this.size + 'px');
+    this.el.style.setProperty('--blue-fish-size', this.size + 'px');
     // 字号（配置 font）：按本宠物尺寸算好最终 px 注入，气泡与提示的 CSS 读这两个变量
     const fontPx = S.resolveFontPx(this.font, this.size);
-    this.el.style.setProperty('--dsh-pet-font-bubble', fontPx.bubble + 'px');
-    this.el.style.setProperty('--dsh-pet-font-tip', fontPx.tip + 'px');
+    this.el.style.setProperty('--blue-fish-font-bubble', fontPx.bubble + 'px');
+    this.el.style.setProperty('--blue-fish-font-tip', fontPx.tip + 'px');
     const stage = document.createElement('div');
-    stage.className = 'pet-stage';
+    stage.className = 'blue-fish-stage';
     stage.style.transform = 'translateY(' + this.bottomPad + 'px)';
     this.stage = stage;
     this.videoA = document.createElement('video');
-    this.videoA.className = 'pet-video is-front';
+    this.videoA.className = 'blue-fish-video is-front';
     this.videoB = document.createElement('video');
-    this.videoB.className = 'pet-video';
+    this.videoB.className = 'blue-fish-video';
     for (const v of [this.videoA, this.videoB]) {
       v.muted = true;
       v.playsInline = true;
       v.autoplay = true;
     }
     this.hit = document.createElement('div');
-    this.hit.className = 'pet-hit';
+    this.hit.className = 'blue-fish-hit';
     this.hit.style.left = (S.HIT_BOX.x0 / 640) * 100 + '%';
     this.hit.style.top = (S.HIT_BOX.y0 / 360) * 100 + '%';
     this.hit.style.width = ((S.HIT_BOX.x1 - S.HIT_BOX.x0) / 640) * 100 + '%';
@@ -162,7 +162,7 @@ Object.assign(PetSprite.prototype, {
     // 命中层挂 aria-label：原生 title 已换成自绘浮层，但无障碍名称不能跟着丢
     this.hit.setAttribute('aria-label', this.pet.name);
     this.bubble = document.createElement('div');
-    this.bubble.className = 'pet-bubble';
+    this.bubble.className = 'blue-fish-bubble';
     // 气泡点击按当前槽位分流：工作气泡跳会话，余额气泡切页。都就地吞掉事件，别落到下面的本体命中层。
     this.bubble.addEventListener('click', (e) => {
       if (this.workClickable()) {

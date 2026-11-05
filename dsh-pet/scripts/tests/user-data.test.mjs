@@ -43,7 +43,7 @@ describe('dshHomeDir —— DSH 主目录解析', () => {
 
 describe('isWritableDir —— 必须真的写进去才算可写', () => {
   test('真实临时目录：可写', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-userdata-'));
+    const dir = mkdtempSync(join(tmpdir(), 'blue-fish-userdata-'));
     try {
       assert.equal(isWritableDir(dir), true);
     } finally {

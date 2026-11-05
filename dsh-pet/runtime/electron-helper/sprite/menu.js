@@ -324,7 +324,7 @@ Object.assign(PetSprite.prototype, {
       baseUrl: BASE + '/todos',
       onClose: () => this.closeTodo(),
       // 点宠物本体不收起：拖它走是常见需求，收起就没法一边看清单一边挪位置。
-      keepOpenOn: (target) => typeof target?.closest === 'function' && target.closest('.pet-hit') !== null,
+      keepOpenOn: (target) => typeof target?.closest === 'function' && target.closest('.blue-fish-hit') !== null,
     });
     // replaceChildren 而不是 appendChild：气泡里还留着上一次渲染的行（碎碎念/余额），
     // 而 renderBubble 在面板开着时会提前返回、走不到清空那一步，不清就会叠在面板上方。

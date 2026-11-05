@@ -35,11 +35,11 @@ export function makeMobileCard(rt: SettingsRuntime): FunctionComponent<MobileCar
   return function MobileCard(props: MobileCardProps) {
     const { busy, physics } = props;
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('mobileTitle'), t('mobileHint')),
         h('div', {
-          className: 'dsh-pet-cfg__grid3',
+          className: 'blue-fish-cfg__grid3',
           children: [
             toggleCell('physicsHaptic', physics.hapticEnabled !== false, busy, (v) =>
               props.onChange({ hapticEnabled: v }),

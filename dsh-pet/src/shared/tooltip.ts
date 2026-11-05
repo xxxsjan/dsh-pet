@@ -53,22 +53,22 @@ export const TOOLTIP_CSS = [
   '.pet-tooltip{',
   // fixed + 坐标由 JS 按光标写：left/top 只是未定位前的兜底，不会真的显示
   'position:fixed;left:0;top:0;',
-  'max-width:calc(var(--dsh-pet-size,var(--pet-size,462px))*0.8);',
-  'padding:calc(var(--dsh-pet-size,var(--pet-size,462px))*0.010) calc(var(--dsh-pet-size,var(--pet-size,462px))*0.021);',
-  'border-radius:calc(var(--dsh-pet-size,var(--pet-size,462px))*0.016);',
+  'max-width:calc(var(--blue-fish-size,462px)*0.8);',
+  'padding:calc(var(--blue-fish-size,462px)*0.010) calc(var(--blue-fish-size,462px)*0.021);',
+  'border-radius:calc(var(--blue-fish-size,462px)*0.016);',
   // 白底黑字：对齐原生提示的观感，深色胶囊落在浅色宠物身上太抢眼
   'background:rgba(255,255,255,.96);color:#1f1f1f;',
   // 细边框：白底压在浅色宠物或浅色页面上会糊成一片，靠它划出轮廓
   'border:1px solid rgba(0,0,0,.12);',
   // 字体与气泡同一套；字体族走全局配置变量（注入在 documentElement），继承不到宠物根容器
-  'font-family:var(--dsh-pet-font-family,"ShangshouSoftCandy","Yuanti SC","YouYuan","幼圆","Comic Sans MS","PingFang SC","Microsoft YaHei",sans-serif);',
+  'font-family:var(--blue-fish-font-family,"ShangshouSoftCandy","Yuanti SC","YouYuan","幼圆","Comic Sans MS","PingFang SC","Microsoft YaHei",sans-serif);',
   // 字号对齐 Windows 原生提示（9pt ≈ 12px）：462px 的宠物下 0.026 → 约 12px。
-  // --dsh-pet-font-tip 由两端按该宠物尺寸算好注入（shared/fonts.ts 的 resolveFontPx），未注入时回退原表达式。
-  'font-size:var(--dsh-pet-font-tip,calc(var(--dsh-pet-size,var(--pet-size,462px))*0.026));line-height:1.4;',
+  // --blue-fish-font-tip 由两端按该宠物尺寸算好注入（shared/fonts.ts 的 resolveFontPx），未注入时回退原表达式。
+  'font-size:var(--blue-fish-font-tip,calc(var(--blue-fish-size,462px)*0.026));line-height:1.4;',
   // nowrap + 截断：宽度锁成一行才好和光标一起摆（换行会让宽度随位置跳变）
   'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;',
   // 不设 backdrop-filter：白底没必要，原生提示也没有毛玻璃
-  'box-shadow:0 calc(var(--dsh-pet-size,var(--pet-size,462px))*0.004) calc(var(--dsh-pet-size,var(--pet-size,462px))*0.013) rgba(0,0,0,.18);',
+  'box-shadow:0 calc(var(--blue-fish-size,462px)*0.004) calc(var(--blue-fish-size,462px)*0.013) rgba(0,0,0,.18);',
   // 层级低于气泡：两者不抢同一块地方（提示跟光标、气泡在头顶），保留层序只是兜底
   'opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:2}',
   '.pet-tooltip.is-on{opacity:1}',

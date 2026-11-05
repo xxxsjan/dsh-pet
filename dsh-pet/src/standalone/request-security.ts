@@ -32,7 +32,7 @@ function publicRead(req: IncomingMessage): boolean {
   const path = decodeURIComponent(new URL(req.url ?? '/', 'http://127.0.0.1').pathname);
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
   if (['/standalone-ai/settings', '/shutdown'].includes(path)) return false;
-  if (/^\/dsh-pet-\d+\/(?:whisper|chat)(?:\/|$)/.test(path)) return false;
+  if (/^\/blue-fish-\d+\/(?:whisper|chat)(?:\/|$)/.test(path)) return false;
   return (
     [
       '/',
@@ -42,7 +42,7 @@ function publicRead(req: IncomingMessage): boolean {
       '/standalone-ai/settings.css',
       '/standalone-ai/chat-panel.js',
       '/standalone-ai/icon.png',
-    ].includes(path) || /^\/dsh-pet-\d+\//.test(path)
+    ].includes(path) || /^\/blue-fish-\d+\//.test(path)
   );
 }
 
@@ -108,7 +108,7 @@ export function createRequestSecurity(): RequestSecurity {
         return rejectRequest(res, 400, '请求地址无效');
       }
       // 页内请求走请求头；刷新后地址栏令牌已被清掉，改用首次访问换来的 HttpOnly cookie。
-      const header = req.headers['x-dsh-pet-token'];
+      const header = req.headers['x-blue-fish-token'];
       const fromHeader = typeof header === 'string' && TOKEN_SHAPE.test(header);
       const supplied = fromHeader ? header : readTokenCookie(req);
       // 先按固定形状校验，再走定时安全比较，避免长度与内容泄漏。
@@ -117,7 +117,7 @@ export function createRequestSecurity(): RequestSecurity {
       }
       if (fromHeader && readTokenCookie(req) !== token) {
         // 会话级 cookie：不设 Max-Age，关掉浏览器即失效，同一进程内刷新继续可用。
-        // Path 取根：对话面板要调 /dsh-pet-<n>/chat 这类插件路由，限定在 /standalone-ai/ 会让它拿不到凭据。
+        // Path 取根：对话面板要调 /blue-fish-<n>/chat 这类插件路由，限定在 /standalone-ai/ 会让它拿不到凭据。
         res.setHeader('set-cookie', `${TOKEN_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/`);
       }
       return true;

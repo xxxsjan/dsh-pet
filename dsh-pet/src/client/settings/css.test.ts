@@ -96,10 +96,10 @@ describe('injectSettingsCss —— 设置页样式注入', () => {
       assert.equal(doc.head.children.length, 1, '应只注入一个 style');
       const [tag] = doc.head.children;
       assert.equal(tag.tag, 'style');
-      assert.equal(tag.dataset.plugin, 'dsh-pet');
-      assert.equal(tag.dataset.pluginCss, 'dsh-pet/settings.css');
-      assert.ok(tag.textContent.includes('.dsh-pet-mp__trigger'), '模型选择器的样式必须在');
-      assert.ok(tag.textContent.includes('.dsh-pet-cfg__inp'), '配置卡片表单的样式必须在');
+      assert.equal(tag.dataset.plugin, 'blue-fish');
+      assert.equal(tag.dataset.pluginCss, 'blue-fish/settings.css');
+      assert.ok(tag.textContent.includes('.blue-fish-mp__trigger'), '模型选择器的样式必须在');
+      assert.ok(tag.textContent.includes('.blue-fish-cfg__inp'), '配置卡片表单的样式必须在');
     } finally {
       restore();
     }

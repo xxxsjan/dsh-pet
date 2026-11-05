@@ -54,7 +54,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, '..');
 const helperMain = join(packageRoot, 'runtime', 'electron-helper', 'main.js');
 
-const log = (message: string): void => console.log(`[dsh-pet-app] ${message}`);
+const log = (message: string): void => console.log(`[blue-fish-app] ${message}`);
 
 /** 单实例：第二次双击直接退出（共用 userData 的 Chromium profile 会互踢） */
 const locked = app.requestSingleInstanceLock();
@@ -230,7 +230,7 @@ function status(port: number): Record<string, unknown> {
     /* 落地页/状态接口不该因配置坏掉而 500：下面如实显示 0 只 */
   }
   return {
-    name: 'dsh-pet-app',
+    name: 'blue-fish-app',
     version: packageVersion(packageRoot),
     pid: process.pid,
     port,

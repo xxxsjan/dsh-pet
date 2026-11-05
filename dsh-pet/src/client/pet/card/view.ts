@@ -28,7 +28,7 @@ export interface CardViewProps {
   corner: Corner;
   /** 朝向，写进 data-facing 由 CSS 镜像。 */
   facing: 'left' | 'right';
-  /** 宠物宽度 px，注入 --dsh-pet-size。 */
+  /** 宠物宽度 px，注入 --blue-fish-size。 */
   size: number;
   /** 水平边距 px。 */
   marginX: number;
@@ -79,17 +79,17 @@ export function makeCardView(rt: { h: typeof jsx }) {
   return function CardView(props: CardViewProps) {
     return h('div', {
       ref: props.rootRef,
-      className: 'dsh-pet-root',
+      className: 'blue-fish-root',
       'data-corner': props.corner,
       'data-facing': props.facing,
       style: Object.assign(
         {
-          '--dsh-pet-size': props.size + 'px',
-          '--dsh-pet-mx': props.marginX + 'px',
-          '--dsh-pet-my': props.marginY + 'px',
+          '--blue-fish-size': props.size + 'px',
+          '--blue-fish-mx': props.marginX + 'px',
+          '--blue-fish-my': props.marginY + 'px',
           // 字号注入最终 px；CSS 侧带原值回退，漏注入也不会坏。
-          '--dsh-pet-font-bubble': props.fontBubblePx + 'px',
-          '--dsh-pet-font-tip': props.fontTipPx + 'px',
+          '--blue-fish-font-bubble': props.fontBubblePx + 'px',
+          '--blue-fish-font-tip': props.fontTipPx + 'px',
         },
         props.rootStyle,
       ),
@@ -98,13 +98,13 @@ export function makeCardView(rt: { h: typeof jsx }) {
         props.bubble,
         h('div', {
           ref: props.stageRef,
-          className: 'dsh-pet-stage',
+          className: 'blue-fish-stage',
           style: props.stageStyle,
           children: [
-            h('video', Object.assign({}, VIDEO_PROPS, { ref: props.videoARef, className: 'dsh-pet-video is-front' })),
-            h('video', Object.assign({}, VIDEO_PROPS, { ref: props.videoBRef, className: 'dsh-pet-video' })),
+            h('video', Object.assign({}, VIDEO_PROPS, { ref: props.videoARef, className: 'blue-fish-video is-front' })),
+            h('video', Object.assign({}, VIDEO_PROPS, { ref: props.videoBRef, className: 'blue-fish-video' })),
             h('div', {
-              className: 'dsh-pet-hit',
+              className: 'blue-fish-hit',
               style: PET_HIT_STYLE,
               onClick: props.onClick,
               onPointerDown: props.onPointerDown,

@@ -169,21 +169,21 @@ export function makeModelPicker(
 
     return h('div', {
       ref: rootRef,
-      className: 'dsh-pet-mp',
+      className: 'blue-fish-mp',
       children: [
         h('button', {
           key: 'trigger',
           type: 'button',
-          className: 'dsh-pet-mp__trigger',
+          className: 'blue-fish-mp__trigger',
           disabled: props.disabled,
           'aria-haspopup': 'menu',
           'aria-expanded': open,
           'aria-label': t('modelTriggerAria').replace('{model}', triggerLabel),
           onClick: toggle,
           children: [
-            h('span', { key: 'l', className: 'dsh-pet-mp__label', children: triggerLabel }),
-            triggerSub ? h('span', { key: 's', className: 'dsh-pet-mp__sub', children: triggerSub }) : null,
-            h('span', { key: 'c', className: 'dsh-pet-mp__chevron' + (open ? ' is-open' : ''), children: '▾' }),
+            h('span', { key: 'l', className: 'blue-fish-mp__label', children: triggerLabel }),
+            triggerSub ? h('span', { key: 's', className: 'blue-fish-mp__sub', children: triggerSub }) : null,
+            h('span', { key: 'c', className: 'blue-fish-mp__chevron' + (open ? ' is-open' : ''), children: '▾' }),
           ],
         }),
         panel,

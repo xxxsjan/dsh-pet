@@ -99,29 +99,29 @@ export function makeModelCard(
     };
 
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('modelTitle'), t('modelHint')),
         failed
           ? h('p', {
-              className: 'dsh-pet-cfg__note',
+              className: 'blue-fish-cfg__note',
               style: { color: 'var(--dsw-alias-state-error-primary)' },
               children: t('modelCatalogFailed'),
             })
           : null,
         h('div', {
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [modelCell('whisperModel', props.whisperModel), modelCell('chatModel', props.chatModel)],
         }),
         h('div', {
-          className: 'dsh-pet-cfg__grid4',
+          className: 'blue-fish-cfg__grid4',
           children: [
             numField('chatMemory', props.chatMemory, props.onChatMemoryChange),
             numField('chatImageLimit', props.chatImageLimit, props.onChatImageLimitChange),
           ],
         }),
         h('div', {
-          className: 'dsh-pet-cfg__grid3',
+          className: 'blue-fish-cfg__grid3',
           children: CHAT_TOGGLES.map((toggle) =>
             toggleCell(toggle.label, props.values[toggle.key], busy, (value) => props.onFlagChange(toggle.key, value)),
           ),

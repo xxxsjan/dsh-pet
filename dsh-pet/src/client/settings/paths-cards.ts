@@ -47,7 +47,7 @@ export function makePathsCards(rt: SettingsRuntime): PathsCards {
     const line = (key: string, value: string | undefined, suffix = '') =>
       value === undefined
         ? null
-        : h('div', { key, className: 'dsh-pet-cfg__path', children: t(key) + '：' + value + suffix });
+        : h('div', { key, className: 'blue-fish-cfg__path', children: t(key) + '：' + value + suffix });
     const body = [
       line('defaultConfig', paths.default),
       line('userConfig', paths.user),
@@ -56,7 +56,7 @@ export function makePathsCards(rt: SettingsRuntime): PathsCards {
       line('memesDir', paths.memes),
       // 日志文件路径 + 一句说明；其余位置的用途都在问号里，唯独这条写在明面上——反馈问题时要先找它。
       line('logFile', paths.logs),
-      paths.logs ? h('div', { key: 'logNote', className: 'dsh-pet-cfg__note', children: t('logFileNote') }) : null,
+      paths.logs ? h('div', { key: 'logNote', className: 'blue-fish-cfg__note', children: t('logFileNote') }) : null,
     ];
     return foldCard({
       id: BODY_ID.meta,
@@ -79,7 +79,7 @@ export function makePathsCards(rt: SettingsRuntime): PathsCards {
       ...storage.map((entry) =>
         h('div', {
           key: entry.key,
-          className: 'dsh-pet-cfg__path',
+          className: 'blue-fish-cfg__path',
           children: [
             h('b', { key: 'p', style: { fontFamily: MONO_STACK }, children: entry.path }),
             // 尚未产生的目录标一下，避免用户去找不存在的文件夹。
@@ -92,18 +92,18 @@ export function makePathsCards(rt: SettingsRuntime): PathsCards {
       ),
       h('div', {
         key: 'ut',
-        className: 'dsh-pet-cfg__cardTitle',
+        className: 'blue-fish-cfg__cardTitle',
         style: { marginTop: '4px' },
         children: t('uninstallTitle'),
       }),
-      h('div', { key: 'u1', className: 'dsh-pet-cfg__note', children: t('uninstallStep1') }),
-      h('div', { key: 'u2', className: 'dsh-pet-cfg__note', children: t('uninstallStep2') }),
+      h('div', { key: 'u1', className: 'blue-fish-cfg__note', children: t('uninstallStep1') }),
+      h('div', { key: 'u2', className: 'blue-fish-cfg__note', children: t('uninstallStep2') }),
       h('div', {
         key: 'cmd',
-        className: 'dsh-pet-cfg__cmd',
+        className: 'blue-fish-cfg__cmd',
         children: t('uninstallCmd').replace('{profile}', paths.profile || '<profile>'),
       }),
-      h('div', { key: 'u3', className: 'dsh-pet-cfg__note', children: t('uninstallStep3') }),
+      h('div', { key: 'u3', className: 'blue-fish-cfg__note', children: t('uninstallStep3') }),
     ];
     return foldCard({
       id: BODY_ID.storage,

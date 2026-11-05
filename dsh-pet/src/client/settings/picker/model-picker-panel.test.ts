@@ -106,7 +106,7 @@ describe('buildModelPanel —— 浮层三态与选中态', () => {
     const [follow, model] = buttons;
     assert.equal(follow.props['aria-checked'], false, '当前选的是具体模型，跟随行不该打勾');
     assert.equal(model.props['aria-checked'], true);
-    assert.equal(model.props.className, 'dsh-pet-mp__item is-active', '高亮落在 active 行上');
+    assert.equal(model.props.className, 'blue-fish-mp__item is-active', '高亮落在 active 行上');
     assert.equal(model.props['data-row'], 2);
   });
 

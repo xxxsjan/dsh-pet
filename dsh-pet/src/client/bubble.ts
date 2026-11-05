@@ -33,8 +33,8 @@ import { ROUTE_PATH } from '../shared/constants.ts';
 const bubbleCss = [
   // 本地字体：由 host 从 assets/fonts 提供；font-display:swap 先回退后切换。
   `@font-face{font-family:"ShangshouSoftCandy";src:url("${ROUTE_PATH}/font/上首软糖体.ttf") format("truetype");font-display:swap;font-weight:400}`,
-  '.dsh-pet-bubble{position:absolute;left:50%;transform:translateX(-50%);' +
-    'bottom:calc(100% - var(--dsh-pet-size)*0.108);' +
+  '.blue-fish-bubble{position:absolute;left:50%;transform:translateX(-50%);' +
+    'bottom:calc(100% - var(--blue-fish-size)*0.108);' +
     'width:max-content;min-width:calc(var(--f)*5.7143);max-width:min(calc(var(--f)*16),100%);' +
     // 钉死 content-box：宿主可能全局设了 border-box，让 min/max-width 把内边距算进去，
     // 表现为「明明还有空位却折行」；桌面端同样钉死，两端一致。
@@ -42,71 +42,71 @@ const bubbleCss = [
     'padding:calc(var(--f)*0.4835) calc(var(--f)*0.6593);' +
     'border-radius:calc(var(--f)*0.7692);' +
     'background:rgba(255,255,255,.92);' +
-    '--f0:var(--dsh-pet-font-bubble,calc(var(--dsh-pet-size)*0.0455));--f:var(--f0);' +
-    'color:#2b2b2b;font-family:var(--dsh-pet-font-family,"ShangshouSoftCandy","Yuanti SC","YouYuan","幼圆","Comic Sans MS","PingFang SC","Microsoft YaHei",sans-serif);' +
+    '--f0:var(--blue-fish-font-bubble,calc(var(--blue-fish-size)*0.0455));--f:var(--f0);' +
+    'color:#2b2b2b;font-family:var(--blue-fish-font-family,"ShangshouSoftCandy","Yuanti SC","YouYuan","幼圆","Comic Sans MS","PingFang SC","Microsoft YaHei",sans-serif);' +
     'font-size:var(--f);line-height:1.6;z-index:3;pointer-events:none;' +
     'box-shadow:0 calc(var(--f)*0.1978) calc(var(--f)*0.7692) rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.08);' +
     'backdrop-filter:blur(6px);opacity:0;transition:opacity .25s ease;' +
     'white-space:normal;overflow-wrap:break-word}',
   // 底部尾巴：小三角指向下方宠物，尺寸锚字号。
-  '.dsh-pet-bubble::after{content:"";position:absolute;left:50%;bottom:calc(var(--f)*-0.3736);' +
+  '.blue-fish-bubble::after{content:"";position:absolute;left:50%;bottom:calc(var(--f)*-0.3736);' +
     'transform:translateX(-50%);border:calc(var(--f)*0.3736) solid transparent;' +
     'border-top-color:rgba(255,255,255,.92);border-bottom:none}',
-  '.dsh-pet-bubble.is-on{opacity:1}',
+  '.blue-fish-bubble.is-on{opacity:1}',
   // 碎碎念变体：字号缩到余额气泡的 0.75，宽度下限更窄，上限与折行规则相同。
-  '.dsh-pet-bubble.dsh-pet-whisper{font-size:calc(var(--f)*0.7473);' +
+  '.blue-fish-bubble.blue-fish-whisper{font-size:calc(var(--f)*0.7473);' +
     'min-width:calc(var(--f)*2.1978);max-width:min(calc(var(--f)*10.989),100%)}',
   // 配图样式在 shared 的 MEME_BUBBLE_CSS，这里只保留标题与行样式。
-  '.dsh-pet-bubble .pet-bub-title{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6);margin-bottom:calc(var(--f)*0.1978)}',
-  '.dsh-pet-bubble .pet-bub-row{display:flex;justify-content:space-between;gap:calc(var(--f)*0.6593);flex-wrap:wrap}',
+  '.blue-fish-bubble .blue-fish-bub-title{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6);margin-bottom:calc(var(--f)*0.1978)}',
+  '.blue-fish-bubble .blue-fish-bub-row{display:flex;justify-content:space-between;gap:calc(var(--f)*0.6593);flex-wrap:wrap}',
   // 档位行由多个片段拼成：只在片段之间换行，片段内部不拆字，避免竖排。
-  '.dsh-pet-bubble .pet-bub-row>span{white-space:nowrap}',
-  '.dsh-pet-bubble .pet-bub-sub{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
-  '.dsh-pet-bubble .pet-bub-val{font-variant-numeric:tabular-nums;font-weight:650;color:#1f1f1f}',
-  '.dsh-pet-bubble .pet-bub-err{color:#d94f3d;font-size:calc(var(--f)*0.7692)}',
-  '.dsh-pet-bubble .pet-bub-tag{margin-left:calc(var(--f)*0.2857);font-size:calc(var(--f)*0.4835);color:rgba(43,43,43,.55);border:1px solid rgba(43,43,43,.25);' +
+  '.blue-fish-bubble .blue-fish-bub-row>span{white-space:nowrap}',
+  '.blue-fish-bubble .blue-fish-bub-sub{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
+  '.blue-fish-bubble .blue-fish-bub-val{font-variant-numeric:tabular-nums;font-weight:650;color:#1f1f1f}',
+  '.blue-fish-bubble .blue-fish-bub-err{color:#d94f3d;font-size:calc(var(--f)*0.7692)}',
+  '.blue-fish-bubble .blue-fish-bub-tag{margin-left:calc(var(--f)*0.2857);font-size:calc(var(--f)*0.4835);color:rgba(43,43,43,.55);border:1px solid rgba(43,43,43,.25);' +
     'border-radius:calc(var(--f)*0.2857);padding:0 calc(var(--f)*0.1978);vertical-align:1px}',
   // 峰/谷计价档位：峰红、谷绿。
-  '.dsh-pet-bubble .pet-bub-tier{font-weight:700}',
-  '.dsh-pet-bubble .pet-bub-tier-peak{color:#e53935}',
-  '.dsh-pet-bubble .pet-bub-tier-idle{color:#2e9e4f}',
+  '.blue-fish-bubble .blue-fish-bub-tier{font-weight:700}',
+  '.blue-fish-bubble .blue-fish-bub-tier-peak{color:#e53935}',
+  '.blue-fish-bubble .blue-fish-bub-tier-idle{color:#2e9e4f}',
   // 展开态：每个窗口一行，进度条长度等于已用百分比。
   // 气泡默认不挡宿主页面，只有可展开的余额气泡才开命中。
-  '.dsh-pet-bubble.is-clickable{pointer-events:auto;cursor:pointer}',
+  '.blue-fish-bubble.is-clickable{pointer-events:auto;cursor:pointer}',
   // 收起态排不下「窗口名 + 条 + 百分比 + 重置」四列，展开态单独加宽并缩到 60% 字号。
-  '.dsh-pet-bubble.is-expanded{--f:calc(var(--f0)*0.6);width:min(calc(var(--f)*21),100%);max-width:100%}',
+  '.blue-fish-bubble.is-expanded{--f:calc(var(--f0)*0.6);width:min(calc(var(--f)*21),100%);max-width:100%}',
   // 淡出：换内容前先透明，换完去掉这个类再淡入。
-  '.dsh-pet-bubble.is-on.is-fading{opacity:0}',
-  '.dsh-pet-bubble .pet-bub-quota{display:flex;align-items:center;gap:calc(var(--f)*0.4);margin:calc(var(--f)*0.13) 0}',
-  '.dsh-pet-bubble .pet-bub-quota-label{flex:none;min-width:calc(var(--f)*1.9);font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
-  '.dsh-pet-bubble .pet-bub-quota-bar{flex:1 1 auto;height:calc(var(--f)*0.5);border-radius:calc(var(--f)*0.25);background:rgba(43,43,43,.12);overflow:hidden}',
-  '.dsh-pet-bubble .pet-bub-quota-fill{display:block;height:100%;border-radius:inherit;background:#2e9e4f}',
-  '.dsh-pet-bubble .pet-bub-quota-fill.pet-bub-quota-warn{background:#e8952f}',
-  '.dsh-pet-bubble .pet-bub-quota-fill.pet-bub-quota-crit{background:#e53935}',
-  '.dsh-pet-bubble .pet-bub-quota-used{flex:none;min-width:calc(var(--f)*2.2);text-align:right;font-variant-numeric:tabular-nums;font-weight:650;color:#1f1f1f}',
-  '.dsh-pet-bubble .pet-bub-quota-reset{flex:none;min-width:calc(var(--f)*2.6);text-align:right;font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
+  '.blue-fish-bubble.is-on.is-fading{opacity:0}',
+  '.blue-fish-bubble .blue-fish-bub-quota{display:flex;align-items:center;gap:calc(var(--f)*0.4);margin:calc(var(--f)*0.13) 0}',
+  '.blue-fish-bubble .blue-fish-bub-quota-label{flex:none;min-width:calc(var(--f)*1.9);font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
+  '.blue-fish-bubble .blue-fish-bub-quota-bar{flex:1 1 auto;height:calc(var(--f)*0.5);border-radius:calc(var(--f)*0.25);background:rgba(43,43,43,.12);overflow:hidden}',
+  '.blue-fish-bubble .blue-fish-bub-quota-fill{display:block;height:100%;border-radius:inherit;background:#2e9e4f}',
+  '.blue-fish-bubble .blue-fish-bub-quota-fill.blue-fish-bub-quota-warn{background:#e8952f}',
+  '.blue-fish-bubble .blue-fish-bub-quota-fill.blue-fish-bub-quota-crit{background:#e53935}',
+  '.blue-fish-bubble .blue-fish-bub-quota-used{flex:none;min-width:calc(var(--f)*2.2);text-align:right;font-variant-numeric:tabular-nums;font-weight:650;color:#1f1f1f}',
+  '.blue-fish-bubble .blue-fish-bub-quota-reset{flex:none;min-width:calc(var(--f)*2.6);text-align:right;font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.6)}',
   // 用量页（第三页）：三行两列占满展开态宽度，总量是唯一的大字。
   // 配色只给进/出两处强调，其余沿用次级灰——同页里超过两种彩色会盖过数值本身。
-  '.dsh-pet-bubble .pet-bub-usage{display:flex;flex-direction:column;gap:calc(var(--f)*0.22);margin:calc(var(--f)*0.1) 0}',
-  '.dsh-pet-bubble .pet-bub-usage-line{display:flex;align-items:baseline;justify-content:space-between;gap:calc(var(--f)*0.8);line-height:1.45}',
-  '.dsh-pet-bubble .pet-bub-usage-title{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.62)}',
-  '.dsh-pet-bubble .pet-bub-usage-total{font-size:calc(var(--f)*1.45);line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#1f1f1f}',
-  '.dsh-pet-bubble .pet-bub-usage-in{font-size:calc(var(--f)*0.7692);font-variant-numeric:tabular-nums;color:#3f6ea8}',
-  '.dsh-pet-bubble .pet-bub-usage-out{font-size:calc(var(--f)*0.7692);font-variant-numeric:tabular-nums;color:#b4703c}',
-  '.dsh-pet-bubble .pet-bub-usage-period{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.62)}',
-  '.dsh-pet-bubble .pet-bub-usage-spend{font-size:calc(var(--f)*0.7692);font-weight:650;font-variant-numeric:tabular-nums;color:#1f1f1f}',
+  '.blue-fish-bubble .blue-fish-bub-usage{display:flex;flex-direction:column;gap:calc(var(--f)*0.22);margin:calc(var(--f)*0.1) 0}',
+  '.blue-fish-bubble .blue-fish-bub-usage-line{display:flex;align-items:baseline;justify-content:space-between;gap:calc(var(--f)*0.8);line-height:1.45}',
+  '.blue-fish-bubble .blue-fish-bub-usage-title{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.62)}',
+  '.blue-fish-bubble .blue-fish-bub-usage-total{font-size:calc(var(--f)*1.45);line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#1f1f1f}',
+  '.blue-fish-bubble .blue-fish-bub-usage-in{font-size:calc(var(--f)*0.7692);font-variant-numeric:tabular-nums;color:#3f6ea8}',
+  '.blue-fish-bubble .blue-fish-bub-usage-out{font-size:calc(var(--f)*0.7692);font-variant-numeric:tabular-nums;color:#b4703c}',
+  '.blue-fish-bubble .blue-fish-bub-usage-period{font-size:calc(var(--f)*0.7692);color:rgba(43,43,43,.62)}',
+  '.blue-fish-bubble .blue-fish-bub-usage-spend{font-size:calc(var(--f)*0.7692);font-weight:650;font-variant-numeric:tabular-nums;color:#1f1f1f}',
   // 进出比例条：两段按真实占比分宽，颜色与下面的数字一一对应；占比极小时只留一条细线，不放大。
-  '.dsh-pet-bubble .pet-bub-usage-bar{display:flex;height:calc(var(--f)*0.3);border-radius:calc(var(--f)*0.15);overflow:hidden;background:rgba(43,43,43,.1);margin:calc(var(--f)*0.05) 0}',
-  '.dsh-pet-bubble .pet-bub-usage-bar-in{display:block;height:100%;background:#3f6ea8}',
-  '.dsh-pet-bubble .pet-bub-usage-bar-out{display:block;height:100%;background:#b4703c}',
+  '.blue-fish-bubble .blue-fish-bub-usage-bar{display:flex;height:calc(var(--f)*0.3);border-radius:calc(var(--f)*0.15);overflow:hidden;background:rgba(43,43,43,.1);margin:calc(var(--f)*0.05) 0}',
+  '.blue-fish-bubble .blue-fish-bub-usage-bar-in{display:block;height:100%;background:#3f6ea8}',
+  '.blue-fish-bubble .blue-fish-bub-usage-bar-out{display:block;height:100%;background:#b4703c}',
 ].join('\n');
 
 /** 注入气泡样式，每页只注入一次。 */
 function injectBubbleCss(): void {
-  if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-pet/bubble"]') === null) {
+  if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="blue-fish/bubble"]') === null) {
     const tag = document.createElement('style');
-    tag.dataset.plugin = 'dsh-pet';
-    tag.dataset.pluginCss = 'dsh-pet/bubble';
+    tag.dataset.plugin = 'blue-fish';
+    tag.dataset.pluginCss = 'blue-fish/bubble';
     tag.textContent = bubbleCss;
     document.head.appendChild(tag);
   }
@@ -117,14 +117,14 @@ function rowsToNodes(h: typeof jsx, rows: BalanceBubbleRow[]): ReactNode {
   // 含档位段时同一行内联渲染，峰/谷着色。
   if (rows.some((r) => r.role === 'tier')) {
     return h('div', {
-      className: 'pet-bub-row',
+      className: 'blue-fish-bub-row',
       children: rows.map((r, i) => {
         // 进度条行不会与档位段同现。
         if (r.role === 'quota') return null;
         if (r.role === 'tier') {
           return h('span', {
             key: i,
-            className: 'pet-bub-tier pet-bub-tier-' + r.tier,
+            className: 'blue-fish-bub-tier blue-fish-bub-tier-' + r.tier,
             children: r.text,
           });
         }
@@ -138,19 +138,19 @@ function rowsToNodes(h: typeof jsx, rows: BalanceBubbleRow[]): ReactNode {
     if (r.role === 'quota') {
       return h('div', {
         key: i,
-        className: 'pet-bub-quota',
+        className: 'blue-fish-bub-quota',
         children: [
-          h('span', { key: 'label', className: 'pet-bub-quota-label', children: r.label }),
+          h('span', { key: 'label', className: 'blue-fish-bub-quota-label', children: r.label }),
           h('span', {
             key: 'bar',
-            className: 'pet-bub-quota-bar',
+            className: 'blue-fish-bub-quota-bar',
             children: h('i', {
-              className: 'pet-bub-quota-fill pet-bub-quota-' + r.tone,
+              className: 'blue-fish-bub-quota-fill blue-fish-bub-quota-' + r.tone,
               style: { width: Math.max(0, Math.min(100, r.percent)) + '%' },
             }),
           }),
-          h('span', { key: 'used', className: 'pet-bub-quota-used', children: r.usedText }),
-          h('span', { key: 'reset', className: 'pet-bub-quota-reset', children: r.resetText }),
+          h('span', { key: 'used', className: 'blue-fish-bub-quota-used', children: r.usedText }),
+          h('span', { key: 'reset', className: 'blue-fish-bub-quota-reset', children: r.resetText }),
         ],
       });
     }
@@ -158,14 +158,14 @@ function rowsToNodes(h: typeof jsx, rows: BalanceBubbleRow[]): ReactNode {
     if (r.role === 'usage') {
       return h('div', {
         key: i,
-        className: 'pet-bub-usage',
+        className: 'blue-fish-bub-usage',
         children: [
           h('div', {
             key: 'head',
-            className: 'pet-bub-usage-line',
+            className: 'blue-fish-bub-usage-line',
             children: [
-              h('span', { key: 'title', className: 'pet-bub-usage-title', children: r.title }),
-              h('span', { key: 'total', className: 'pet-bub-usage-total', children: r.total }),
+              h('span', { key: 'title', className: 'blue-fish-bub-usage-title', children: r.title }),
+              h('span', { key: 'total', className: 'blue-fish-bub-usage-total', children: r.total }),
             ],
           }),
           // 进出比例条：宽度即真实占比，输入通常压倒性占多数，条偏单色属正常。
@@ -173,38 +173,38 @@ function rowsToNodes(h: typeof jsx, rows: BalanceBubbleRow[]): ReactNode {
             ? null
             : h('div', {
                 key: 'bar',
-                className: 'pet-bub-usage-bar',
+                className: 'blue-fish-bub-usage-bar',
                 children: [
-                  h('i', { key: 'in', className: 'pet-bub-usage-bar-in', style: { width: r.inputPercent + '%' } }),
+                  h('i', { key: 'in', className: 'blue-fish-bub-usage-bar-in', style: { width: r.inputPercent + '%' } }),
                   h('i', {
                     key: 'out',
-                    className: 'pet-bub-usage-bar-out',
+                    className: 'blue-fish-bub-usage-bar-out',
                     style: { width: 100 - r.inputPercent + '%' },
                   }),
                 ],
               }),
           h('div', {
             key: 'io',
-            className: 'pet-bub-usage-line',
+            className: 'blue-fish-bub-usage-line',
             children: [
-              h('span', { key: 'in', className: 'pet-bub-usage-in', children: r.input }),
-              h('span', { key: 'out', className: 'pet-bub-usage-out', children: r.output }),
+              h('span', { key: 'in', className: 'blue-fish-bub-usage-in', children: r.input }),
+              h('span', { key: 'out', className: 'blue-fish-bub-usage-out', children: r.output }),
             ],
           }),
           h('div', {
             key: 'foot',
-            className: 'pet-bub-usage-line',
+            className: 'blue-fish-bub-usage-line',
             children: [
-              h('span', { key: 'period', className: 'pet-bub-usage-period', children: r.period }),
-              h('span', { key: 'spend', className: 'pet-bub-usage-spend', children: r.spend }),
+              h('span', { key: 'period', className: 'blue-fish-bub-usage-period', children: r.period }),
+              h('span', { key: 'spend', className: 'blue-fish-bub-usage-spend', children: r.spend }),
             ],
           }),
         ],
       });
     }
-    if (r.role === 'error') return h('div', { key: i, className: 'pet-bub-err', children: r.text });
-    if (r.role === 'sub') return h('div', { key: i, className: 'pet-bub-row pet-bub-sub', children: r.text });
-    return h('div', { key: i, className: 'pet-bub-row', children: r.text });
+    if (r.role === 'error') return h('div', { key: i, className: 'blue-fish-bub-err', children: r.text });
+    if (r.role === 'sub') return h('div', { key: i, className: 'blue-fish-bub-row blue-fish-bub-sub', children: r.text });
+    return h('div', { key: i, className: 'blue-fish-bub-row', children: r.text });
   });
 }
 
@@ -286,11 +286,11 @@ export function makeBalanceBubble(rt: {
     // 可点：windows 可展开；custom 只有多于 1 页才可点；其余形态点开没有新内容。
     const clickable = state.ok && (state.shape === 'windows' || (isCustom && customClickable(state)));
     // 不可用状态是多行说明，套用碎碎念的窄字号变体。
-    const wrap = state.ok ? '' : ' dsh-pet-whisper';
+    const wrap = state.ok ? '' : ' blue-fish-whisper';
     // 展开态字号只属于内置 windows 的窗口明细与用量两页；custom 各页是对等页面，翻页不该切紧凑字号。
     return h('div', {
       className:
-        'dsh-pet-bubble' +
+        'blue-fish-bubble' +
         wrap +
         (on ? ' is-on' : '') +
         (clickable ? ' is-clickable' : '') +
@@ -362,7 +362,7 @@ export function makeWhisperBubble(rt: { h: typeof jsx }): (props: {
       : rowsToNodes(h, rows);
     return h('div', {
       className:
-        'dsh-pet-bubble dsh-pet-whisper' +
+        'blue-fish-bubble blue-fish-whisper' +
         (src ? ' ' + MEME_BUBBLE_CLASS : '') +
         (on ? ' is-on' : '') +
         (onClick ? ' is-clickable' : ''),
@@ -384,7 +384,7 @@ function voiceBadgeNode(h: typeof jsx, state: 'loading' | 'ready' | 'failed'): R
   return h('span', {
     key: 'voice',
     className:
-      'dsh-pet-voice-badge' + (state === 'loading' ? ' is-loading' : '') + (state === 'failed' ? ' is-failed' : ''),
+      'blue-fish-voice-badge' + (state === 'loading' ? ' is-loading' : '') + (state === 'failed' ? ' is-failed' : ''),
     'aria-hidden': 'true',
     children: state === 'loading' ? null : state === 'failed' ? '🔇' : '🔊',
   });

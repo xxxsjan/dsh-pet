@@ -16,7 +16,7 @@ const RETRIES = 3;
 /** 发起一次带超时的 fetch；失败抛错，是否重试由调用方决定。 */
 async function fetchOnce(url: string, key: string): Promise<Response> {
   return fetch(url, {
-    headers: { Authorization: 'Bearer ' + key, 'User-Agent': 'dsh-pet-balance' },
+    headers: { Authorization: 'Bearer ' + key, 'User-Agent': 'blue-fish-balance' },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 }

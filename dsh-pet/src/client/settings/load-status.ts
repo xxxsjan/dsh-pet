@@ -29,13 +29,13 @@ export function makeLoadStatus(rt: Pick<SettingsRuntime, 'h' | 't'>): FunctionCo
     const failed = props.loadState === 'error';
     return h('div', {
       role: failed ? 'alert' : 'status',
-      className: 'dsh-pet-cfg__actions',
+      className: 'blue-fish-cfg__actions',
       children: [
         h('span', { children: t(failed ? 'loadError' : 'loading') }),
         failed
           ? h('button', {
               type: 'button',
-              className: 'dsh-pet-cfg__btn',
+              className: 'blue-fish-cfg__btn',
               onClick: props.onRetry,
               children: t('retry'),
             })

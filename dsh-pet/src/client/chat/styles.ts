@@ -9,7 +9,7 @@
 import { PANEL_CSS } from './panel-css.ts';
 
 /** 样式标签的归属标记；同一 key 只注入一次。 */
-const STYLE_KEY = 'dsh-pet-chat-panel';
+const STYLE_KEY = 'blue-fish-chat-panel';
 
 /** 当前挂载数：多个 pane 可能同时挂载面板，靠引用计数决定何时移除样式标签。 */
 let mountedCount = 0;

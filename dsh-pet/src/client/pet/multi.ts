@@ -105,7 +105,7 @@ export function createPetMulti(
     useEffect(() => {
       const family = pets[0]?.font?.family;
       if (family === undefined) return;
-      document.documentElement.style.setProperty('--dsh-pet-font-family', fontStackOf(family));
+      document.documentElement.style.setProperty('--blue-fish-font-family', fontStackOf(family));
     }, [pets]);
 
     useEffect(() => {

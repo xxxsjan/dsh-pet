@@ -58,9 +58,9 @@ before(async () => {
   const home = join(dir, 'home');
   process.env.DSH_HOME = home;
   process.env.DSH_PET_IN_PROCESS = '1';
-  mkdirSync(join(home, 'dsh-pet/pet'), { recursive: true });
+  mkdirSync(join(home, 'blue-fish/pet'), { recursive: true });
   file = join(home, 'dsh-pet/main-config.jsonc');
-  packFile = join(home, 'dsh-pet/pet/pack-config.jsonc');
+  packFile = join(home, 'blue-fish/pet/pack-config.jsonc');
   writeFileSync(file, JSON.stringify({ trayEnabled: false, pets: [pet('alpha'), pet('beta')] }));
   const logger = { info() {}, warn() {}, error() {}, debug() {} };
   context = createStandaloneContext({ port: 0, logger });

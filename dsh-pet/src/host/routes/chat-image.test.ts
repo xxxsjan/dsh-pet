@@ -27,7 +27,7 @@ function makeDeps(sink?: PetImageSink): { deps: PetRouteDeps; calls: ChatCall[] 
   const deps = {
     configPaths: {},
     log: { error: () => {}, info: () => {}, warn: () => {}, debug: () => {} },
-    memoryPath: '/tmp/dsh-pet-memory.json',
+    memoryPath: '/tmp/blue-fish-memory.json',
     memoryRounds: () => 5,
     readMemory: async () => ({}),
     requirePet: () => ({ ok: true, petId: 'main', entry: 'main', conf: {} }),

@@ -53,27 +53,27 @@ export function makePetAvatarCell(rt: Pick<SettingsRuntime, 'h' | 't'>) {
 
   /** 头像图：两条分支共用同一份属性。 */
   const image = (src: string) =>
-    h('img', { className: 'dsh-pet-cfg__avatarImg', src, alt: t('avatarLabel'), loading: 'lazy' });
+    h('img', { className: 'blue-fish-cfg__avatarImg', src, alt: t('avatarLabel'), loading: 'lazy' });
 
   return function PetAvatarCell(props: PetAvatarCellProps) {
     if (props.onAvatar === undefined) {
-      return h('div', { className: 'dsh-pet-cfg__avatarCol', children: image(props.avatarSrc) });
+      return h('div', { className: 'blue-fish-cfg__avatarCol', children: image(props.avatarSrc) });
     }
     return h('div', {
-      className: 'dsh-pet-cfg__avatarCol',
+      className: 'blue-fish-cfg__avatarCol',
       children: h('div', {
-        className: 'dsh-pet-cfg__avatarPick',
+        className: 'blue-fish-cfg__avatarPick',
         ...tip(t('avatarHint')),
         children: [
           image(props.avatarSrc),
           h('span', {
             key: 'mask',
-            className: 'dsh-pet-cfg__avatarMask' + (props.avatarBusy ? ' is-busy' : ''),
+            className: 'blue-fish-cfg__avatarMask' + (props.avatarBusy ? ' is-busy' : ''),
             children: props.avatarBusy ? t('avatarUploading') : t('avatarChange'),
           }),
           h('input', {
             key: 'file',
-            className: 'dsh-pet-cfg__file',
+            className: 'blue-fish-cfg__file',
             type: 'file',
             accept: 'image/png,image/jpeg,image/webp,image/gif',
             disabled: props.avatarBusy || props.busy,
@@ -138,7 +138,7 @@ export function makePetIdentityFields(rt: SettingsRuntime) {
   };
 
   return function PetIdentityFields(props: PetFieldsProps) {
-    return h('div', { className: 'dsh-pet-cfg__grid3', children: cells(props) });
+    return h('div', { className: 'blue-fish-cfg__grid3', children: cells(props) });
   };
 }
 
@@ -160,7 +160,7 @@ export function makePetPositionFields(rt: SettingsRuntime) {
   return function PetPositionFields(props: PetFieldsProps) {
     const { pet, busy, onChange } = props;
     return h('div', {
-      className: 'dsh-pet-cfg__grid3',
+      className: 'blue-fish-cfg__grid3',
       children: [
         field(
           t('cornerLabel'),

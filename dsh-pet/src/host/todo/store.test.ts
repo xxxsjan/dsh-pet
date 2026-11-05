@@ -33,7 +33,7 @@ function makeStore(overrides: Partial<TodoStoreOptions> = {}): TodoStore {
 }
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), 'dsh-pet-todo-'));
+  dir = mkdtempSync(join(tmpdir(), 'blue-fish-todo-'));
 });
 
 beforeEach(() => {

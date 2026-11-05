@@ -35,11 +35,11 @@ export function makeFontCard(rt: SettingsRuntime): FunctionComponent<FontCardPro
   return function FontCard(props: FontCardProps) {
     const { busy, font } = props;
     return h('div', {
-      className: 'dsh-pet-cfg__card',
+      className: 'blue-fish-cfg__card',
       children: [
         cardHead(t('fontTitle'), t('fontHint')),
         h('div', {
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [
             field(
               t('fontFamilyLabel'),
@@ -68,7 +68,7 @@ export function makeFontCard(rt: SettingsRuntime): FunctionComponent<FontCardPro
           ],
         }),
         h('div', {
-          className: 'dsh-pet-cfg__grid2',
+          className: 'blue-fish-cfg__grid2',
           children: [toggleCell('fontFollowToggle', font.followPet, busy, (v) => props.onChange({ followPet: v }))],
         }),
       ],

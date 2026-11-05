@@ -18,7 +18,7 @@ const fallback = {
 
 describe('loadSettingsAssets —— 按 mtime 热读', () => {
   test('文件不存在时退回 fallback', async () => {
-    const assets = await loadSettingsAssets(join(tmpdir(), 'dsh-pet-no-shell.js'), fallback, {});
+    const assets = await loadSettingsAssets(join(tmpdir(), 'blue-fish-no-shell.js'), fallback, {});
     assert.equal(assets.page, settingsPage);
     assert.equal(assets.script, settingsScript);
     assert.equal(assets.style, settingsStyle);

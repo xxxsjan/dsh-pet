@@ -48,7 +48,7 @@ function dispatch(
         return;
       }
       if (shutdownSecurity) {
-        const supplied = req.headers['x-dsh-pet-token'];
+        const supplied = req.headers['x-blue-fish-token'];
         if (
           typeof supplied !== 'string' ||
           !/^[A-Za-z0-9_-]{43}$/.test(supplied) ||

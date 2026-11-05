@@ -11,10 +11,10 @@
  */
 
 /** 注入的样式表去重标记（与宠物页面 / 设置页同一套 `data-plugin-css` 约定）。 */
-const STYLE_TAG = 'dsh-pet/nav-icon.css';
+const STYLE_TAG = 'blue-fish/nav-icon.css';
 
 /** 打在目标行 `<button>` 上的标记属性：React 从不 diff 它，重渲染 / 切语言都不会掉。 */
-const MARK = 'data-dsh-pet-nav';
+const MARK = 'data-blue-fish-nav';
 
 /** 设置面板根节点：shell 用 `createPortal` 挂到 body 上。 */
 const PANEL_SELECTOR = '[data-shortcut-modal="settings"]';
@@ -121,7 +121,7 @@ function cssFor(glyph: string): string {
 function injectCss(doc: Document, glyph: string): void {
   if (doc.querySelector('style[data-plugin-css="' + STYLE_TAG + '"]') !== null) return;
   const tag = doc.createElement('style');
-  tag.dataset.plugin = 'dsh-pet';
+  tag.dataset.plugin = 'blue-fish';
   tag.dataset.pluginCss = STYLE_TAG;
   tag.textContent = cssFor(glyph);
   doc.head.appendChild(tag);

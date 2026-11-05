@@ -205,8 +205,7 @@ describe('createMemeImage —— 两端共用的配图节点', () => {
   test('两端选择器/变量都写在 shared 里（避免浏览器与桌面各写一份走样）', () => {
     assert.ok(MEME_BUBBLE_CSS.includes('.' + MEME_IMG_CLASS));
     assert.ok(MEME_BUBBLE_CSS.includes('.' + MEME_BUBBLE_CLASS));
-    // 尺寸同时兼容两端变量名：浏览器 --dsh-pet-size、桌面 --pet-size
-    assert.ok(MEME_BUBBLE_CSS.includes('--dsh-pet-size'));
-    assert.ok(MEME_BUBBLE_CSS.includes('--pet-size'));
+    // 尺寸锚 --blue-fish-size（浏览器与桌面统一）
+    assert.ok(MEME_BUBBLE_CSS.includes('--blue-fish-size'));
   });
 });

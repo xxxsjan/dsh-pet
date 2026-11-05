@@ -145,7 +145,7 @@ export function makeSelect(
       open && pos
         ? h('div', {
             ref: panelRef,
-            className: 'dsh-pet-sel__panel',
+            className: 'blue-fish-sel__panel',
             role: 'listbox',
             'aria-label': props.label,
             style: {
@@ -156,7 +156,7 @@ export function makeSelect(
               maxHeight: pos.maxHeight + 'px',
             },
             children: h('div', {
-              className: 'dsh-pet-sel__list',
+              className: 'blue-fish-sel__list',
               children: props.options.map((option, index) =>
                 h('button', {
                   key: option.id,
@@ -164,14 +164,14 @@ export function makeSelect(
                   role: 'option',
                   'aria-selected': option.id === props.value,
                   'data-row': index,
-                  className: 'dsh-pet-sel__item' + (index === active ? ' is-active' : ''),
+                  className: 'blue-fish-sel__item' + (index === active ? ' is-active' : ''),
                   onMouseMove: () => setActive(index),
                   onClick: () => commit(index),
                   children: [
-                    h('span', { key: 'n', className: 'dsh-pet-sel__name', children: option.label }),
+                    h('span', { key: 'n', className: 'blue-fish-sel__name', children: option.label }),
                     h('span', {
                       key: 'c',
-                      className: 'dsh-pet-sel__check',
+                      className: 'blue-fish-sel__check',
                       children: option.id === props.value ? '✓' : '',
                     }),
                   ],
@@ -183,12 +183,12 @@ export function makeSelect(
 
     return h('div', {
       ref: rootRef,
-      className: 'dsh-pet-sel',
+      className: 'blue-fish-sel',
       children: [
         h('button', {
           key: 'trigger',
           type: 'button',
-          className: INPUT_CLASS + ' dsh-pet-sel__trigger',
+          className: INPUT_CLASS + ' blue-fish-sel__trigger',
           disabled: props.disabled,
           'aria-haspopup': 'listbox',
           'aria-expanded': open,
@@ -196,8 +196,8 @@ export function makeSelect(
           onClick: toggle,
           onKeyDown: onTriggerKey,
           children: [
-            h('span', { key: 'l', className: 'dsh-pet-sel__label', children: currentLabel }),
-            h('span', { key: 'c', className: 'dsh-pet-sel__chevron' + (open ? ' is-open' : '') }),
+            h('span', { key: 'l', className: 'blue-fish-sel__label', children: currentLabel }),
+            h('span', { key: 'c', className: 'blue-fish-sel__chevron' + (open ? ' is-open' : '') }),
           ],
         }),
         panel,

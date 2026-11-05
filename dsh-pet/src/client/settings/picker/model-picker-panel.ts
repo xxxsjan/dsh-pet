@@ -56,7 +56,7 @@ export function buildModelPanel(view: ModelPanelView): ReturnType<typeof jsx> {
         : '';
   return h('div', {
     ref: view.panelRef,
-    className: 'dsh-pet-mp__panel',
+    className: 'blue-fish-mp__panel',
     role: 'menu',
     'aria-label': view.label,
     style: {
@@ -74,7 +74,7 @@ export function buildModelPanel(view: ModelPanelView): ReturnType<typeof jsx> {
           ? statusNode(h, 'empty', emptyHint, true)
           : h('div', {
               key: 'list',
-              className: 'dsh-pet-mp__list',
+              className: 'blue-fish-mp__list',
               role: 'group',
               children: view.rows.map((row, index) => rowNode(view, row, index)),
             }),
@@ -86,7 +86,7 @@ export function buildModelPanel(view: ModelPanelView): ReturnType<typeof jsx> {
 function statusNode(h: typeof jsx, key: string, text: string, live: boolean): ReturnType<typeof jsx> {
   return h('div', {
     key,
-    className: 'dsh-pet-mp__status',
+    className: 'blue-fish-mp__status',
     role: live ? 'status' : undefined,
     children: text,
   });
@@ -98,7 +98,7 @@ function searchNode(view: ModelPanelView): ReturnType<typeof jsx> {
   return h('input', {
     key: 'search',
     type: 'text',
-    className: 'dsh-pet-mp__search',
+    className: 'blue-fish-mp__search',
     role: 'searchbox',
     placeholder: t('modelSearch'),
     'aria-label': t('modelSearch'),
@@ -113,10 +113,10 @@ function searchNode(view: ModelPanelView): ReturnType<typeof jsx> {
 function rowNode(view: ModelPanelView, row: ModelRow, index: number): ReturnType<typeof jsx> {
   const { h, t } = view;
   if (row.kind === 'group') {
-    return h('div', { key: row.key, className: 'dsh-pet-mp__group', children: row.name });
+    return h('div', { key: row.key, className: 'blue-fish-mp__group', children: row.name });
   }
   if (row.kind === 'none') {
-    return h('div', { key: row.key, className: 'dsh-pet-mp__status', children: t('modelNone') });
+    return h('div', { key: row.key, className: 'blue-fish-mp__status', children: t('modelNone') });
   }
   const checked =
     row.kind === 'follow'
@@ -128,17 +128,17 @@ function rowNode(view: ModelPanelView, row: ModelRow, index: number): ReturnType
     role: 'menuitemradio',
     'aria-checked': checked,
     'data-row': index,
-    className: 'dsh-pet-mp__item' + (index === view.active ? ' is-active' : ''),
+    className: 'blue-fish-mp__item' + (index === view.active ? ' is-active' : ''),
     disabled: view.disabled,
     onClick: () => view.onPick(row),
     onMouseMove: () => view.onHover(index),
     children: [
       h('span', {
         key: 'n',
-        className: 'dsh-pet-mp__name',
+        className: 'blue-fish-mp__name',
         children: row.kind === 'follow' ? t('modelFollow') : row.model.name,
       }),
-      h('span', { key: 'c', className: 'dsh-pet-mp__check', children: checked ? '✓' : '' }),
+      h('span', { key: 'c', className: 'blue-fish-mp__check', children: checked ? '✓' : '' }),
     ],
   });
 }

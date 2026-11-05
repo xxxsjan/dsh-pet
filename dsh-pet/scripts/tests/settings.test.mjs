@@ -115,7 +115,7 @@ async function open(t, { get = customized, put, post, viewport = { width: 900, h
     });
   });
   await page.goto(`${url}/?lang=${lang}`);
-  await page.locator('.dsh-pet-cfg').waitFor();
+  await page.locator('.blue-fish-cfg').waitFor();
   return { page, writes };
 }
 
@@ -255,7 +255,7 @@ for (const lang of ['en', 'zh']) {
     test(`settings keep controls and toggle labels readable (${lang}, ${width}px)`, async (t) => {
       const { page } = await open(t, { viewport: { width, height: 800 }, lang });
       const clipped = await page
-        .locator('.dsh-pet-cfg__toggle>label>span')
+        .locator('.blue-fish-cfg__toggle>label>span')
         .evaluateAll((labels) =>
           labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent),
         );
@@ -274,15 +274,15 @@ for (const lang of ['en', 'zh']) {
 
 test('model picker remains anchored while the responsive settings panel is scrolled', async (t) => {
   const { page, writes } = await open(t, { viewport: { width: 900, height: 700 } });
-  const trigger = page.locator('.dsh-pet-mp__trigger').first();
+  const trigger = page.locator('.blue-fish-mp__trigger').first();
   await trigger.click();
   const panel = page.getByRole('menu');
   await panel.waitFor();
   for (const scrollY of [0, 120]) {
     await page.evaluate((y) => window.scrollTo(0, y), scrollY);
     await page.waitForFunction(() => {
-      const trigger = document.querySelector('.dsh-pet-mp__trigger').getBoundingClientRect();
-      const panel = document.querySelector('.dsh-pet-mp__panel').getBoundingClientRect();
+      const trigger = document.querySelector('.blue-fish-mp__trigger').getBoundingClientRect();
+      const panel = document.querySelector('.blue-fish-mp__panel').getBoundingClientRect();
       return Math.abs(panel.left - trigger.left) < 2 && panel.top >= 0 && panel.bottom <= innerHeight;
     });
   }
