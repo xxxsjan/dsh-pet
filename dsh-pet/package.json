@@ -64,6 +64,7 @@
     "ensure:electron": "node scripts/ensure-electron.mjs",
     "dist": "node scripts/dist.mjs",
     "pack:win": "node scripts/pack-win-zip.mjs",
+    "release:gitee": "node scripts/release-gitee-version.mjs",
     "standalone": "node lib/standalone.js",
     "bundle": "tsdown",
     "build:desktop-core": "node scripts/build-desktop-core.mjs",
