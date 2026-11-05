@@ -10,7 +10,7 @@
  * 本文件钉三件事：① 纯判定规则：darwin 一律不启用；win32/linux 维持原行为；探测子进程与
  * DSH_PET_FORCE_DSF='0' 各自的短路；强制值与渲染端缩放的两步换算；② 端到端不变量：macOS 的宠物
  * 尺寸必须等于配置值，而 Windows 150% 屏仍按 1.5 补偿；③ 源码守卫：平台例外只住在
- * dpi-linearization.js 里、main.js 只接线，且新模块进了发布必需清单（漏了 helper 启动即崩）。
+ * dpi-linearization.js 里、main.js 只接线（漏了 require 则 helper 启动即崩）。
  *
  * 用 Node 内置 test runner（node:test），不引入任何 npm 依赖。
  */
@@ -160,15 +160,5 @@ describe('源码守卫 —— main-dpi.js 只接线，规则住在 dpi-lineariza
   test('renderer 侧页面缩放仍取自 petScale()（两端共用一个来源）', () => {
     assert.ok(/setZoomFactor\(scale\)/.test(main), '窗口缩放必须来自 petScale()');
     assert.ok(/const scale = dpi\.petScale\(\)/.test(main), 'petScale() 必须在建窗前求值一次');
-  });
-});
-
-describe('守卫：dpi-linearization.js 必须在发布必需清单里', () => {
-  test('prepack-check.js 的 required 含它（main.js require，缺了会启动即崩）', () => {
-    const src = readSource('../../scripts/prepack-check.js');
-    assert.ok(
-      /'runtime\/electron-helper\/dpi-linearization\.js'/.test(src),
-      '漏了它，npm 包里就少一个 main.js 必需的模块',
-    );
   });
 });

@@ -72,14 +72,14 @@ dsh plugin --profile web add file:D:/path/to/dsh-pet/dsh-pet
 
 > 中间产物（step01-04）由脚本生成、不入仓库；`video/` 源视频和脚本是成果、入库维护。
 
-## 🎯 发布（单一 webm 格式）
+## 🎯 构建与素材格式（单一 webm）
 
-插件只发布一个 npm 包、一个素材格式（webm）；`files` 收敛为固定清单（lib / src / assets/webm / runtime/electron-helper / assets/fonts / assets/pic / assets/config.jsonc / scripts/ensure-electron.mjs / cordis.patch.yml，见 `prepare.js`；浏览器与桌面模式共用，包体最小）：
+本仓库不以 npm 包发布；本地构建后用 `dsh plugin add file:…` 安装。播放素材统一为 webm（浏览器与桌面模式共用）：
 
 ```sh
 cd dsh-pet
-npm publish --tag latest   # prepack 自动执行构建（完整产物 + 收敛 files），无需手动构建
+npm run build   # tsdown → lib + 桌面 shared-core
 ```
 
 - client 端按运行时判断播放扩展名：macOS WebKit（Safari/WKWebView）自动用 `.mov`，其余用 `.webm`
-- 需要 Safari/HEVC 版（macOS）：mov 素材官方发布在 GitHub Release `assets-mov`，下载解压进 `main-animation/mov/` 即可
+- 需要 Safari/HEVC 版（macOS）：mov 素材发布在 GitHub Release `assets-mov`，下载解压进 `main-animation/mov/` 即可

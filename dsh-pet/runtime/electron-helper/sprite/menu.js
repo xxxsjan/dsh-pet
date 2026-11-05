@@ -22,7 +22,8 @@ Object.assign(PetSprite.prototype, {
     this.stopMove(); // 菜单悬停期间宠物不漫游
     // 桌面专属工具根项 + 共享菜单树（动作 → 分类 → 具体动画）。碎碎念/对话无条件显示：手动触发
     // 不受 whisperEnabled 限制（该字段只影响自动轮询）。首项文案与去向随宿主形态变，见 OPEN_LABEL。
-    // 顺序：打开软件 / 余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
+    // 顺序：打开软件 / 余额 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
+    // 待办走 D 快捷键，不进右键菜单。
     const tools = [
       {
         label: OPEN_LABEL[OPEN_TARGET],
@@ -31,8 +32,6 @@ Object.assign(PetSprite.prototype, {
       },
       // 「查看余额」无条件显示：关了 balanceEnabled 的宠物也能点，手动请求不受开关限制，点了一定给答复。
       { label: '查看余额', action: 'show-balance' },
-      // 「待办事项」是待办面板的唯一入口（单击宠物不再弹面板），排在余额之后。
-      { label: '待办事项', action: 'todo', hint: S.TODO_HOTKEY_HINT },
       { label: '碎碎念', action: 'whisper' },
       { label: '对话', action: 'chat', hint: S.CHAT_HOTKEY_HINT },
     ];

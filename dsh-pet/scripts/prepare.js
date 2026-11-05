@@ -1,21 +1,18 @@
 #!/usr/bin/env node
 /**
- * 发布前微调：跑构建（tsdown → lib、共享层 → shared-core.js），
- * 再把 package.json 的 files 收敛成发布清单。幂等：跑一次即定格，再跑结果不变，无需备份或恢复。
+ * 本地构建：跑 tsdown → lib、共享层 → shared-core.js。
  *
  * 类型声明（npm run types）在此跳过：开发期 build 不被 gen-types 卡住；需要声明时单独跑 `npm run types`。
- * 只发布单一 webm 格式（VP9-alpha），浏览器与桌面 Helper 共用，源码写死 .webm、发布期不做注入；
- * Safari/HEVC 兼容由仓库保留的流水线支持、需 fork 后自行启用，不参与本插件发布链。
+ * 只构建单一 webm 格式（VP9-alpha），浏览器与桌面 Helper 共用；
+ * Safari/HEVC 兼容由仓库保留的流水线支持、需 fork 后自行启用。
  * 依赖 package.json 里的 bundle / build:desktop-core 与本地 node_modules。
  * @module dsh-pet/scripts/prepare
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const PKG = join(ROOT, 'package.json');
 
 // 用 cmd /c 跑整条 npm 命令：Windows 下 npm 是 npm.cmd，spawnSync 无法直接执行 .cmd
 // （命令行固定、无用户输入，没有注入风险）。
@@ -38,27 +35,4 @@ if (buildCore.status !== 0) {
 
 // 跳过类型声明：避免开发期 build 被 gen-types 拦住；需要时手动 `npm run types`。
 console.log('[prepare] skip types (run `npm run types` separately if needed)');
-
-// files 收敛为发布清单：这是本脚本唯一的写操作，幂等，不备份旧值。
-const pkg = JSON.parse(readFileSync(PKG, 'utf8'));
-const keep = [
-  'lib',
-  'src',
-  'assets/webm',
-  'runtime/electron-helper',
-  'assets/fonts',
-  'assets/pic',
-  // 表情包：宿主半侧只从包内 assets/memes 读图，并与配置的 memes 键配对，漏掉即配图功能整体失效。
-  // 本数组每次发布都覆盖 package.json 的 files，所以必须加在这里，只在 package.json 里加一行无效。
-  'assets/memes',
-  // 点击音效：宿主半侧的 /sound 路由只读包内这一份，漏掉则点击静音；同 memes，必须加在本数组。
-  'assets/sound',
-  'assets/config.jsonc',
-  // 插件图标：package.json 顶层 icon 指向这张图；缺图时读取方 dsh-app-boot 的 iconOf 会抛错、退回默认插画。
-  'assets/logo.png',
-  'scripts/ensure-electron.mjs',
-  'cordis.patch.yml',
-];
-writeFileSync(PKG, JSON.stringify({ ...pkg, files: keep }, null, 2) + '\n', 'utf8');
-console.log(`[prepare] ✓ package.json files=[${keep.join(', ')}]`);
-console.log('[prepare] ready to publish: npm publish --tag latest');
+console.log('[prepare] build complete');

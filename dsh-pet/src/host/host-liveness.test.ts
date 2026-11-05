@@ -8,7 +8,7 @@
  *
  * 本文件钉三件事：① 纯判定规则（宿主没了只认 ESRCH；管道断开只认 EPIPE / ERR_STREAM_DESTROYED）；
  * ② main.js 的接线：管道守卫 + 宿主探测都在位、都只经唯一出口、且守卫早于任何一次写；
- * ③ 宿主侧确实把 pid 注进去了，且新文件在发布必需清单里（缺了 main.js 启动即崩）。
+ * ③ 宿主侧确实把 pid 注进去了，且 main.js 仍 require 该模块（缺了启动即崩）。
  *
  * helper 是随包发行的手写 JS，开发机上跑不起 Electron，接线只能靠源码断言 + 纯函数测试；
  * 用 Node 内置 test runner（node:test），不引入任何 npm 依赖。
@@ -191,9 +191,9 @@ describe('守卫：宿主侧必须把 pid 注入（否则 B 永远不生效）',
   });
 });
 
-describe('守卫：host-liveness.js 必须在发布必需清单里', () => {
-  test('prepack-check.js 的 required 含它（main.js require，缺了会启动即崩）', () => {
-    const src = readSource('../../scripts/prepack-check.js');
-    assert.ok(/'runtime\/electron-helper\/host-liveness\.js'/.test(src), '漏了它，npm 包里就少一个 main.js 必需的模块');
+describe('守卫：main.js 必须 require host-liveness.js', () => {
+  test('main.js 接线含它（缺了会启动即崩）', () => {
+    const src = readSource('../../runtime/electron-helper/main.js');
+    assert.ok(/require\('\.\/host-liveness\.js'\)/.test(src), '漏了它，桌面 Helper 启动即崩');
   });
 });

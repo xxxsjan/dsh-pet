@@ -185,7 +185,7 @@ export function pickDisplayed(entries: Iterable<SessionWorkEntry>): SessionWorkE
 export class WorkStatusStore {
   // 类字段一律 declare + 构造器赋值：带初始化器的类字段在 target es2020 下要被降级，
   // 降级产物会 import 未声明的 @oxc-project/runtime helper——宿主加载插件树时直接
-  // ERR_MODULE_NOT_FOUND，整个 profile 起不来（scripts/prepack-check.js 第 8 项守着这条）。
+  // ERR_MODULE_NOT_FOUND，整个 profile 起不来。
   declare private readonly sessions: Map<string, SessionWorkEntry>;
   declare private readonly snap: WorkStatusSnapshot;
 

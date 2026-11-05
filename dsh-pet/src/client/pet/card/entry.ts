@@ -15,7 +15,7 @@ import {
 import { captureDisplayFrame } from '../../../shared/chat/capture.ts';
 import { displayOfHotkey } from '../../../shared/display-hotkey.ts';
 import { SLEEP_HOTKEY_HINT, isSleepHotkey } from '../../../shared/sleep-hotkey.ts';
-import { TODO_HOTKEY_HINT, isTodoHotkey } from '../../../shared/todo/hotkey.ts';
+import { isTodoHotkey } from '../../../shared/todo/hotkey.ts';
 import type { PetDisplay } from '../../../shared/types.ts';
 import { bindOpenChat } from './open-chat.ts';
 import { registerPetChatHandle } from './registry.ts';
@@ -351,11 +351,10 @@ export function createCardEntry(rt: CardEntryRuntime) {
       const sleepItem: MenuNode = asleep
         ? { label: '起来', action: 'wake', hint: SLEEP_HOTKEY_HINT }
         : { label: '睡觉', action: 'sleep', hint: SLEEP_HOTKEY_HINT };
-      // 顺序与桌面端同一排法：余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 显示位置 / 回到初始位置。
-      // 桌面专属的两项（打开软件、重载配置）在网页端没有对应动作，不出现。
+      // 顺序与桌面端同一排法：余额 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 显示位置 / 回到初始位置。
+      // 待办走 D 快捷键，不进右键菜单。桌面专属的两项（打开软件、重载配置）在网页端没有对应动作，不出现。
       const tools: MenuNode[] = [
         { label: '查看余额', action: 'show-balance' },
-        { label: '待办事项', action: 'todo', hint: TODO_HOTKEY_HINT },
         { label: '碎碎念', action: 'whisper' },
         { label: '对话', action: 'chat', hint: CHAT_HOTKEY_HINT },
         ...(memes ? [memes] : []),

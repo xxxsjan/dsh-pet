@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 用本地 tsc 生成 lib/types 下的类型声明，发布链的 prepack 门禁需要它。
+ * 用本地 tsc 生成 lib/types 下的类型声明。
  *
  * tsdown 的 dts 管线与双入口（host/client）不兼容，开启即构建失败，所以声明单独产出。
  * 目录布局必须与 package.json exports 的 types 路径一致：宿主半侧落在 lib/types/index.d.ts，

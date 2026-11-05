@@ -1,9 +1,6 @@
 # dsh-pet 🐾
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/dsh-pet"><img alt="npm version" src="https://img.shields.io/npm/v/dsh-pet?label=npm&color=blue"></a>
-  <a href="https://www.npmjs.com/package/dsh-pet"><img alt="npm monthly downloads" src="https://img.shields.io/npm/dm/dsh-pet?label=%E6%9C%88%E4%B8%8B%E8%BD%BD&color=brightgreen"></a>
-  <a href="https://www.npmjs.com/package/dsh-pet"><img alt="total downloads" src="https://img.shields.io/npm/dt/dsh-pet?label=%E6%80%BB%E4%B8%8B%E8%BD%BD&color=success"></a>
   <a href="https://github.com/PC2005-cloud/dsh-pet/releases"><img alt="release downloads" src="https://img.shields.io/github/downloads/PC2005-cloud/dsh-pet/total?label=Release%20%E4%B8%8B%E8%BD%BD&color=5C6BC0"></a>
   <a href="https://github.com/PC2005-cloud/dsh-pet"><img alt="stars" src="https://img.shields.io/github/stars/PC2005-cloud/dsh-pet?style=social"></a>
   <a href="https://github.com/PC2005-cloud/dsh-pet/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/PC2005-cloud/dsh-pet?color=orange"></a>
@@ -29,16 +26,21 @@ AI 生成动画的配方     源视频 → 透明动画的管线    运行在 DS
 
 ## 快速开始（安装插件）
 
-两种装法，任选一种：
+本仓库**不以 npm 包发布**，请从源码安装到 DSH：
 
-- **图形化（桌面应用内）**：打开「插件管理」页，在安装框里填 `dsh-pet`，不用开终端。
-- **命令行**：`dsh plugin --profile <profile> add dsh-pet`，`<profile>` 按你在用的界面填——`dsh web` 填 `web`，桌面应用（Electron 版）填 `desktop`。
+```sh
+git clone https://github.com/PC2005-cloud/dsh-pet.git
+cd dsh-pet/dsh-pet
+npm install
+npm run build
+dsh plugin --profile web add file:D:/path/to/dsh-pet/dsh-pet
+```
 
-**不想装 DSH？** Release 里提供 Windows x64 绿色包 `dsh-pet-win-x64.zip`，解压后双击 `dsh-pet.exe` 就能跑——那是独立模式，不依赖 DSH 环境。
+`<profile>` 按界面填：`dsh web` → `web`，桌面应用 → `desktop`。装完**重开 DSH** 才生效。
 
-装完**重开 DSH**（`dsh web` 用户则重启 `dsh web`）才生效——运行中的进程持有内存里的旧插件。宠物默认落在界面右上角。
+**不想装 DSH？** Release 里提供 Windows x64 绿色包 `dsh-pet-win-x64.zip`，解压后双击 `dsh-pet.exe` 就能跑。
 
-前置要求、源码安装、独立模式的用法与打包、Electron 首次下载、装完会看到什么，见 **[INSTALL.md](INSTALL.md)**。
+前置要求、独立模式、Electron 首次下载等细节见 **[INSTALL.md](INSTALL.md)**。
 
 ## 插件功能
 
@@ -297,7 +299,7 @@ AI 提示词 → 绿幕视频 → 透明动画 → 插件，换角色、换动�
 ├── assets/            # 仓库展示用截图
 ├── tools/             # 开发工具：API 调试页、cordis-probe mock 服务商、DPI 探针
 ├── .github/workflows/ # CI：Safari/HEVC 转码流水线（macOS runner，手动触发 → 发布 assets-mov Release）
-├── dsh-pet/           # ③ 插件（可独立 npm 发布）
+├── dsh-pet/           # ③ 插件（源码安装，不发 npm）
 │   ├── src/
 │   │   ├── host/       # 宿主半侧：配置 / 路由 / 余额 / 工作状态
 │   │   ├── client/     # 浏览器半侧：宠物渲染 / 动画链 / 设置页
@@ -306,7 +308,7 @@ AI 提示词 → 绿幕视频 → 透明动画 → 插件，换角色、换动�
 │   ├── lib/            # 构建产物（npm run build 生成，不入库）
 │   ├── runtime/        # 桌面模式运行壳（Electron 透明窗）
 │   ├── assets/         # webm 动画 / preview GIF / 字体 / 图标 / config.jsonc 默认配置
-│   └── scripts/        # 构建、发布与开发脚本
+│   └── scripts/        # 构建与开发脚本
 └── LICENSE             # MIT
 ```
 
@@ -314,8 +316,8 @@ AI 提示词 → 绿幕视频 → 透明动画 → 插件，换角色、换动�
 
 欢迎提 [issue](https://github.com/PC2005-cloud/dsh-pet/issues) 与 PR——bug、体验问题随时反馈。**新功能请先开 issue** 说明使用场景，确认后再动手，不要在确认前直接提交实现 PR。这个插件专注桌宠与 DSH 本身，偏离太远的需求一般不会做。动手前也请先翻一眼 [提交记录](https://github.com/PC2005-cloud/dsh-pet/commits/main)，确认不是已经修掉的同款问题（有些问题可能已经在 `main` 上修好了，只是还没发版）。
 
-- **小修不单独发版**：不影响使用的小 bug 与优化会**累计**到下一个版本一起发，避免版本更迭过于频繁。所以「`main` 上已经修了」不等于「你装的这版已经包含」——`latest` 没更新时，以 `main` 的提交记录为准。
-- **想立刻用上未发布的修复**：按 [INSTALL.md](INSTALL.md) 的「从源码安装」把插件指向本地仓库即可；注意**宿主半侧**的代码改动要**重开 DSH** 才生效（浏览器半侧刷新页面即可）。
+- **小修不单独发版**：不影响使用的小 bug 与优化会**累计**后再发 GitHub Release（独立模式绿色包），避免过于频繁。所以「`main` 上已经修了」不等于「你本地装的那份已经包含」——以 `main` 的提交记录为准，源码安装可随时拉最新。
+- **想立刻用上修复**：按 [INSTALL.md](INSTALL.md) 把插件指向本地仓库即可；注意**宿主半侧**的代码改动要**重开 DSH** 才生效（浏览器半侧刷新页面即可）。
 - **报 bug 时请带上**：插件版本、`dsh` 版本、操作系统、复现步骤（有日志或截图更好）。
 
 ## 许可
