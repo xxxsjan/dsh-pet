@@ -1,7 +1,7 @@
 /**
- * 单只宠物的卡片：选择器、增删与这只宠物的字段编辑（含头像行与人设）。
+ * 单只宠物的卡片：选择器与这只宠物的字段编辑（含头像行与人设）。
  *
- * 只改 state.pets 里的草稿，不直接写盘——保存与草稿装配见 ./pets。
+ * 增删入口暂藏；只改 state.pets 里的草稿，不直接写盘——保存与草稿装配见 ./pets。
  * @module dsh-pet/src/standalone/settings-page/script/pet-card
  */
 
@@ -17,11 +17,8 @@ function petBar() {
   });
   picker.root.id = 'pet-picker';
   picker.root.firstElementChild.setAttribute('aria-label', '选择宠物');
-  return make('div', { class: 'petBar' }, [
-    picker.root,
-    button('新增', addPet),
-    button('删除', removePet, { danger: true }),
-  ]);
+  // 增删入口暂藏：只保留切换当前宠物；addPet / removePet 仍保留以便以后恢复。
+  return make('div', { class: 'petBar' }, [picker.root]);
 }
 
 function addPet() {
@@ -82,8 +79,7 @@ function petCard() {
   const pet = list[state.petIndex];
   if (!pet) {
     return card('宠物', null, [
-      make('p', { class: 'empty', text: '这个条目下还没有实例，点「新增」加一只。' }),
-      make('div', { class: 'testRow' }, [button('新增', addPet)]),
+      make('p', { class: 'empty', text: '这个条目下还没有实例。' }),
     ]);
   }
   if (!pet.position) pet.position = { corner: 'bottom-right', marginX: 40, marginY: 40 };

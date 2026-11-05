@@ -2,7 +2,7 @@
  * 「桌宠配置」面板的全局部分：开关、外观、物理、对话上下文与落盘位置。
  *
  * 全部读写 state.globals（main 条目的全局字段），由 ./pets 的保存一并提交。
- * 配置页卡片按 builder 数组返回；语音卡由 {@link renderPetsPanel} 直接挂进瀑布流。
+ * 配置页卡片按 builder 数组返回；语音卡由 {@link renderVoicePanel} 挂到侧栏「语音」分区。
  * @module dsh-pet/src/standalone/settings-page/script/globals
  */
 
@@ -207,13 +207,13 @@ function voiceCard() {
       setGlobal('voiceProvider', next);
       const opts = voiceOptionsForProvider(next);
       if (!opts.some((opt) => opt.value === g.voiceName)) setGlobal('voiceName', defaultVoiceForProvider(next));
-      renderPetsPanel();
+      renderVoicePanel();
     }),
     ...fishRows,
     selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '切换引擎、模型或 Key 后请先保存再试听；只换音色可直接试。'),
     voicePreviewRow(),
     numberField('g-voice-rate', '语速（0.5–2）', g.voiceRate == null ? 1 : g.voiceRate, (value) => setGlobal('voiceRate', clampNumber(value, 0.5, 2, 1)), { min: 0.5, max: 2, step: 0.05, hint: '1 为原速；会重新合成，试听前建议先保存。' }),
-    numberField('g-voice-volume', '音量（0–4，最高 400%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 4, 1)), { min: 0, max: 4, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
+    numberField('g-voice-volume', '音量（0–2，最高 200%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 2, 1)), { min: 0, max: 2, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
     toggleRow('g-voice-whisper', '周期碎碎念也念出来', '关掉只影响周期碎碎念，手动对话照常发声。', g.voiceWhisperEnabled, (value) => setGlobal('voiceWhisperEnabled', value)),
     toggleRow('g-voice-todo', '待办提醒也念出来', '关掉只影响待办提醒的朗读。', g.voiceTodoEnabled, (value) => setGlobal('voiceTodoEnabled', value)),
   ]);
@@ -246,7 +246,7 @@ function physicsCard() {
 
 function modelCard() {
   const g = state.globals;
-  return card('对话上下文', '模型接入在本页「模型连接」卡；这里只管对话保留多少上下文。', [
+  return card('对话上下文', '模型接入在侧栏「模型」；这里只管对话保留多少上下文。', [
     make('div', { class: 'grid2' }, [
       numberField('g-memory', '对话记忆轮数', g.chatMemoryRounds, (value) => setGlobal('chatMemoryRounds', Math.round(clampNumber(value, 0, 100, 0))), { min: 0, max: 100, step: 1, hint: '0 表示不带历史。' }),
       numberField('g-image-limit', '配图张数上限', g.chatImageLimit, (value) => setGlobal('chatImageLimit', Math.round(clampNumber(value, 0, 50, 0))), { min: 0, max: 50, step: 1, hint: '0 表示不限制。' }),

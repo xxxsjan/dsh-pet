@@ -197,7 +197,7 @@ export const de: Record<Key, string> = {
     'Absoluter Faktor 0,5–2: 1 ist Normaltempo. Das Audio wird neu synthetisiert (wirkt auf den Cache-Schlüssel); nach dem Speichern gilt er für die folgenden Ausgaben.',
   voiceVolumeLabel: 'Lautstärke',
   voiceVolumeHint:
-    'Wiedergabelautstärke 0–4: 1 = 100 %, 4 = 400 % (über 1 per Verstärkung). Ändert nur die Lautheit und synthetisiert kein Audio neu. Bei ausgeschaltetem Hauptschalter ohne Wirkung.',
+    'Wiedergabelautstärke 0–2: 1 = 100 %, 2 = 200 % (über 1 per Verstärkung). Ändert nur die Lautheit und synthetisiert kein Audio neu. Bei ausgeschaltetem Hauptschalter ohne Wirkung.',
   physicsTitle: 'Physik (Zieh- und Wurfgefühl)',
   physicsHint:
     'Globaler Standard für alle Pets (ein Pet-Pack kann ihn in seiner Art-Datei überschreiben); wird beim „Speichern" in die Benutzerkonfiguration geschrieben (kein sofortiges Schreiben). Im Browser sofort wirksam, im Desktop-Modus, sobald das Speichern die Pet-Fenster neu lädt.',

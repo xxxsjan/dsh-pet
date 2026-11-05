@@ -169,7 +169,7 @@ export function makePetConfigSection(
     const [voiceEnabled, setVoiceEnabled] = useState(false);
     const [voiceProvider, setVoiceProvider] = useState<'edge' | 'fish'>('edge');
     const [voiceName, setVoiceName] = useState('zh-CN-XiaoyiNeural');
-    // 播放音量（全局系数 0–4）：初值 1 = 100%，加载后由成品值覆盖。
+    // 播放音量（全局系数 0–2）：初值 1 = 100%，加载后由成品值覆盖。
     const [voiceVolume, setVoiceVolume] = useState(1);
     const [voiceRate, setVoiceRate] = useState(1);
     // 语音的两个细分开关（周期碎碎念 / 待办提醒）：与总开关同一套语义，初值 false 是内置默认。

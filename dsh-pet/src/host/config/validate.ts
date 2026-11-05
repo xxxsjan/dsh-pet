@@ -180,7 +180,7 @@ export function topFieldValid(key: string, value: unknown): boolean {
       // 音色：Edge 白名单，或 Fish 内置 / 合法 Voice ID 格式（自定义是否入目录由 speak 再判）
       return typeof value === 'string' && isKnownVoice(value);
     case 'voiceVolume':
-      // 播放音量系数：0–4（400%）；>1 由播放侧 Web Audio 增益补，越界即非法
+      // 播放音量系数：0–2（200%）；>1 由播放侧 Web Audio 增益补，越界即非法
       return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= VOICE_VOLUME_MAX;
     case 'voiceRate':
       // 绝对语速：0.5–2（与 Fish 倍率 / Edge ±50%…+100% 对齐）

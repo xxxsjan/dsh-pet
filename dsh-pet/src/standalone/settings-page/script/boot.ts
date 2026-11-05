@@ -1,7 +1,7 @@
 /**
  * 设置页启动：分区切换、初次加载与保存按钮接线。
  *
- * 配置面板瀑布流含语音、模型连接与桌宠卡：桌宠/语音读 /config（共用顶栏保存），模型读 /standalone-ai/settings。
+ * 配置 / 语音读 /config（共用顶栏保存）；模型在侧栏独立分区（读 /standalone-ai/settings）。
  * 缺令牌时只提示、不发任何请求——本页所有写操作都依赖那次运行有效的凭证。
  * @module dsh-pet/src/standalone/settings-page/script/boot
  */
@@ -64,13 +64,15 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
-  // 配置保存挂在顶栏标题旁，只在配置分区显示。
+  // 配置与语音共用顶栏 pet-save（/config）；模型用顶栏 save（/standalone-ai/settings）。
   const petSave = byId('pet-save');
-  if (petSave) petSave.hidden = name !== 'config';
+  if (petSave) petSave.hidden = name !== 'config' && name !== 'voice';
+  const modelSave = byId('save');
+  if (modelSave) modelSave.hidden = name !== 'model';
 }
 
 function wireTabs() {
-  // 只绑分区 tab；侧栏外链（如抖音弹幕）无 data-tab，交给浏览器跳转。
+  // 只绑分区 tab；侧栏若有外链（无 data-tab）交给浏览器跳转。
   const cells = Array.prototype.slice.call(document.querySelectorAll('.navCell[data-tab]'));
   cells.forEach((cell, index) => {
     cell.addEventListener('click', () => selectTab(cell.dataset.tab));

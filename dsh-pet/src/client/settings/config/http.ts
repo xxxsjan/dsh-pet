@@ -45,7 +45,7 @@ export interface SaveFields {
   voiceProvider: 'edge' | 'fish';
   /** 语音音色 id（随引擎变化：Edge 白名单或 Fish Voice ID）。 */
   voiceName: string;
-  /** 播放音量系数：0–4，1 = 100%，4 = 400%；>1 用 Web Audio 增益。 */
+  /** 播放音量系数：0–2，1 = 100%，2 = 200%；>1 用 Web Audio 增益。 */
   voiceVolume: number;
   voiceRate: number;
   /** 周期碎碎念要不要念出来。 */

@@ -197,7 +197,7 @@ export const pt: Record<Key, string> = {
     'Multiplicador absoluto 0,5–2: 1 é a velocidade normal. Ressintetiza o áudio (afeta a chave de cache); vale para as falas seguintes após salvar.',
   voiceVolumeLabel: 'Volume',
   voiceVolumeHint:
-    'Volume de reprodução 0–4: 1 = 100%, 4 = 400% (acima de 1, amplificado por ganho). Altera apenas a intensidade e não sintetiza o áudio de novo. Com o interruptor geral desligado, não tem efeito.',
+    'Volume de reprodução 0–2: 1 = 100%, 2 = 200% (acima de 1, amplificado por ganho). Altera apenas a intensidade e não sintetiza o áudio de novo. Com o interruptor geral desligado, não tem efeito.',
   physicsTitle: 'Física (sensação de arrastar e arremessar)',
   physicsHint:
     'Padrão global, compartilhado por todos os pets (um pet pack pode sobrescrever no arquivo do próprio tipo); gravado na configuração do usuário ao "Salvar" (nunca na hora). No navegador vale na hora; no desktop vale quando o "Salvar" recarrega as janelas do pet.',

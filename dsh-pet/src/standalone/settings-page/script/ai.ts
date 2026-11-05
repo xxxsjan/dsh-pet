@@ -161,6 +161,7 @@ function wireSave(form, save, status) {
     if (!form.reportValidity()) return;
     save.disabled = true;
     setStatus(status, '正在保存到本机…');
+    flashSaveHint('正在保存到本机…');
     const input = {
       protocol: protocolSelect ? protocolSelect.getValue() : 'openai-compatible',
       baseUrl: byId('baseUrl').value.trim(),
@@ -172,8 +173,11 @@ function wireSave(form, save, status) {
     try {
       populateAi(await aiRequest('POST', input));
       setStatus(status, '已保存到本机。', 'ok');
+      flashSaveHint('已保存到本机。', 'ok');
     } catch (error) {
-      setStatus(status, error && error.message ? error.message : String(error), 'error');
+      const message = error && error.message ? error.message : String(error);
+      setStatus(status, message, 'error');
+      flashSaveHint(message, 'error');
     } finally {
       save.disabled = false;
     }

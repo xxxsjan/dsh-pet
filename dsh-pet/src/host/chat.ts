@@ -108,6 +108,8 @@ export interface ChatGenerateInput {
   readonly preferred?: ModelRef;
   /** 本轮附带的图片；缺省 = 纯文本请求，数据路径与加入图片前一致。 */
   readonly image?: PetImageRef;
+  /** 单次生成超时（ms）；缺省 {@link TIMEOUT_MS}。弹幕等高频路径可缩短，超时即失败跳过。 */
+  readonly timeoutMs?: number;
 }
 
 /**
@@ -135,8 +137,22 @@ export async function generateChat(input: ChatGenerateInput): Promise<ChatGenera
   // 重试一次——那才是用户当前真正在用的模型，报错更有意义。
   // 兜底文案与失败分支同源，避免两处字面量漂移
   let last: ChatGenerateResult = { ok: false, reason: 'generate-error', message: noTextReason(undefined) };
+  const timeoutMs =
+    typeof input.timeoutMs === 'number' && Number.isFinite(input.timeoutMs) && input.timeoutMs > 0
+      ? input.timeoutMs
+      : TIMEOUT_MS;
   for (const [i, sel] of candidates.entries()) {
-    const result = await generateWith(ctx, { llm, sel, system, history, userText, pool, actions, image });
+    const result = await generateWith(ctx, {
+      llm,
+      sel,
+      system,
+      history,
+      userText,
+      pool,
+      actions,
+      image,
+      timeoutMs,
+    });
     if (result.ok) return result;
     last = result;
     // 回落要留痕：配的模型没生效时能在日志里看到原因（否则「我明明配了 A，怎么还是用 B」没法查）
@@ -160,11 +176,12 @@ interface GenerateOnce {
   readonly pool: MemeEntry[];
   readonly actions: string[];
   readonly image?: PetImageRef;
+  readonly timeoutMs: number;
 }
 
 /** 用一个确定的 provider/model 跑一次对话生成（失败原样返回结构化原因，不吞）。 */
 async function generateWith(ctx: { llm?: unknown }, once: GenerateOnce): Promise<ChatGenerateResult> {
-  const { llm, sel, system, history, userText, pool, actions, image } = once;
+  const { llm, sel, system, history, userText, pool, actions, image, timeoutMs } = once;
   // 历史 → dsh-llm 消息：user 经 createUserMessage（plugin 来源），assistant 经 createAssistantMessage
   // （provider/model 只是消息的角色载体，不涉及适配器回放）。
   // assistant 正文可能带 [月日 时:分] 前缀：模型据此判断断档，没有它跨天对话会被当成连续发言。
@@ -181,7 +198,7 @@ async function generateWith(ctx: { llm?: unknown }, once: GenerateOnce): Promise
         }),
   );
 
-  const deadline = AbortSignal.timeout(TIMEOUT_MS);
+  const deadline = AbortSignal.timeout(timeoutMs);
   // 仅当模型声明支持 reasoning effort（含 "off"）时才传，否则省略：
   // 无 reasoning 元数据的模型显式传 off 会被 dsh-llm 判为 UNSUPPORTED_REASONING_EFFORT，
   // 折叠成空流（表现为「模型未返回文本」）。

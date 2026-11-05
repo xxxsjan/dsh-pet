@@ -33,7 +33,7 @@ function pickGlobals(main) {
     voiceProvider: source.voiceProvider === 'fish' ? 'fish' : 'edge',
     voiceName: typeof source.voiceName === 'string' && source.voiceName ? source.voiceName : (VOICES[1] ? VOICES[1].id : ''),
     voiceVolume: typeof source.voiceVolume === 'number' && Number.isFinite(source.voiceVolume)
-      ? Math.min(4, Math.max(0, source.voiceVolume))
+      ? Math.min(2, Math.max(0, source.voiceVolume))
       : 1,
     voiceRate: typeof source.voiceRate === 'number' && Number.isFinite(source.voiceRate)
       ? Math.min(2, Math.max(0.5, source.voiceRate))
@@ -86,24 +86,30 @@ function entryTabs(keys) {
 
 function packNote() {
   return card('条目说明', null, [
-    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与外观在「默认条目」里改。语音与模型连接仍在本页瀑布流中，可直接改。' }),
+    make('p', { class: 'cardHint', text: '这个条目来自文件宠物，只保存它自己的实例；全局开关与外观在「默认条目」里改。模型接入请到侧栏「模型」。' }),
   ]);
+}
+
+function renderVoicePanel() {
+  const host = byId('voice-host');
+  if (!host) return;
+  host.textContent = '';
+  if (!state.globals) {
+    host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
+    return;
+  }
+  host.append(voiceCard());
 }
 
 function renderPetsPanel() {
   const host = byId('pet-cards');
   if (!host) return;
-  // 模型连接表单要保留 DOM（已挂的协议/余额选择器与监听），先拆下来再清瀑布。
-  const settings = byId('settings');
-  if (settings) settings.remove();
   host.textContent = '';
   if (!state.globals) {
     host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
-    if (settings) host.append(settings);
+    renderVoicePanel();
     return;
   }
-  host.append(voiceCard());
-  if (settings) host.append(settings);
   const keys = Object.keys(state.pets);
   if (keys.length > 1) host.append(entryTabs(keys));
   host.append(petCard());
@@ -112,6 +118,7 @@ function renderPetsPanel() {
   } else {
     host.append(packNote());
   }
+  renderVoicePanel();
 }
 
 /** 提交用的 physics 段：原配置没写过的可选键不带出去，避免保存时凭空补键。 */
@@ -158,11 +165,14 @@ async function savePets() {
   const status = byId('pet-status');
   const saveBtn = byId('pet-save');
   if (state.entry === 'main' && currentPets().length === 0) {
-    setStatus(status, '默认条目至少要保留一只宠物，否则宿主会拒绝保存。', 'error');
+    const message = '默认条目至少要保留一只宠物，否则宿主会拒绝保存。';
+    setStatus(status, message, 'error');
+    flashSaveHint(message, 'error');
     return;
   }
   if (saveBtn) saveBtn.disabled = true;
   setStatus(status, '正在保存…');
+  flashSaveHint('正在保存…');
   try {
     let merged;
     if (state.entry === 'main') {
@@ -177,6 +187,7 @@ async function savePets() {
         });
         if (!confirmed) {
           setStatus(status, '已取消保存。', 'error');
+          flashSaveHint('已取消保存。', 'error');
           return;
         }
         merged = await callApi('PUT', '/config?force=1', petsBody());
@@ -185,15 +196,20 @@ async function savePets() {
       merged = await callApi('POST', '/pet-config', { entry: state.entry, pets: currentPets() });
     }
     if (!merged || merged.ok === false) {
-      setStatus(status, (merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
+      const message = (merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。';
+      setStatus(status, message, 'error');
+      flashSaveHint(message, 'error');
       return;
     }
     initDrafts(merged);
     markDirty(false);
     renderPetsPanel();
     setStatus(status, '已保存到本机。', 'ok');
+    flashSaveHint('已保存到本机。', 'ok');
   } catch (error) {
-    setStatus(status, error && error.message ? error.message : String(error), 'error');
+    const message = error && error.message ? error.message : String(error);
+    setStatus(status, message, 'error');
+    flashSaveHint(message, 'error');
   } finally {
     if (saveBtn) saveBtn.disabled = false;
   }

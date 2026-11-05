@@ -148,7 +148,12 @@ export interface PetRouteDeps {
   /** 单次对话保留的轮数。 */
   readonly memoryRounds: (conf: Record<string, unknown>) => number;
   /** 与本机宠物对话；image 缺省 = 纯文本，数据路径与加入图片前一致。 */
-  readonly chatWithPet: (petId: string, text: string, image?: PetImageRef) => Promise<GeneratedReply>;
+  readonly chatWithPet: (
+    petId: string,
+    text: string,
+    image?: PetImageRef,
+    options?: { readonly timeoutMs?: number },
+  ) => Promise<GeneratedReply>;
   /** 删除该宠物的对话记忆：ts 缺省 = 清空全部，否则只删命中的轮（成对）。 */
   readonly deleteHistory: (
     petId: string,

@@ -34,7 +34,7 @@ export interface MainConfigPatch {
   voiceProvider?: 'edge' | 'fish';
   /** 语音音色 id（宿主已按白名单校验，客户端原样展示）。 */
   voiceName?: string;
-  /** 播放音量系数（0–4）；缺省表示这次响应里没有可信值。 */
+  /** 播放音量系数（0–2）；缺省表示这次响应里没有可信值。 */
   voiceVolume?: number;
   voiceRate?: number;
   /** 周期碎碎念的语音开关；缺省表示这次响应里没有可信值。 */

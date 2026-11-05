@@ -28,7 +28,7 @@ export interface VoiceCardProps {
   readonly provider: 'edge' | 'fish';
   /** 当前音色 id。 */
   readonly voiceName: string;
-  /** 播放音量系数：0–4，1 = 100%，4 = 400%。 */
+  /** 播放音量系数：0–2，1 = 100%，2 = 200%。 */
   readonly volume: number;
   /** 绝对语速：0.5–2，1 = 原速。 */
   readonly rate: number;
@@ -272,7 +272,7 @@ export function makeVoiceCard(
                 numberInputProps(props.volume, props.onVolumeChange, {
                   step: '0.05',
                   min: '0',
-                  max: '4',
+                  max: '2',
                   disabled: props.busy,
                 }),
               ),

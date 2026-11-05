@@ -82,6 +82,31 @@ function setStatus(node, text, kind) {
   node.dataset.ok = kind === 'ok' ? 'true' : 'false';
 }
 
+// 顶栏保存提示的隐藏定时器；新提示到来时先清掉旧的。
+let saveHintTimer = 0;
+
+// 在顶栏标题旁闪一条保存结果提示（配置 / 语音 / 模型共用）。
+function flashSaveHint(text, kind) {
+  const node = byId('save-hint');
+  if (!node) return;
+  if (saveHintTimer) {
+    clearTimeout(saveHintTimer);
+    saveHintTimer = 0;
+  }
+  node.hidden = !text;
+  node.textContent = text || '';
+  node.dataset.error = kind === 'error' ? 'true' : 'false';
+  node.dataset.ok = kind === 'ok' ? 'true' : 'false';
+  if (!text) return;
+  saveHintTimer = setTimeout(() => {
+    saveHintTimer = 0;
+    node.hidden = true;
+    node.textContent = '';
+    node.dataset.error = 'false';
+    node.dataset.ok = 'false';
+  }, 2800);
+}
+
 function markDirty(value) {
   state.dirty = value;
   const badge = byId('dirty');

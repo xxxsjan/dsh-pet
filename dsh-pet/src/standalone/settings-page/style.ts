@@ -67,20 +67,25 @@ a.navCell{text-decoration:none;color:inherit;box-sizing:border-box}
 .topbarLead{display:flex;align-items:center;gap:12px;min-width:0}
 .pageTitle{margin:0;font-size:15px;font-weight:600;line-height:24px;color:var(--dsw-alias-label-primary)}
 .dirty{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.saveHint{font-size:12px;line-height:20px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.saveHint[data-ok=true]{color:var(--dsw-static-green-600)}
+.saveHint[data-error=true]{color:var(--dsw-static-red-500)}
 .options{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}
 .panel{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 30px 4px}
 .scroll>*{width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
 /* 对话面板自己管内边距与滚动，这里只负责给它一个确定高度的容器；宽度与配置页对齐。 */
 .pet-chat-host{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
-/* 配置页多列瀑布流：语音卡、模型连接表单与桌宠/全局卡同列填；条目 tabs / 空态通栏。
+/* 配置页多列瀑布流：桌宠/全局卡同列填；条目 tabs / 空态通栏。
    窄屏 1 列、常态 2 列；视口够宽时放宽内容区并升到 3 列（见下方 media）。 */
 #pet-cards{column-count:2;column-gap:14px}
-#pet-cards>.card,#pet-cards>#settings{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
-#pet-cards>#settings>.card{margin-bottom:0}
+#pet-cards>.card{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
 #pet-cards>.tabs,#pet-cards>.empty{column-span:all}
 .card{background:var(--dsw-alias-settings-card-fill);border:1px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-lg);padding:18px 20px;margin-bottom:14px}
-#pet-cards>.card:first-child,#pet-cards>#settings:first-child{margin-top:2px}
+#pet-cards>.card:first-child{margin-top:2px}
+/* 模型 / 语音分区：单列内容，宽度跟配置内容区一致 */
+#panel-model #settings,#panel-voice #voice-host{max-width:var(--dsh-content-width);margin:0 auto 24px}
+#panel-model #settings>.card,#panel-voice #voice-host>.card{margin-bottom:12px}
 .cardHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 4px}
 .cardTitle{margin:0;font-size:15px;font-weight:600;line-height:22px}
 .cardHint{margin:0 0 12px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}

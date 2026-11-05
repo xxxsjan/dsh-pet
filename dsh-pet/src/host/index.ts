@@ -107,6 +107,8 @@ export function apply(ctx: any): void {
   });
   const { startHelper, stopHelper, markDisposed, getDouyinSignBaseUrl } = desktopHelper;
 
+  // 弹幕回复专用超时：短于普通对话（60s）与独立模式默认（30s），超时即失败跳过，不堵串行队列
+  const DANMAKU_CHAT_TIMEOUT_MS = 12_000;
   const douyinDanmaku = createDouyinMonitor({
     log,
     getSignBaseUrl: getDouyinSignBaseUrl,
@@ -116,7 +118,7 @@ export function apply(ctx: any): void {
     },
     // 等回复写完、且朗读真正结束（或跳过/失败/超时）后再放行队列下一条
     chatWithPet: async (petId, text) => {
-      const r = await chatWithPet(petId, text);
+      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
       if (!r.ok) return { ok: false, message: r.message || r.reason };
       if (r.voiceUtteranceId) {
         await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);

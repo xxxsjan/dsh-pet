@@ -13,8 +13,9 @@ test('clampVoiceRate / Volume', () => {
   assert.equal(clampVoiceRate(9), 2);
   assert.equal(clampVoiceVolume(1.5), 1.5);
   assert.equal(clampVoiceVolume(-1), 0);
-  assert.equal(clampVoiceVolume(3), 3);
-  assert.equal(clampVoiceVolume(5), 4);
+  assert.equal(clampVoiceVolume(2), 2);
+  assert.equal(clampVoiceVolume(3), 2);
+  assert.equal(clampVoiceVolume(5), 2);
 });
 
 test('absoluteRateToEdge', () => {

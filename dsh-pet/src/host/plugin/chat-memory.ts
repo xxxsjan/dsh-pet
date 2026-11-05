@@ -224,6 +224,7 @@ export function createChatMemory(deps: ChatMemoryInput) {
     petId: string,
     text: string,
     image?: PetImageRef,
+    options?: { readonly timeoutMs?: number },
   ): Promise<
     | { ok: true; text: string; image?: string; voiceUtteranceId?: string }
     | { ok: false; reason: 'provider-missing' | 'generate-error' | 'unknown-pet'; message?: string }
@@ -278,6 +279,7 @@ export function createChatMemory(deps: ChatMemoryInput) {
         actions,
         preferred: configuredModel(found.conf, 'chatModel'),
         image,
+        ...(typeof options?.timeoutMs === 'number' ? { timeoutMs: options.timeoutMs } : {}),
       });
       if (!generated.ok) return generated;
       const now = Date.now();
