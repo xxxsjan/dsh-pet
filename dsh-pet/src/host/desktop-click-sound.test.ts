@@ -50,9 +50,9 @@ test('desktop click sound uses the bridge asset channel in bridge mode', () => {
 });
 
 test('desktop click sound retains direct HTTP in legacy mode', () => {
-  const audio = fixture('http://127.0.0.1:3080/dsh-pet-7340');
+  const audio = fixture('http://127.0.0.1:3080/pet');
   audio.play();
-  assert.equal(audio.sounds[0].url, 'http://127.0.0.1:3080/dsh-pet-7340/sound/click-duck.wav');
+  assert.equal(audio.sounds[0].url, 'http://127.0.0.1:3080/pet/sound/click-duck.wav');
 });
 
 test('disabled or absent click-sound settings never create an audio request', () => {

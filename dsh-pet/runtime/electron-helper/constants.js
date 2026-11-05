@@ -11,7 +11,7 @@ const S = window.PetShared;
 
 const params = new URLSearchParams(location.search);
 const CONFIG = {
-  configUrl: params.get('configUrl') || 'http://127.0.0.1:3080/dsh-pet-7340/config',
+  configUrl: params.get('configUrl') || 'http://127.0.0.1:3080/pet/config',
   scale: Number(params.get('scale') || '1'),
   petIndex: Number(params.get('petIndex') || '0'),
   topInsetRatio: Number(params.get('topInsetRatio') || '0'),

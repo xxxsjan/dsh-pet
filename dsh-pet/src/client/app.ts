@@ -65,7 +65,7 @@ export function makeFactory(): (require: (mod: string) => any) => any {
     const PetMulti = makePetUI({ h, useState, useEffect, useRef });
 
     const name = 'pet';
-    // commandUi 声明为服务依赖，确保「/」命令服务就绪后才 apply，/pet 装饰必然注册成功。
+    // commandUi 声明为服务依赖，确保「/」命令服务就绪后才 apply，/dsh-pet-7340 装饰必然注册成功。
     const inject = ['slots', 'locale', 'connection', 'remote', 'remote.commands', 'commandUi'];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DSH 注入的 ctx（locale/slots/webServer 等 service 无静态类型）
     function apply(ctx: any) {
@@ -102,13 +102,13 @@ export function makeFactory(): (require: (mod: string) => any) => any {
         'dsh-pet: notifications',
       );
 
-      // /pet 选择框：选中后提交 /pet <id>，由 host 命令落地。
+      // /dsh-pet-7340 选择框：选中后提交 /dsh-pet-7340 <id>，由 host 命令落地。
       // commandUi 已是服务依赖，但仍保留缺失时的降级提示。
       ctx.effect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DSH 注入服务无静态类型
         const commandUi = (ctx as any).get?.('commandUi');
         if (!commandUi || typeof commandUi.decorate !== 'function') {
-          console.warn('[dsh-pet] 命令选择框不可用：commandUi 服务缺失（/pet 仍可手输 id 或名字）');
+          console.warn('[dsh-pet] 命令选择框不可用：commandUi 服务缺失（/dsh-pet-7340 仍可手输 id 或名字）');
           return () => {};
         }
         return commandUi.decorate({
@@ -123,16 +123,16 @@ export function makeFactory(): (require: (mod: string) => any) => any {
                 label: p.name || p.id,
                 detail: (p.assetRoot && p.assetRoot !== p.id ? p.assetRoot + ' / ' : '') + p.id,
               })),
-            // 选中后提交 /pet <id>，由 host 校验并设置当前桌宠。
+            // 选中后提交 /dsh-pet-7340 <id>，由 host 校验并设置当前桌宠。
             onSelect: async (option: { id: string }, session: { sessionId: string }) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- remote 无静态类型
-              await (ctx as any).remote?.commands?.execute(session.sessionId, '/pet ' + option.id, []);
+              await (ctx as any).remote?.commands?.execute(session.sessionId, '/dsh-pet-7340 ' + option.id, []);
             },
           },
         });
-      }, 'dsh-pet: /pet picker');
+      }, 'dsh-pet: /dsh-pet-7340 picker');
 
-      // 给 /chat /pet /balance 补上「/」菜单的行标题与图标。
+      // 给 /chat /dsh-pet-7340 /balance 补上「/」菜单的行标题与图标。
       // DSH 没有官方入口，这里包装 commandUi.candidates；命令本身的行为不受影响。
       // 依据与降级策略见 command-faces.ts。
       ctx.effect(() => {

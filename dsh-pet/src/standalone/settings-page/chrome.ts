@@ -30,7 +30,7 @@ export const settingsPage = `<!doctype html>
 <div class="sideFoot">独立模式</div>
 </aside>
 <div class="main">
-<div class="topbar"><div class="topbarLead"><h1 class="pageTitle" id="page-title">对话</h1><button class="btn primary" id="pet-save" type="button" disabled hidden>保存</button><button class="btn primary" id="save" type="submit" form="settings" disabled hidden>保存</button><span class="saveHint" id="save-hint" role="status" aria-live="polite" hidden></span></div><span class="dirty" id="dirty" hidden>有未保存的改动</span></div>
+<div class="topbar"><div class="topbarLead"><h1 class="pageTitle" id="page-title">对话</h1><button class="btn primary" id="pet-save" type="button" disabled hidden>保存</button><button class="btn primary" id="save" type="submit" form="settings" disabled hidden>保存</button><span class="saveHint" id="save-hint" role="status" aria-live="polite" hidden></span></div><div class="topbarTrail"><span class="dirty" id="dirty" hidden>有未保存的改动</span><button class="btn ghost" id="theme-toggle" type="button" aria-label="切换亮暗色">暗色</button></div></div>
 <div class="options">
 <section class="panel" id="panel-config" role="tabpanel" aria-labelledby="tab-config" hidden>
 <div class="scroll">

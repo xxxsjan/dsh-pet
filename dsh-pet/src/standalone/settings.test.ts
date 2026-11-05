@@ -147,6 +147,8 @@ async function setupPage(): Promise<Page> {
   };
 
   const body = node();
+  const documentElement = node();
+  const memoryStore = new Map<string, string>();
   const requests: RecordedRequest[] = [];
   let stripped = '';
   runInNewContext(settingsScript, {
@@ -154,8 +156,18 @@ async function setupPage(): Promise<Page> {
     setTimeout,
     clearTimeout,
     console,
+    localStorage: {
+      getItem: (key: string) => (memoryStore.has(key) ? memoryStore.get(key)! : null),
+      setItem: (key: string, value: string) => {
+        memoryStore.set(key, String(value));
+      },
+      removeItem: (key: string) => {
+        memoryStore.delete(key);
+      },
+    },
     window: { addEventListener() {}, removeEventListener() {}, innerHeight: 800, confirm: () => false },
     document: {
+      documentElement,
       getElementById: element,
       createElement: node,
       createElementNS: node,
@@ -328,7 +340,13 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsScript, /X-DSH-Pet-Token/);
   assert.match(settingsScript, /voice\/speak/);
   assert.match(settingsScript, /试听/);
-  assert.doesNotMatch(settingsScript, /localStorage|sessionStorage|document\.cookie|innerHTML/);
+  // 主题偏好可写 localStorage；密钥/令牌与 sessionStorage、cookie、innerHTML 仍禁止。
+  assert.match(settingsScript, /dsh_pet_ui_theme/);
+  assert.doesNotMatch(settingsScript, /sessionStorage|document\.cookie|innerHTML/);
+  assert.doesNotMatch(
+    settingsScript,
+    /localStorage\.[gs]etItem\([^)]*(apiKey|token|secret|password|credential)/i,
+  );
   assert.doesNotMatch(settingsPage, /https?:\/\/(?!example)/);
   assert.match(settingsStyle, /focus-visible/);
 });

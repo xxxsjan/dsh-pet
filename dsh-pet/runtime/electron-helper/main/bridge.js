@@ -87,7 +87,7 @@ function createBridge({ isBridge, prefix, origin, token }) {
 
   /** 处理一个渲染端请求：拼宿主请求行 → 等应答 → 组装 Response（素材读盘） */
   async function handleBridgeRequest(request) {
-    const url = new URL(request.url); // dsh-pet-bridge://dsh-pet/dsh-pet-7340/...
+    const url = new URL(request.url); // dsh-pet-bridge://dsh-pet/pet/...
     const method = request.method || 'GET';
     let body;
     // PATCH 也带体（待办的部分更新）：漏读会让宿主收到空体，把一次正常修改当成坏 JSON。

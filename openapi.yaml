@@ -79,7 +79,7 @@ servers:
   - url: http://127.0.0.1:{port}
     description: |
       本机 DSH Web 服务。`{port}` = `ctx.webServer.port`（`dsh web` 默认 3080）。
-      路由前缀固定为 `/dsh-pet-7340`（7340 是历史遗留的名字，**不是端口号**）。
+      路由前缀固定为 `/dsh-pet-7340`。
     variables:
       port:
         default: "3080"
@@ -3335,7 +3335,7 @@ components:
         没给 / 空串 / 全空白 → `ok: false` + `reason: pet-required`；
         给了但配置里没有这只宠物 → `ok: false` + `reason: unknown-pet`。
         **没有缺省值**：绝不退到"当前桌宠"或列表第一只（issue #122 第 1 条），
-        所以同一句请求的落点不会随用户 `/pet` 的选择而变。
+        所以同一句请求的落点不会随用户 `/dsh-pet-7340` 的选择而变。
         允许包含点号与中文；**不要**按 `.` 解析由 `/state` 返回的路径键来取它。
       schema:
         type: string

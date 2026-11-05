@@ -109,7 +109,7 @@ export function createPetLookup(deps: PetLookupInput) {
    * 住在各自决策模块里，口径一致）：必填且必须真实存在。
    *
    * 两种失败分开报：没给 / 空串 → `pet-required`；给了但配置里没有 → `unknown-pet`。
-   * 绝不默认退到列表第一只——落点会随用户 /pet 操作漂移，失败也不报，第三方无从预期。
+   * 绝不默认退到列表第一只——落点会随用户 /dsh-pet-7340 操作漂移，失败也不报，第三方无从预期。
    *
    * `cfg` 传惰性读取：pet 空串时不必碰磁盘（routes.test.ts 的「配置不可达」断言靠这个顺序钉住）。
    * `opts.surface` 只对会产生渲染端可见效果的端点开；/lock/release 与 /chat 的 GET 不开——

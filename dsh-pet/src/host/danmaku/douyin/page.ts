@@ -17,20 +17,73 @@ export function douyinDanmakuPageHtml(): string {
   <title>抖音弹幕监听</title>
   <style>
     :root {
+      color-scheme: light;
       --bg: #f2f2f7;
       --card: #ffffff;
       --text: #1c1c1e;
       --muted: #8e8e93;
+      --placeholder: #c7c7cc;
       --line: rgba(60, 60, 67, 0.12);
       --separator: rgba(60, 60, 67, 0.29);
       --accent: #007aff;
       --accent-press: #0062cc;
+      --accent-ink: #0051d5;
       --fill: #78788014;
       --ok: #34c759;
+      --ok-ink: #248a3d;
       --bad: #ff3b30;
+      --bad-ink: #d70015;
       --gift: #ff9500;
+      --gift-ink: #9a5200;
+      --gift-nick: #c93400;
+      --feed-well: #f7f7f9;
+      --switch-track: #e9e9eb;
+      --switch-knob: #ffffff;
+      --modal-img-bg: #fafafa;
       --radius: 12px;
       --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+      --item-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #000000;
+      --card: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #98989d;
+      --placeholder: #636366;
+      --line: rgba(84, 84, 88, 0.48);
+      --separator: rgba(84, 84, 88, 0.65);
+      --accent: #0a84ff;
+      --accent-press: #409cff;
+      --accent-ink: #64d2ff;
+      --fill: rgba(120, 120, 128, 0.24);
+      --ok: #30d158;
+      --ok-ink: #30d158;
+      --bad: #ff453a;
+      --bad-ink: #ff6961;
+      --gift: #ff9f0a;
+      --gift-ink: #ffd60a;
+      --gift-nick: #ff9f0a;
+      --feed-well: #000000;
+      --switch-track: #39393d;
+      --switch-knob: #ffffff;
+      --modal-img-bg: #2c2c2e;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 28px rgba(0,0,0,0.45);
+      --item-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    .titleRow {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 0 4px;
+    }
+    .titleRow .pageTitle { margin: 0; }
+    .themeBtn {
+      flex: 0 0 auto;
+      margin-top: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -97,7 +150,12 @@ export function douyinDanmakuPageHtml(): string {
       letter-spacing: -0.02em;
       line-height: 1.15;
     }
-    .pageTitle + .group { margin-top: 14px; }
+    .pageHint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
     .group {
       margin: 0 0 14px;
       border-radius: var(--radius);
@@ -118,6 +176,66 @@ export function douyinDanmakuPageHtml(): string {
       font-weight: 500;
       letter-spacing: 0.01em;
     }
+    .fieldLabelRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 0 6px;
+    }
+    .fieldLabelRow .fieldLabel { margin: 0; }
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: rgba(0, 0, 0, 0.42);
+    }
+    .modal.open { display: flex; }
+    .modalCard {
+      width: min(920px, 100%);
+      max-height: min(90vh, 100%);
+      overflow: auto;
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .modalHead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 10px;
+    }
+    .modalTitle {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+    .modalClose {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .modalSteps {
+      margin: 0 0 12px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .modalImg {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 0.5px solid var(--line);
+      background: var(--modal-img-bg);
+    }
     .group input,
     .group textarea {
       width: 100%;
@@ -131,7 +249,7 @@ export function douyinDanmakuPageHtml(): string {
       font: inherit;
     }
     .group input::placeholder,
-    .group textarea::placeholder { color: #c7c7cc; }
+    .group textarea::placeholder { color: var(--placeholder); }
     .group textarea {
       min-height: 68px;
       max-height: 120px;
@@ -170,7 +288,7 @@ export function douyinDanmakuPageHtml(): string {
       margin: 0;
       flex: 0 0 auto;
       border-radius: 999px;
-      background: #e9e9eb;
+      background: var(--switch-track);
       transition: background-color .2s ease;
       cursor: pointer;
     }
@@ -182,7 +300,7 @@ export function douyinDanmakuPageHtml(): string {
       width: 27px;
       height: 27px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--switch-knob);
       box-shadow: 0 1px 2px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12);
       transition: transform .2s ease;
     }
@@ -193,7 +311,7 @@ export function douyinDanmakuPageHtml(): string {
       transform: translateX(20px);
     }
     .toggles input[type="checkbox"]:focus-visible {
-      outline: 2px solid color-mix(in srgb, var(--accent) 55%, white);
+      outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
       outline-offset: 2px;
     }
     .row {
@@ -222,20 +340,31 @@ export function douyinDanmakuPageHtml(): string {
       color: var(--accent);
     }
     button.secondary:hover {
-      background: color-mix(in srgb, var(--fill) 70%, #aeaeb2);
+      background: color-mix(in srgb, var(--fill) 70%, var(--muted));
     }
     button.danger {
-      background: color-mix(in srgb, var(--bad) 12%, white);
+      background: color-mix(in srgb, var(--bad) 14%, transparent);
       color: var(--bad);
     }
     button.danger:hover {
-      background: color-mix(in srgb, var(--bad) 18%, white);
+      background: color-mix(in srgb, var(--bad) 22%, transparent);
     }
     button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
       transform: none;
     }
+    button.linkBtn {
+      padding: 0;
+      margin: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      transform: none;
+    }
+    button.linkBtn:hover { background: transparent; color: var(--accent-press); }
+    button.linkBtn:active { transform: none; opacity: 0.7; }
     .msg {
       margin: 0 0 10px;
       min-height: 1.2em;
@@ -266,12 +395,12 @@ export function douyinDanmakuPageHtml(): string {
       color: var(--muted);
     }
     .pill.on {
-      background: color-mix(in srgb, var(--ok) 16%, white);
-      color: #248a3d;
+      background: color-mix(in srgb, var(--ok) 16%, transparent);
+      color: var(--ok-ink);
     }
     .pill.off {
-      background: color-mix(in srgb, var(--bad) 12%, white);
-      color: #d70015;
+      background: color-mix(in srgb, var(--bad) 14%, transparent);
+      color: var(--bad-ink);
     }
     .feedHead {
       display: flex;
@@ -303,7 +432,7 @@ export function douyinDanmakuPageHtml(): string {
       overscroll-behavior: contain;
       padding: 10px;
       border-radius: 14px;
-      background: #f7f7f9;
+      background: var(--feed-well);
       border: 0.5px solid var(--line);
       font-size: 14px;
       line-height: 1.45;
@@ -328,13 +457,13 @@ export function douyinDanmakuPageHtml(): string {
       padding: 10px 12px;
       border-radius: 14px;
       background: var(--card);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      box-shadow: var(--item-shadow);
     }
     .feedItem.chat {
-      background: color-mix(in srgb, var(--accent) 6%, white);
+      background: color-mix(in srgb, var(--accent) 10%, var(--card));
     }
     .feedItem.gift {
-      background: color-mix(in srgb, var(--gift) 8%, white);
+      background: color-mix(in srgb, var(--gift) 12%, var(--card));
     }
     .feedKind {
       display: inline-flex;
@@ -351,12 +480,12 @@ export function douyinDanmakuPageHtml(): string {
       white-space: nowrap;
     }
     .feedKind.chat {
-      color: #0051d5;
-      background: color-mix(in srgb, var(--accent) 14%, white);
+      color: var(--accent-ink);
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
     }
     .feedKind.gift {
-      color: #9a5200;
-      background: color-mix(in srgb, var(--gift) 18%, white);
+      color: var(--gift-ink);
+      background: color-mix(in srgb, var(--gift) 18%, transparent);
     }
     .feedBody { min-width: 0; }
     .feedNick {
@@ -365,12 +494,12 @@ export function douyinDanmakuPageHtml(): string {
       color: var(--accent);
       font-weight: 650;
     }
-    .feedItem.gift .feedNick { color: #c93400; }
+    .feedItem.gift .feedNick { color: var(--gift-nick); }
     .feedText {
       color: var(--text);
       word-break: break-word;
     }
-    .feedItem.gift .feedText { color: #9a5200; font-weight: 560; }
+    .feedItem.gift .feedText { color: var(--gift-ink); font-weight: 560; }
     .feedTime {
       color: var(--muted);
       font-size: 11px;
@@ -384,14 +513,21 @@ export function douyinDanmakuPageHtml(): string {
   <main>
     <div class="layout">
       <section class="pane pane-config" aria-label="监听配置">
-        <h1 class="pageTitle">抖音弹幕监听</h1>
+        <div class="titleRow">
+          <h1 class="pageTitle">抖音弹幕监听</h1>
+          <button id="theme-toggle" class="secondary themeBtn" type="button" aria-label="切换亮暗色">暗色</button>
+        </div>
+        <p class="pageHint">关闭本页不影响监听，进程在后台继续运行；要停请点「停止监听」。</p>
         <div class="group">
           <div class="groupRow">
             <label class="fieldLabel" for="url">直播间链接或房间号</label>
             <input id="url" placeholder="https://live.douyin.com/123456 或纯数字" autocomplete="off" />
           </div>
           <div class="groupRow">
-            <label class="fieldLabel" for="cookie">Cookie（可选）</label>
+            <div class="fieldLabelRow">
+              <label class="fieldLabel" for="cookie">Cookie（可选）</label>
+              <button id="open-cookie-help" class="linkBtn" type="button">获取cookie</button>
+            </div>
             <textarea id="cookie" placeholder="一般可不填；礼物建议粘贴登录 Cookie"></textarea>
           </div>
         </div>
@@ -416,10 +552,37 @@ export function douyinDanmakuPageHtml(): string {
       </section>
     </div>
   </main>
+  <div id="cookie-help" class="modal" role="dialog" aria-modal="true" aria-labelledby="cookie-help-title" hidden>
+    <div class="modalCard">
+      <div class="modalHead">
+        <h2 id="cookie-help-title" class="modalTitle">如何获取 Cookie</h2>
+        <button id="close-cookie-help" class="secondary modalClose" type="button">关闭</button>
+      </div>
+      <p class="modalSteps">获取流程：打开浏览器，按 F12 打开控制台，然后找到 Network（网络）标签。</p>
+      <img class="modalImg" src="https://imgb.odep.shop/get-cookie.png" alt="获取 Cookie 步骤示意：网络 → Fetch/XHR → get → Headers → Cookie 右键复制" />
+    </div>
+  </div>
   <script>
     const BASE = ${JSON.stringify(base)};
     const CACHE_KEY = 'dsh_pet_douyin_danmaku_form_v1';
+    const THEME_KEY = 'dsh_pet_ui_theme';
     const el = (id) => document.getElementById(id);
+    function readTheme() {
+      try {
+        return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+      } catch (_) {
+        return 'light';
+      }
+    }
+    function applyTheme(theme) {
+      const next = theme === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      document.documentElement.style.colorScheme = next;
+      const btn = el('theme-toggle');
+      if (btn) btn.textContent = next === 'dark' ? '亮色' : '暗色';
+      try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+    }
+    applyTheme(readTheme());
     const msg = el('msg');
     const statusBox = el('status');
     const feedBox = el('feed');
@@ -661,6 +824,26 @@ export function douyinDanmakuPageHtml(): string {
       void refresh().catch((e) => setMsg(e instanceof Error ? e.message : String(e), 'err'));
     });
     el('open-live').addEventListener('click', () => { openLiveRoom(); });
+    el('theme-toggle').addEventListener('click', () => {
+      applyTheme(readTheme() === 'dark' ? 'light' : 'dark');
+    });
+    const cookieHelp = el('cookie-help');
+    function openCookieHelp() {
+      cookieHelp.hidden = false;
+      cookieHelp.classList.add('open');
+    }
+    function closeCookieHelp() {
+      cookieHelp.classList.remove('open');
+      cookieHelp.hidden = true;
+    }
+    el('open-cookie-help').addEventListener('click', () => { openCookieHelp(); });
+    el('close-cookie-help').addEventListener('click', () => { closeCookieHelp(); });
+    cookieHelp.addEventListener('click', (e) => {
+      if (e.target === cookieHelp) closeCookieHelp();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && cookieHelp.classList.contains('open')) closeCookieHelp();
+    });
     void refresh().catch((e) => {
       statusBox.textContent = e instanceof Error ? e.message : String(e);
       setMsg('状态不可用（服务或 Helper 可能未就绪）', 'err');

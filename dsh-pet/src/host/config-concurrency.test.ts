@@ -70,7 +70,7 @@ before(async () => {
   const security = createRequestSecurity();
   token = security.token;
   server = await listenStandaloneServer({ routes: context.routes, logger, port: 0, security });
-  base = `http://127.0.0.1:${server.port}/dsh-pet-7340/`;
+  base = `http://127.0.0.1:${server.port}/pet/`;
 });
 
 beforeEach(() => {

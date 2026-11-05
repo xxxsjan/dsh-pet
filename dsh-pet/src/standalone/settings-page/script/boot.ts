@@ -118,7 +118,39 @@ async function loadAi() {
   }
 }
 
+const THEME_KEY = 'dsh_pet_ui_theme';
+
+function readTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  } catch (_) {
+    return 'light';
+  }
+}
+
+function applyTheme(theme) {
+  const next = theme === 'dark' ? 'dark' : 'light';
+  const root = document.documentElement;
+  if (root && typeof root.setAttribute === 'function') {
+    root.setAttribute('data-theme', next);
+    if (root.style) root.style.colorScheme = next;
+  }
+  const btn = byId('theme-toggle');
+  if (btn) btn.textContent = next === 'dark' ? '亮色' : '暗色';
+  try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+}
+
+function wireTheme() {
+  applyTheme(readTheme());
+  const btn = byId('theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    applyTheme(readTheme() === 'dark' ? 'light' : 'dark');
+  });
+}
+
 function boot() {
+  wireTheme();
   wireTabs();
   selectTab('chat');
   // 刷新后地址栏里的令牌已被清掉，此时靠首次访问换来的 HttpOnly cookie 继续；
