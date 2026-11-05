@@ -136,7 +136,9 @@ function applyTheme(theme) {
     if (root.style) root.style.colorScheme = next;
   }
   const btn = byId('theme-toggle');
-  if (btn) btn.textContent = next === 'dark' ? '亮色' : '暗色';
+  if (btn && typeof btn.setAttribute === 'function') {
+    btn.setAttribute('aria-label', next === 'dark' ? '切换到亮色' : '切换到暗色');
+  }
   try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
 }
 

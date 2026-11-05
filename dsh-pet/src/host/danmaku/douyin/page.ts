@@ -81,10 +81,23 @@ export function douyinDanmakuPageHtml(): string {
     .titleRow .pageTitle { margin: 0; }
     .themeBtn {
       flex: 0 0 auto;
-      margin-top: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
+      margin-top: 4px;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 980px;
     }
+    .themeBtn .themeIcon {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    .themeBtn .themeIcon--sun { display: none; }
+    html[data-theme="dark"] .themeBtn .themeIcon--moon { display: none; }
+    html[data-theme="dark"] .themeBtn .themeIcon--sun { display: block; }
     * { box-sizing: border-box; }
     html, body {
       height: 100%;
@@ -515,7 +528,10 @@ export function douyinDanmakuPageHtml(): string {
       <section class="pane pane-config" aria-label="监听配置">
         <div class="titleRow">
           <h1 class="pageTitle">抖音弹幕监听</h1>
-          <button id="theme-toggle" class="secondary themeBtn" type="button" aria-label="切换亮暗色">暗色</button>
+          <button id="theme-toggle" class="secondary themeBtn" type="button" aria-label="切换到暗色">
+            <svg class="themeIcon themeIcon--moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.1 2.1a1 1 0 0 1 1.1 1.3A8 8 0 1 0 20.6 14a1 1 0 0 1 1.3-1.1A10 10 0 1 1 12.1 2.1Z"/></svg>
+            <svg class="themeIcon themeIcon--sun" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0-5a1 1 0 0 1 1 1V5a1 1 0 1 1-2 0V3.5a1 1 0 0 1 1-1Zm0 15a1 1 0 0 1 1 1V20.5a1 1 0 1 1-2 0V18.5a1 1 0 0 1 1-1ZM3.5 11a1 1 0 1 0 0 2H5a1 1 0 1 0 0-2H3.5Zm15 0a1 1 0 1 0 0 2H20.5a1 1 0 1 0 0-2H18.5ZM5.64 5.64a1 1 0 0 1 1.42 0L8.12 6.7A1 1 0 1 1 6.7 8.12L5.64 7.06a1 1 0 0 1 0-1.42Zm10.24 10.24a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 0 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 0-1.42ZM18.36 5.64a1 1 0 0 1 0 1.42L17.3 8.12A1 1 0 1 1 15.88 6.7l1.06-1.06a1 1 0 0 1 1.42 0ZM8.12 15.88a1 1 0 0 1 0 1.42L7.06 18.36a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0Z"/></svg>
+          </button>
         </div>
         <p class="pageHint">关闭本页不影响监听，进程在后台继续运行；要停请点「停止监听」。</p>
         <div class="group">
@@ -579,7 +595,7 @@ export function douyinDanmakuPageHtml(): string {
       document.documentElement.setAttribute('data-theme', next);
       document.documentElement.style.colorScheme = next;
       const btn = el('theme-toggle');
-      if (btn) btn.textContent = next === 'dark' ? '亮色' : '暗色';
+      if (btn) btn.setAttribute('aria-label', next === 'dark' ? '切换到亮色' : '切换到暗色');
       try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
     }
     applyTheme(readTheme());
