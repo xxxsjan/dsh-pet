@@ -24,6 +24,8 @@ __pycache__/
 
 # ── Node ──
 node_modules/
+# 本地凭据（GITEE_TOKEN 等），绝不入库
+.env
 .npm-cache/
 .npm-tmp-cache/
 npm-debug.log*

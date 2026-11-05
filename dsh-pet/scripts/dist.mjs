@@ -6,6 +6,7 @@
  * 不下载 Electron：默认只认本机已解压目录，找不到就明确失败，避免本地开发被静默拉走一百多兆；
  * 只有设了 BLUE_FISH_ALLOW_ELECTRON_DOWNLOAD=1 才交回 electron-builder 自行下载（CI 用）。
  * 打包二进制统一走 npmmirror 镜像，因为本机 github.com 不通。
+ * 打包成功后链式调用 pack-win-zip.mjs 压出分发 zip；压缩失败即整体失败。
  * @module dsh-pet/scripts/dist
  */
 import { spawn } from 'node:child_process';
@@ -91,4 +92,11 @@ const child = spawn(process.execPath, args, {
   env,
   stdio: 'inherit',
 });
-child.on('exit', (code) => process.exit(code ?? 0));
+child.on('exit', (code) => {
+  if (code !== 0) process.exit(code ?? 0);
+  const pack = spawn(process.execPath, [join(here, 'pack-win-zip.mjs')], {
+    cwd: root,
+    stdio: 'inherit',
+  });
+  pack.on('exit', (packCode) => process.exit(packCode ?? 0));
+});
