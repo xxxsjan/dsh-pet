@@ -9,7 +9,6 @@
 
 const http = require('node:http');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 
 /** 与宿主 sign-client 对齐的 stdout / globalThis 前缀。 */
 const SIGN_PREFIX = 'blue-fish-douyin-sign:';
@@ -78,13 +77,13 @@ function startDouyinSignBridge({ BrowserWindow, helperDir }) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true,
+        sandbox: false,
       },
     });
     win.webContents.on('did-fail-load', (_e, code, desc) => {
       resolveReady(false, new Error(`签名页加载失败: ${code} ${desc}`));
     });
-    await win.loadURL(pathToFileURL(page).href);
+    await win.loadFile(page);
     const ok = await win.webContents.executeJavaScript('Boolean(window.__dshPetDySignReady)');
     if (!ok) {
       resolveReady(false, new Error('抖音签名脚本未加载（webmssdk / vFun）'));
