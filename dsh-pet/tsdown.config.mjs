@@ -100,8 +100,11 @@ export default defineConfig([
       /^zod$/,
       /^openai$/,
       /^@anthropic-ai\/sdk$/,
-      // 语音合成：运行时才 import，但应用产物无 node_modules，必须内联（连它的 ws 一起）。
+      // 语音合成：运行时才 import，但应用产物无 node_modules，必须内联。
+      // ws 必须单独列出：tsdown 默认把 dependencies 全部外部化，edge-tts 内联后它的 `require('ws')`
+      // 仍是裸引用——装到没有 node_modules 的目录里，朗读就报 Cannot find module 'ws'。
       /^@andresaya\/edge-tts$/,
+      /^ws$/,
     ],
     external: ['electron', /^@electron\//, /^node:/, /^@deepseek-ai\/(?!dsh-home-paths$|dsh-credentials$|dsh-llm$)/],
     alias: {

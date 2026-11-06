@@ -58,12 +58,18 @@ describe('composeSystemPrompt —— 分段拼装', () => {
   test('historyTimes → 末尾追加【历史】段，仍在时间背景之后', () => {
     const out = composeSystemPrompt({ prompt: '你是小女仆', name: '蓝毛', id: 'main', now: NOW, historyTimes: true });
     const lines = out.split('\n');
-    assert.equal(lines.length, 4, '带历史说明时是四段');
+    assert.equal(lines[0], '你是小女仆');
+    assert.equal(lines[1], '你的名字是“蓝毛”。');
+    assert.ok(lines[2].startsWith('【当下】现在是2026年10月21日星期三 14:15，下午，工作日'));
+    // 【历史】段现在包含多行（有正确/错误示例），所以检查整段内容
+    const historySection = lines.slice(3).join('\n');
     assert.ok(
-      lines[3].startsWith('【历史】你之前说过的话，前面标着 [月日 时:分]'),
-      `第四行必须是【历史】：${lines[3]}`,
+      historySection.startsWith('【历史】主人的话前面可能标着类似 [10月31日 22:53] 的时间'),
+      `第四行开始必须是【历史】段：${historySection.slice(0, 100)}`,
     );
-    assert.ok(lines[3].includes('不要写时间'), '必须明确禁止在回复正文里写时间');
+    assert.ok(historySection.includes('严禁在回复中添加任何时间戳'), '必须明确禁止在回复正文里写时间');
+    assert.ok(historySection.includes('正确示例'), '必须包含正确示例');
+    assert.ok(historySection.includes('错误示例'), '必须包含错误示例');
   });
 
   test('historyTimes 但时间非法 → 【历史】也不加（它整句在引用“现在”）', () => {

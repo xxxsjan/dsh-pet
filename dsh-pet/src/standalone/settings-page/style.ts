@@ -70,8 +70,8 @@ html[data-theme=dark]{
     --dsw-alias-tooltip-bg:#2c2c2e;
 }
 .topbarTrail{display:flex;align-items:center;gap:10px;flex:none}
-.themeBtn{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:980px}
-.themeBtn .themeIcon{width:18px;height:18px;display:block}
+.themeBtn{width:40px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:980px}
+.themeBtn .themeIcon{width:22px;height:22px;display:block}
 .themeBtn .themeIcon--sun{display:none}
 html[data-theme=dark] .themeBtn .themeIcon--moon{display:none}
 html[data-theme=dark] .themeBtn .themeIcon--sun{display:block}

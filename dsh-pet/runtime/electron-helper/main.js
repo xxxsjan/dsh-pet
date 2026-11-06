@@ -145,6 +145,17 @@ if (process.platform === 'win32') {
   }
 }
 
+// 音频：Chromium 默认把音频服务放在独立 utility 进程里。打包形态（从 resources/app 启动）下这个
+// utility 进程在本机起不来，浏览器拿不到任何输出设备（enumerateDevices 为空、AudioContext 报
+// "encountered an error from the audio device"），点击鸭叫与 TTS 朗读于是全部静默；开发形态
+// （electron lib/app.js）同一个二进制、同一份代码却正常，进程表里能看到 audio.mojom.AudioService。
+// 把音频服务改回浏览器进程内后实测恢复（7 个输出设备、AudioContext 正常推进）。
+// 代价是少一层进程隔离自带的崩溃隔离，本进程只播本地素材、不加载不可信内容，可以接受。
+// 必须在 ready 之前加，之后再加不生效。
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess');
+}
+
 // 全局 DPI 线性化：所有显示器强制同一 scale factor——逐屏仿射变换会在拖过屏缝时反复翻转
 // （「分身闪烁」）。取值必须锁死 1，不能用主屏 scaleFactor（实测 forced=1.5 会让 bounds 与
 // workArea 自相矛盾）；代价是尺寸单位变成物理像素，靠探测到的 scaleFactor 乘进 CONFIG.scale 抵掉，
