@@ -1,8 +1,8 @@
 /**
  * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
- * 分区为对话 / 配置 / 模型 / 语音；侧栏另有外链「抖音弹幕」跳到 `/blue-fish/danmaku/`。
+ * 分区为对话 / 配置 / 模型 / 语音 / 抖音弹幕；弹幕分区自己管表单与轮询，不再开独立页。
  * 配置页瀑布流只放桌宠与全局卡；模型、语音各占侧栏分区。语音与桌宠共用顶栏「保存」（/config）；
- * 模型「保存」也在顶栏（form=settings → `/standalone-ai/settings`）。
+ * 模型「保存」也在顶栏（form=settings → `/standalone-ai/settings`）；弹幕分区不需要顶栏保存。
  *
  * 页面只在本机回环上由 ./server 提供；CSP 是 `style-src 'self'`，所以这里不许出现内联样式，
  * 也不许内联脚本。桌宠配置面板的内容依赖 GET /config，初始只有一句占位文案。
@@ -25,7 +25,7 @@ export const settingsPage = `<!doctype html>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
 <button type="button" class="navCell" role="tab" id="tab-model" data-tab="model" data-title="模型" aria-controls="panel-model" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x="2.6" y="3.2" width="10.8" height="9.6" rx="1.2"/><path d="M5.2 6.4h5.6M5.2 9.2h3.8" stroke-linecap="round"/></g></svg><span class="navLabel">模型</span></button>
 <button type="button" class="navCell" role="tab" id="tab-voice" data-tab="voice" data-title="语音" aria-controls="panel-voice" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.8v10.4"/><path d="M5.2 5.2v5.6M10.8 5.2v5.6"/><path d="M3.2 6.8v2.4M12.8 6.8v2.4"/></g></svg><span class="navLabel">语音</span></button>
-<a class="navCell navExt" href="/blue-fish/danmaku/" id="link-danmaku" data-title="抖音弹幕" target="_blank" rel="noopener noreferrer"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></a>
+<button type="button" class="navCell" role="tab" id="tab-danmaku" data-tab="danmaku" data-title="抖音弹幕" aria-controls="panel-danmaku" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></button>
 </div></nav>
 <div class="sideFoot">独立模式</div>
 </aside>
@@ -44,6 +44,33 @@ export const settingsPage = `<!doctype html>
 <div class="scroll">
 <div id="voice-host">
 <p class="empty">正在读取本机配置…</p>
+</div>
+</div>
+</section>
+<section class="panel" id="panel-danmaku" role="tabpanel" aria-labelledby="tab-danmaku" hidden>
+<div class="scroll">
+<div class="dmGrid">
+<div class="dmLeft">
+<div class="card">
+<div class="cardHead"><h2 class="cardTitle">抖音弹幕监听</h2></div>
+<p class="cardHint">关闭本页不影响监听，进程在后台继续运行；要停请点「停止监听」。</p>
+<div class="field"><label for="dm-url">直播间链接或房间号</label><input id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div>
+<div class="field"><div class="dmLabelRow"><label class="fieldLabel" for="dm-cookie">Cookie（可选）</label><button id="dm-cookie-help" class="btn ghost dmLinkBtn" type="button">获取 Cookie</button></div><textarea id="dm-cookie" placeholder="一般可不填；礼物建议粘贴登录 Cookie" spellcheck="false"></textarea><label class="dmPersist" for="dm-save-cookie"><input id="dm-save-cookie" type="checkbox"><span>保存到本地</span></label></div>
+<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div>
+<div class="dmActions"><button id="dm-toggle" class="btn primary" type="button">开始监听</button><button id="dm-refresh" class="btn ghost" type="button">刷新状态</button><button id="dm-open-live" class="btn ghost" type="button">打开直播间</button></div>
+<p class="status" id="dm-msg" role="status" aria-live="polite"></p>
+</div>
+<div class="card">
+<div class="dmCardHead"><h2 class="cardTitle">监听状态</h2></div>
+<div class="dmStatusBox" id="dm-status">加载中…</div>
+</div>
+</div>
+<div class="dmRight">
+<div class="card">
+<div class="dmCardHead"><h2 class="cardTitle">弹幕区</h2><span class="dmFeedMeta" id="dm-feed-meta">0 / 50</span></div>
+<div class="dmFeed" id="dm-feed" aria-live="polite"></div>
+</div>
+</div>
 </div>
 </div>
 </section>
@@ -70,5 +97,16 @@ export const settingsPage = `<!doctype html>
 </div>
 </div>
 </main>
+<div class="dialogMask" id="dm-cookie-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-cookie-title" hidden>
+<div class="dialog">
+<h2 class="dialogTitle" id="dm-cookie-title">如何获取 Cookie</h2>
+<p class="dialogText">1. 在浏览器登录抖音网页版，进入要监听的直播间。
+2. 按 F12 打开开发者工具，切到 Network（网络）标签。
+3. 在列表里点开任意一条 Fetch/XHR 请求（例如 get）。
+4. 在 Headers 里找到请求头 Cookie，整段复制。
+5. 粘贴到上面的 Cookie 输入框；需要下次自动填入就勾选「保存到本地」。</p>
+<div class="dialogActions"><button id="dm-cookie-close" class="btn primary" type="button">知道了</button></div>
+</div>
+</div>
 <noscript>需要启用 JavaScript 才能保存设置。请从桌宠右键菜单打开本页。</noscript>
 </body></html>`;

@@ -65,9 +65,9 @@ const IMG_TAG = /\[图[:：]\s*([^\]\n]+?)\s*\]\s*$/;
 export function extractChatImage(text: string, pool: MemeEntry[]): { text: string; image?: string } {
   const m = IMG_TAG.exec(text);
   if (!m) return { text };
-  const hit = matchMeme(pool, m[1] ?? '');
   const body = text.slice(0, m.index).trim();
-  if (!hit || !body) return { text };
+  const hit = matchMeme(pool, m[1] ?? '');
+  if (!hit || !body) return { text: body || text };
   return { text: body, image: hit.name };
 }
 

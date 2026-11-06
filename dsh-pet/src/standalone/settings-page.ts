@@ -18,6 +18,7 @@ import { aiScript } from './settings-page/script/ai.ts';
 import { avatarScript } from './settings-page/script/avatar.ts';
 import { bootScript } from './settings-page/script/boot.ts';
 import { coreScript } from './settings-page/script/core.ts';
+import { danmakuScript } from './settings-page/script/danmaku.ts';
 import { globalsScript } from './settings-page/script/globals.ts';
 import { modelPickerScript } from './settings-page/script/model-picker.ts';
 import { overlayScript } from './settings-page/script/overlay.ts';
@@ -32,7 +33,7 @@ export { settingsPage, settingsStyle };
 /** 头像长边上限：与 client/settings/avatar-upload.ts 的 AVATAR_MAX_SIDE 对齐；页面脚本 import 不到，由测试钉住。 */
 export const AVATAR_MAX_SIDE_PX = 512;
 
-/** 整页脚本：公共层 + 控件 + 头像 + 宠物/全局/AI 三个面板 + 模型选择 + 启动。 */
+/** 整页脚本：公共层 + 控件 + 头像 + 宠物/全局/AI 三个面板 + 模型选择 + 抖音弹幕 + 启动。 */
 export const settingsScript = [
   '(function () {',
   coreScript(ROUTE_SEGMENT, {
@@ -52,6 +53,7 @@ export const settingsScript = [
   globalsScript(),
   modelPickerScript(),
   aiScript(),
+  danmakuScript(),
   bootScript(),
   'boot();',
   '})();',

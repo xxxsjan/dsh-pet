@@ -1,10 +1,10 @@
 /**
- * 抖音弹幕监听：控制页 + start / stop / status / options。
+ * 抖音弹幕监听：start / stop / status / options。
  *
- * 契约见 openapi.yaml；签名依赖桌面 Helper 的本机签名桥。
+ * 控制面板已并进独立模式设置页的「抖音弹幕」分区（见 standalone/settings-page），
+ * 这里只留 JSON 接口。契约见 openapi.yaml；签名依赖桌面 Helper 的本机签名桥。
  * @module dsh-pet/src/host/routes/danmaku
  */
-import { douyinDanmakuPageHtml } from '../danmaku/douyin/page.ts';
 import type { RouteResult } from '../http.ts';
 import type { PetRouteDeps, RouteInput } from './types.ts';
 import { failResult, invalidJson, methodNotAllowed, okResult } from './result.ts';
@@ -12,17 +12,6 @@ import { failResult, invalidJson, methodNotAllowed, okResult } from './result.ts
 /** 弹幕领域：未命中返回 undefined，命中返回应答。 */
 export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput): Promise<RouteResult | undefined> {
   const { body, method, rest } = input;
-
-  // 控制页：/danmaku 与 /danmaku/ 都进同一份 HTML
-  if (rest === 'danmaku' || rest === 'danmaku/') {
-    if (method !== 'GET' && method !== 'HEAD') return methodNotAllowed();
-    return {
-      kind: 'text',
-      status: 200,
-      contentType: 'text/html; charset=utf-8',
-      body: method === 'HEAD' ? '' : douyinDanmakuPageHtml(),
-    };
-  }
 
   if (rest === 'danmaku/douyin/status') {
     if (method !== 'GET') return methodNotAllowed();

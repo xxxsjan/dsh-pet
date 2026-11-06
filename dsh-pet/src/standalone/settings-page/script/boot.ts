@@ -69,10 +69,12 @@ function selectTab(name) {
   if (petSave) petSave.hidden = name !== 'config' && name !== 'voice';
   const modelSave = byId('save');
   if (modelSave) modelSave.hidden = name !== 'model';
+  // 弹幕分区切进来就立刻拉一次状态，不用等下一轮轮询。
+  if (name === 'danmaku') void dmRefresh().catch(() => {});
 }
 
 function wireTabs() {
-  // 只绑分区 tab；侧栏若有外链（无 data-tab）交给浏览器跳转。
+  // 侧栏分区全部是 data-tab 按钮；没有外链，切换只改 aria-selected 与面板可见性。
   const cells = Array.prototype.slice.call(document.querySelectorAll('.navCell[data-tab]'));
   cells.forEach((cell, index) => {
     cell.addEventListener('click', () => selectTab(cell.dataset.tab));
@@ -160,6 +162,7 @@ function boot() {
   mountProtocolSelect();
   mountBalanceSelect();
   wireAiPanel();
+  wireDanmakuPanel();
   byId('pet-save').addEventListener('click', savePets);
   window.addEventListener('beforeunload', (event) => {
     if (!state.dirty) return;

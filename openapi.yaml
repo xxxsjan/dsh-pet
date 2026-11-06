@@ -2618,24 +2618,6 @@ paths:
         "405":
           description: 方法不是 GET。
 
-  /blue-fish/danmaku:
-    get:
-      tags: [Danmaku]
-      operationId: getDouyinDanmakuPage
-      summary: 抖音弹幕监听控制页
-      description: |
-        返回自包含 HTML：填写直播间、开始/停止、轮询 status。
-        也可访问带尾斜杠的 `/blue-fish/danmaku/`。
-      responses:
-        "200":
-          description: HTML 控制页。
-          content:
-            text/html:
-              schema:
-                type: string
-        "405":
-          description: 方法不是 GET/HEAD。
-
   /blue-fish/danmaku/douyin/start:
     post:
       tags: [Danmaku]

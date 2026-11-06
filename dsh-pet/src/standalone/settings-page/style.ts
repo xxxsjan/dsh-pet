@@ -199,6 +199,43 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .btn.danger:hover{background:color-mix(in srgb,var(--dsw-static-red-500) 22%,transparent);opacity:1}
 .petBar .select{flex:1;min-width:0}
 .empty{padding:16px 0;font-size:13px;color:var(--dsw-alias-label-tertiary)}
+/* 抖音弹幕分区：表单沿用设置页控件，状态与弹幕流各自成卡。 */
+.dmLabelRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.dmLabelRow .fieldLabel{margin:0}
+.dmLinkBtn{height:26px;padding:0 10px;font-size:12px}
+.dmPersist{display:inline-flex;align-items:center;gap:8px;margin:8px 0 0;font-size:12px;color:var(--dsw-alias-label-tertiary);cursor:pointer;user-select:none}
+.dmPersist input{flex:none;width:16px;height:16px;margin:0;accent-color:var(--dsw-static-blue-500)}
+.dmSwitches{margin:14px 0 0;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);overflow:hidden}
+.dmSwitch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;font-size:14px;color:var(--dsw-alias-label-primary);cursor:pointer;user-select:none;border-top:.5px solid var(--dsw-alias-border-l2)}
+.dmSwitch:first-child{border-top:0}
+.dmSwitch input{position:relative;flex:none;width:42px;height:24px;margin:0;border-radius:999px;background:var(--dsw-alias-border-l3);-webkit-appearance:none;appearance:none;cursor:pointer;transition:background-color .15s ease}
+.dmSwitch input::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s ease}
+.dmSwitch input:checked{background:var(--dsw-static-green-600)}
+.dmSwitch input:checked::after{transform:translateX(18px)}
+.dmActions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 0}
+.dmCardHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}
+.dmCardHead .cardTitle{margin:0}
+.dmFeedMeta{flex:none;padding:2px 9px;border-radius:999px;background:var(--dsw-alias-interactive-bg-hover);font-size:11px;line-height:1.6;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dmStatusBox{padding:12px 14px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);font-size:13px;line-height:1.65;color:var(--dsw-alias-label-secondary);word-break:break-word}
+.dmPill{display:inline-flex;align-items:center;margin:0 0 6px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-tertiary)}
+.dmPill.on{background:color-mix(in srgb,var(--dsw-static-green-600) 16%,transparent);color:var(--dsw-static-green-600)}
+.dmPill.off{background:color-mix(in srgb,var(--dsw-static-red-500) 12%,transparent);color:var(--dsw-static-red-500)}
+.dmStatusLine{display:block;white-space:pre-line}
+.dmFeed{display:flex;flex-direction:column;gap:8px;max-height:42vh;min-height:120px;overflow-y:auto;padding:10px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);font-size:13px;line-height:1.5}
+.dmFeed:empty::before{content:"开始监听后，弹幕会出现在这里";margin:auto;padding:20px 12px;text-align:center;color:var(--dsw-alias-label-tertiary)}
+.dmFeedItem{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 11px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-2);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.dmFeedItem.gift{background:color-mix(in srgb,#ff9500 12%,var(--dsw-alias-bg-layer-2))}
+.dmFeedKind{padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;background:color-mix(in srgb,var(--dsw-static-blue-500) 14%,transparent);color:var(--dsw-static-blue-500)}
+.dmFeedItem.gift .dmFeedKind{background:color-mix(in srgb,#ff9500 18%,transparent);color:#c96a00}
+.dmFeedBody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dmFeedNick{font-size:12px;font-weight:560;color:var(--dsw-alias-label-tertiary);word-break:break-word}
+.dmFeedText{color:var(--dsw-alias-label-primary);word-break:break-word}
+.dmFeedTime{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dmGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dmLeft{display:flex;flex-direction:column;gap:14px;min-width:0;align-self:start}
+.dmRight{display:flex;flex-direction:column;min-width:0}
+.dmRight .card{flex:1;display:flex;flex-direction:column;min-height:0}
+.dmRight .dmFeed{flex:1;min-height:200px;max-height:none}
 /* 宽屏：内容区加宽到约三列舒适宽度，瀑布升 3 列（侧栏约 208 + 内边距后，视口 ≥1400 才够用）。 */
 @media(min-width:1400px){
   :root{--dsh-content-width:1240px}
@@ -217,6 +254,8 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
   .scroll{padding:16px 16px 4px}
   .grid2,.grid3{grid-template-columns:1fr}
   #pet-cards{column-count:1}
+  .dmGrid{grid-template-columns:1fr}
+  .dmRight .dmFeed{min-height:200px;max-height:42vh}
 }
 @media(prefers-reduced-motion:no-preference){.navCell,.btn,.tab{transition:background-color .12s ease,color .12s ease,opacity .12s ease}}
 ${PANEL_CSS}

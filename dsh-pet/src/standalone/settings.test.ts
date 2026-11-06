@@ -307,8 +307,10 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /data-tab="chat"/);
   assert.match(settingsPage, /data-tab="model"/);
   assert.match(settingsPage, /data-tab="voice"/);
-  assert.match(settingsPage, /id="link-danmaku"/);
-  assert.match(settingsPage, /href="\/blue-fish\/danmaku\/"/);
+  assert.match(settingsPage, /data-tab="danmaku"/);
+  assert.match(settingsPage, /id="panel-danmaku"/);
+  assert.match(settingsPage, /id="dm-url"/);
+  assert.doesNotMatch(settingsPage, /id="link-danmaku"/);
   assert.match(settingsPage, /id="panel-config"/);
   assert.match(settingsPage, /id="panel-model"/);
   assert.match(settingsPage, /id="panel-voice"/);
