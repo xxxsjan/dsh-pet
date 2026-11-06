@@ -11,7 +11,7 @@
  *
  * @param deps.screen - Electron screen。
  * @param deps.petWindows - 窗口能力（几何、窗口表、任务栏）。
- * @param deps.dpi - DPI 能力（forcedScale / primaryScale / probePrimaryScale）。
+ * @param deps.dpi - DPI 能力（forcedScale / primaryScale / probePrimaryScaleAsync）。
  * @returns 立即重算一次与去抖重算两个入口。
  */
 function createDisplaySync({ screen, petWindows, dpi }) {
@@ -31,17 +31,20 @@ function createDisplaySync({ screen, petWindows, dpi }) {
     // 主屏缩放可能一起变了：线性化生效期间 screen API 只报被强制的值，真实值只能靠探测子进程拿；
     // 不一致就刷新缓存，下次启动自动用上。
     if (dpi.forcedScale > 0) {
+      // 必须异步：这里的回调跑在主进程线程，而那正是点击穿透窗口全局鼠标钩子（WH_MOUSE_LL）
+      // 的宿主，同步探测会把整机鼠标一起卡住。
       setTimeout(() => {
-        const real = dpi.probePrimaryScale();
-        if (real > 0 && Math.abs(real - dpi.primaryScale) > 1e-6) {
-          console.error(
-            '[blue-fish-desktop-helper] primary scaleFactor changed ' +
-              dpi.primaryScale +
-              ' -> ' +
-              real +
-              '; restart the desktop pet to resize',
-          );
-        }
+        dpi.probePrimaryScaleAsync((real) => {
+          if (real > 0 && Math.abs(real - dpi.primaryScale) > 1e-6) {
+            console.error(
+              '[blue-fish-desktop-helper] primary scaleFactor changed ' +
+                dpi.primaryScale +
+                ' -> ' +
+                real +
+                '; restart the desktop pet to resize',
+            );
+          }
+        });
       }, 1000).unref?.();
     }
   };

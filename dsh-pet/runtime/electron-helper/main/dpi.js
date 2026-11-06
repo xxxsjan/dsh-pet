@@ -8,7 +8,7 @@
  */
 
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, execFile } = require('node:child_process');
 const { readFileSync, writeFileSync } = require('node:fs');
 const { shouldLinearize, resolveForcedScale, resolvePetScale } = require('../dpi-linearization.js');
 
@@ -64,36 +64,53 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
     return Number.isFinite(v) && v > 0 ? v : 0;
   }
 
-  /** 拉起探测子进程读主屏 scaleFactor（同一个 electron + 同一个 main.js，走 dpiProbe 分支） */
-  function probePrimaryScale() {
-    const opts = {
+  /** 探测子进程的公共启动参数（同步冷启动与异步刷新共用，保证两边的开关一致） */
+  function probeOptions() {
+    return {
       env: { ...process.env, BLUE_FISH_DPI_PROBE: '1', BLUE_FISH_BRIDGE: '0', BLUE_FISH_SMOKE: '0' },
       timeout: 20000,
       encoding: 'utf8',
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     };
+  }
+
+  function probeArgs() {
+    // 探测子进程必须和主进程用同一套开关：沙箱起不来的机器上宿主的自动回退会改用 --no-sandbox，
+    // 不带上的话探测子进程一启动就 0x80000003，主进程活着、缓存却永远写不出来，每次开机都要白探一次。
+    const sandboxArgs = app.commandLine.hasSwitch('no-sandbox') ? ['--no-sandbox'] : [];
+    return [...sandboxArgs, mainPath, '--blue-fish-dpi-probe'];
+  }
+
+  /** 探测失败时拼一行可读的细节（status/stderr），stdio 都是 pipe 拿得到 */
+  function probeErrorDetail(e) {
+    return [
+      e && e.status !== undefined ? 'status=' + e.status : '',
+      e && e.stderr ? 'stderr=' + String(e.stderr).trim().slice(0, 300) : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  /**
+   * 同步探测：只给 ready 之前用（线性化的 appendSwitch 必须赶在 ready 前，没别的选择）。
+   *
+   * 运行期绝不能调它：同步会堵死主进程事件循环，而点击穿透窗口的 WH_MOUSE_LL 全局鼠标钩子
+   * 回调就跑在主进程线程上——堵多久，整机鼠标就卡多久（打包版探测子进程起不来时会直接堵满 20s 超时）。
+   */
+  function probePrimaryScale() {
     let out = '';
     try {
-      // 探测子进程必须和主进程用同一套开关：沙箱起不来的机器上宿主的自动回退会改用 --no-sandbox，
-      // 不带上的话探测子进程一启动就 0x80000003，主进程活着、缓存却永远写不出来，每次开机都要白探一次。
-      const sandboxArgs = app.commandLine.hasSwitch('no-sandbox') ? ['--no-sandbox'] : [];
-      out = execFileSync(process.execPath, [...sandboxArgs, mainPath, '--blue-fish-dpi-probe'], opts);
+      out = execFileSync(process.execPath, probeArgs(), probeOptions());
     } catch (e) {
       // 只认 stdout，不认退出码：不开窗口的 Electron 进程调 app.exit() 在 Windows 上偶发
       // 0xC0000005（退出期访问违例），但那时值早就写出来了，丢掉它纯属浪费一次冷启动。
       out = e && e.stdout ? String(e.stdout) : '';
       if (!parseProbeOutput(out)) {
-        const detail = [
-          e && e.status !== undefined ? 'status=' + e.status : '',
-          e && e.stderr ? 'stderr=' + String(e.stderr).trim().slice(0, 300) : '',
-        ]
-          .filter(Boolean)
-          .join(' ');
         console.error(
           '[blue-fish-desktop-helper] dpi probe failed:',
           String(e && e.message ? e.message : e).split('\n')[0],
-          detail,
+          probeErrorDetail(e),
         );
         return 0; // 探测失败：不加 switch，退回逐屏 DIP 行为
       }
@@ -101,6 +118,33 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
     const v = parseProbeOutput(out);
     if (v > 0) writeCachedPrimaryScale(v);
     return v;
+  }
+
+  /** 异步刷新在途标记：显示器事件会连发，同一时间只探一次 */
+  let asyncProbeInFlight = false;
+
+  /**
+   * 异步探测：运行期只用来刷新缩放缓存（供下次启动），不阻塞事件循环。
+   *
+   * @param onResult - 拿到结果后的回调（0 = 没探到）；可不传。
+   */
+  function probePrimaryScaleAsync(onResult) {
+    if (asyncProbeInFlight) return;
+    asyncProbeInFlight = true;
+    execFile(process.execPath, probeArgs(), probeOptions(), (e, stdout) => {
+      asyncProbeInFlight = false;
+      // 同同步版：只认 stdout，超时/退出违例时值往往已经打出来了
+      const v = parseProbeOutput(stdout);
+      if (v > 0) writeCachedPrimaryScale(v);
+      else if (e) {
+        console.error(
+          '[blue-fish-desktop-helper] dpi probe failed (async):',
+          String(e && e.message ? e.message : e).split('\n')[0],
+          probeErrorDetail(e),
+        );
+      }
+      if (onResult) onResult(v);
+    });
   }
 
   /** 真实主屏 scaleFactor（探测所得；0 = 未知）。开启线性化后 screen API 只会报 1，只能靠它。 */
@@ -142,7 +186,7 @@ function createDpi({ app, screen, mainPath, linuxPointer, dpiProbe, dpiMark, for
   return {
     currentPointer,
     petScale,
-    probePrimaryScale,
+    probePrimaryScaleAsync,
     readCachedPrimaryScale,
     get primaryScale() {
       return PRIMARY_SCALE;
