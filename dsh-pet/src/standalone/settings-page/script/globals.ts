@@ -213,7 +213,7 @@ function voiceCard() {
     selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '切换引擎、模型或 Key 后请先保存再试听；只换音色可直接试。'),
     voicePreviewRow(),
     numberField('g-voice-rate', '语速（0.5–2）', g.voiceRate == null ? 1 : g.voiceRate, (value) => setGlobal('voiceRate', clampNumber(value, 0.5, 2, 1)), { min: 0.5, max: 2, step: 0.05, hint: '1 为原速；会重新合成，试听前建议先保存。' }),
-    numberField('g-voice-volume', '音量（0–2，最高 200%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 2, 1)), { min: 0, max: 2, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
+    numberField('g-voice-volume', '音量（0–3，最高 300%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 3, 1)), { min: 0, max: 3, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
     toggleRow('g-voice-whisper', '周期碎碎念也念出来', '关掉只影响周期碎碎念，手动对话照常发声。', g.voiceWhisperEnabled, (value) => setGlobal('voiceWhisperEnabled', value)),
     toggleRow('g-voice-todo', '待办提醒也念出来', '关掉只影响待办提醒的朗读。', g.voiceTodoEnabled, (value) => setGlobal('voiceTodoEnabled', value)),
   ]);

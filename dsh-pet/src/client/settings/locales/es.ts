@@ -199,7 +199,7 @@ export const es: Record<Key, string> = {
     'Multiplicador absoluto 0,5–2: 1 es la velocidad normal. Vuelve a sintetizar el audio (afecta a la clave de caché); tras guardar se aplica a las locuciones siguientes.',
   voiceVolumeLabel: 'Volumen',
   voiceVolumeHint:
-    'Volumen de reproducción 0–2: 1 = 100 %, 2 = 200 % (por encima de 1 se amplifica con ganancia). Solo cambia la intensidad y no vuelve a sintetizar el audio. Con el interruptor general apagado no surte efecto.',
+    'Volumen de reproducción 0–3: 1 = 100 %, 3 = 300 % (por encima de 1 se amplifica con ganancia). Solo cambia la intensidad y no vuelve a sintetizar el audio. Con el interruptor general apagado no surte efecto.',
   physicsTitle: 'Física (sensación al arrastrar y lanzar)',
   physicsHint:
     'Valor predeterminado global, compartido por todas las mascotas (un pet pack puede sobrescribirlo en el archivo de su propio tipo); se escribe en la configuración del usuario al "Guardar" (nunca al instante). En el navegador se aplica al instante; en el escritorio se aplica cuando Guardar recarga las ventanas de mascotas.',

@@ -90,7 +90,7 @@
   // 用哪个音色念：edge 时必须是五个中文音色之一；fish 时为内置 / 用户追加的 Voice ID。
   // 写错或留空即配置错误 → 告警并回落到默认 zh-CN-XiaoyiNeural（晓伊，女声·活泼）。
   "voiceName": "zh-CN-XiaoyiNeural",
-  // 播放音量（全局）：0–2，1 = 100%，2 = 200%（超过 1 用 Web Audio 增益）。与上面 voiceEnabled 是两件事——
+  // 播放音量（全局）：0–3，1 = 100%，3 = 300%（超过 1 用 Web Audio 增益）。与上面 voiceEnabled 是两件事——
   // 总开关决定念不念，本项决定念多大声；总开关关着时它不起作用。
   // 只改播放响度，不重新合成音频，所以调它不会多花一次 TTS 请求。
   "voiceVolume": 1,

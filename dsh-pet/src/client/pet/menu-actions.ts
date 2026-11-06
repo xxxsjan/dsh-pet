@@ -10,6 +10,7 @@ import { ROUTE_PATH } from '../../shared/constants.ts';
 import type { Animations } from '../../shared/types.ts';
 import { postAction } from '../../shared/state.ts';
 import { setMenuClick } from '../menu-service.ts';
+import { getVoiceEnabled } from '../../shared/voice.ts';
 
 /** 菜单派发的依赖。 */
 export interface MenuActionDeps {
@@ -83,6 +84,24 @@ async function switchDisplay(deps: MenuActionDeps, display: string): Promise<voi
     deps.applyMerged(body as Record<string, Record<string, unknown>>);
   } catch (error) {
     deps.warn('[blue-fish] 显示位置切换失败 ' + (error instanceof Error ? error.message : String(error)));
+  }
+}
+
+/** 语音播报开关：取反当前状态后写配置，宿主回成品聚合，交给容器重渲染。 */
+async function toggleVoice(deps: MenuActionDeps): Promise<void> {
+  const enabled = !getVoiceEnabled();
+  try {
+    const response = await fetch(ROUTE_PATH + '/voice-toggle', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    if (!response.ok) throw new Error('voice-toggle HTTP ' + response.status);
+    const body = (await response.json()) as Record<string, unknown>;
+    if (body.ok === false) throw new Error('voice-toggle 被拒：' + String(body.reason ?? ''));
+    deps.applyMerged(body as Record<string, Record<string, unknown>>);
+  } catch (error) {
+    deps.warn('[blue-fish] 朗读开关切换失败 ' + (error instanceof Error ? error.message : String(error)));
   }
 }
 
@@ -167,6 +186,11 @@ export function createMenuActions(deps: MenuActionDeps): MenuActions {
       if (!display) return;
       console.info('[blue-fish] 菜单切换显示位置 pet=' + petId + ' display=' + display);
       void switchDisplay(deps, display);
+      return;
+    }
+    if (leaf.action === 'toggle-voice') {
+      console.info('[blue-fish] 菜单切换朗读开关 pet=' + petId);
+      void toggleVoice(deps);
       return;
     }
     if (leaf.action === 'home') {

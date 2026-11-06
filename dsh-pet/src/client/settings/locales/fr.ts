@@ -197,7 +197,7 @@ export const fr: Record<Key, string> = {
     "Multiplicateur absolu 0,5–2 : 1 est la vitesse normale. L'audio est resynthétisé (affecte la clé de cache) ; il s'applique aux lectures suivantes après l'enregistrement.",
   voiceVolumeLabel: 'Volume',
   voiceVolumeHint:
-    "Volume de lecture 0–2 : 1 = 100 %, 2 = 200 % (au-delà de 1, amplifié par gain). Seule l'intensité change, l'audio n'est pas resynthétisé. Sans effet quand l'interrupteur principal est désactivé.",
+    "Volume de lecture 0–3 : 1 = 100 %, 3 = 300 % (au-delà de 1, amplifié par gain). Seule l'intensité change, l'audio n'est pas resynthétisé. Sans effet quand l'interrupteur principal est désactivé.",
   physicsTitle: 'Physique (ressenti du glisser-lancer)',
   physicsHint:
     "Valeurs par défaut globales, partagées par tous les compagnons (un pet pack peut les remplacer dans son propre fichier de type) ; écrites dans la configuration utilisateur lors de l'enregistrement (jamais immédiatement). Appliquées immédiatement dans le navigateur ; sur le bureau, après que l'enregistrement a rechargé les fenêtres des compagnons.",

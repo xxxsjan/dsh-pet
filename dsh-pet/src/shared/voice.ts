@@ -22,7 +22,7 @@ import {
 let voiceName = '';
 /** 播报总开关；只有成品配置明确为 true 才播。 */
 let voiceEnabled = false;
-/** 播放音量系数（0–2，1 = 100%；>1 用 Web Audio 增益）。 */
+/** 播放音量系数（0–3，1 = 100%；>1 用 Web Audio 增益）。 */
 let voiceVolume = DEFAULT_VOICE_VOLUME;
 /** 绝对语速（0.5–2），合成请求换成 Edge 的 `+N%`。 */
 let voiceRate = DEFAULT_VOICE_RATE;
@@ -90,6 +90,14 @@ function setVoiceState(next: VoiceState): void {
  */
 export function getVoiceState(): VoiceState {
   return voiceState;
+}
+
+/**
+ * 读当前语音播报总开关状态。
+ * @returns `true` 表示播报开启，`false` 表示关闭。
+ */
+export function getVoiceEnabled(): boolean {
+  return voiceEnabled;
 }
 
 /**
@@ -162,7 +170,7 @@ export function setSurface(next: unknown): void {
  * 调用即视为配置已就绪，后续播放不再自己去拉。
  * @param name - 音色 id（非字符串按未指定处理）。
  * @param enabled - 播报总开关（严格 `=== true` 才算开启）。
- * @param volume - 音量系数（0–2）；缺省或非数值按 100%。
+ * @param volume - 音量系数（0–3）；缺省或非数值按 100%。
  * @param rate - 绝对语速（0.5–2）；缺省或非数值按 1。
  */
 export function setVoiceConfig(name: unknown, enabled: unknown, volume?: unknown, rate?: unknown): void {
@@ -226,7 +234,7 @@ export async function unlockVoiceAudio(): Promise<void> {
  * 按配置音量播放：≤1 用 `audio.volume`；>1 用 GainNode（与弹幕机同口径）。
  * Context 起不来时绝不挂 MediaElementSource，只把 element 放到上限 1，避免「增益失败 → 更小声/无声」。
  * @param audio - 即将 play 的元素。
- * @param volume - 0–2。
+ * @param volume - 0–3。
  */
 async function applyPlaybackVolume(audio: HTMLAudioElement, volume: number): Promise<void> {
   const vol = clampVoiceVolume(volume);

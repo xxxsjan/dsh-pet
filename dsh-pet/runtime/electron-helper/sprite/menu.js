@@ -48,6 +48,9 @@ Object.assign(PetSprite.prototype, {
       if (this.sleeping) tools.push({ label: '起来', action: 'wake', hint: S.SLEEP_HOTKEY_HINT });
       else tools.push({ label: '睡觉', action: 'sleep', hint: S.SLEEP_HOTKEY_HINT });
     }
+    // 朗读开关：根据当前 voiceEnabled 状态显示不同文案。
+    const voiceOn = S.getVoiceEnabled();
+    tools.push(voiceOn ? { label: '关闭朗读', action: 'toggle-voice' } : { label: '开启朗读', action: 'toggle-voice' });
     // 动作树之后是维护类：重载配置 → 回到初始位置。显示位置不进菜单（改用悬停快捷键 1-4，
     // 见 input.js），设置页下拉框仍在；「都不」的单向门语义随之只留在设置页这一处。
     const tail = [
@@ -137,6 +140,10 @@ Object.assign(PetSprite.prototype, {
     }
     if (leaf.action === 'reload') {
       this.reloadDesktop(); // 请宿主重启桌面 Helper：全部桌面宠物窗口按最新配置重建
+      return;
+    }
+    if (leaf.action === 'toggle-voice') {
+      this.toggleVoiceFromMenu(); // 切换语音播报开关
       return;
     }
     if (!leaf.anim) return;
@@ -380,6 +387,19 @@ Object.assign(PetSprite.prototype, {
       body: JSON.stringify({ id: this.pet.id, display }),
     }).catch((e) => {
       console.warn('[blue-fish] 显示位置请求失败（宿主不可达？）', e);
+    });
+  },
+
+  // 「开启/关闭朗读」菜单：取反当前 voiceEnabled 状态，写配置后宿主重启生效。
+  // 与 setPetDisplay 同一处境：不 await、不重试，失败只记日志。
+  toggleVoiceFromMenu() {
+    const enabled = !S.getVoiceEnabled();
+    fetch(BASE + '/voice-toggle', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    }).catch((e) => {
+      console.warn('[blue-fish] 朗读开关请求失败（宿主不可达？）', e);
     });
   },
 

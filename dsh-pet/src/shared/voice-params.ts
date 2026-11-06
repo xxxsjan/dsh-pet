@@ -1,7 +1,7 @@
 /**
  * 语音语速 / 音量的共用口径：配置存绝对值，Edge 请求再换成 `+N%`。
  *
- * 音量 0–2（200%）：`HTMLAudioElement.volume` 只到 1，超过 1 由播放侧 Web Audio 增益补。
+ * 音量 0–3（300%）：`HTMLAudioElement.volume` 只到 1，超过 1 由播放侧 Web Audio 增益补。
  * 语速 0.5–2：与 Fish 绝对倍率、Edge ±50%…+100% 同量纲。
  * @module dsh-pet/src/shared/voice-params
  */
@@ -14,8 +14,8 @@ export const VOICE_RATE_MIN = 0.5;
 export const VOICE_RATE_MAX = 2;
 /** 默认音量（1 = 100%）。 */
 export const DEFAULT_VOICE_VOLUME = 1;
-/** 音量上限（2 = 200%）。 */
-export const VOICE_VOLUME_MAX = 2;
+/** 音量上限（3 = 300%）。 */
+export const VOICE_VOLUME_MAX = 3;
 
 /** 把配置里的语速夹到合法区间；非法回落默认。 */
 export function clampVoiceRate(value: unknown): number {

@@ -194,7 +194,7 @@ export const en: Record<Key, string> = {
   voiceRateHint: 'Absolute multiplier 0.5–2 (1 = normal). Re-synthesizes audio; takes effect after save.',
   voiceVolumeLabel: 'Volume',
   voiceVolumeHint:
-    'Playback volume 0–2: 1 = 100%, 2 = 200% (boosted via Web Audio above 1). Changes loudness only and never re-synthesizes. Has no effect while the master switch is off.',
+    'Playback volume 0–3: 1 = 100%, 3 = 300% (boosted via Web Audio above 1). Changes loudness only and never re-synthesizes. Has no effect while the master switch is off.',
   physicsTitle: 'Physics (drag & throw feel)',
   physicsHint:
     'Global default, shared by every pet (a pet pack may override it in its own kind file); written to the user config on "Save" (never written immediately). Applies instantly in the browser; on the desktop it applies once Save reloads the pet windows.',
