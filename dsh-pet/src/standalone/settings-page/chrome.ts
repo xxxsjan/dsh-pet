@@ -21,7 +21,7 @@ export const settingsPage = `<!doctype html>
 <aside class="side">
 <div class="brand"><img class="brandLogo" src="/standalone-ai/icon.png" alt=""><span>桌宠</span></div>
 <nav class="nav" aria-label="设置分区"><div class="navList" role="tablist">
-<button type="button" class="navCell" role="tab" id="tab-chat" data-tab="chat" data-title="对话" aria-controls="panel-chat" aria-selected="true"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="navLabel">对话</span></button>
+<button type="button" class="navCell" role="tab" id="tab-chat" data-tab="chat" data-title="对话" aria-controls="chat-dialog" aria-selected="true"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="navLabel">对话</span></button>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
 <button type="button" class="navCell" role="tab" id="tab-model" data-tab="model" data-title="模型" aria-controls="panel-model" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x="2.6" y="3.2" width="10.8" height="9.6" rx="1.2"/><path d="M5.2 6.4h5.6M5.2 9.2h3.8" stroke-linecap="round"/></g></svg><span class="navLabel">模型</span></button>
 <button type="button" class="navCell" role="tab" id="tab-voice" data-tab="voice" data-title="语音" aria-controls="panel-voice" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.8v10.4"/><path d="M5.2 5.2v5.6M10.8 5.2v5.6"/><path d="M3.2 6.8v2.4M12.8 6.8v2.4"/></g></svg><span class="navLabel">语音</span></button>
@@ -91,12 +91,17 @@ export const settingsPage = `<!doctype html>
 </form>
 </div>
 </section>
-<section class="panel" id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
-<div class="pet-chat-host" id="pet-chat-root"></div>
-</section>
 </div>
 </div>
 </main>
+<div class="dialogMask chatDialogMask" id="chat-dialog" role="dialog" aria-modal="true" aria-labelledby="chat-dialog-title" hidden>
+<div class="dialog chatDialog">
+<div class="chatDialogHead"><h2 class="dialogTitle" id="chat-dialog-title">对话</h2><button class="btn ghost chatDialogClose" id="chat-dialog-close" type="button" aria-label="关闭">
+<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+</button></div>
+<div class="chatDialogBody"><div class="pet-chat-host" id="pet-chat-root"></div></div>
+</div>
+</div>
 <div class="dialogMask" id="dm-cookie-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-cookie-title" hidden>
 <div class="dialog">
 <h2 class="dialogTitle" id="dm-cookie-title">如何获取 Cookie</h2>

@@ -193,6 +193,13 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dialogTitle{margin:0 0 8px;font-size:17px;font-weight:650;line-height:22px}
 .dialogText{margin:0;font-size:13px;line-height:1.65;color:var(--dsw-alias-label-secondary);white-space:pre-line;word-break:break-word}
 .dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.chatDialogMask{z-index:90}
+.chatDialog{width:min(960px,100%);height:min(720px,100%);padding:0;display:flex;flex-direction:column}
+.chatDialogHead{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:.5px solid var(--dsw-alias-border-l1)}
+.chatDialogHead .dialogTitle{margin:0}
+.chatDialogClose{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:980px}
+.chatDialogBody{flex:1;min-height:0;overflow:hidden}
+.chatDialogBody .pet-chat-host{height:100%;max-width:none;margin:0}
 .personaWrap{position:relative}
 .personaCount{position:absolute;right:10px;bottom:8px;padding:2px 5px;border-radius:var(--dsw-radius-xs);background:var(--dsw-alias-bg-layer-2);font-size:11px;line-height:1.2;color:var(--dsw-alias-label-tertiary);pointer-events:none}
 .btn.danger{background:color-mix(in srgb,var(--dsw-static-red-500) 14%,transparent);border-color:transparent;color:var(--dsw-static-red-500)}
@@ -221,7 +228,7 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dmPill.on{background:color-mix(in srgb,var(--dsw-static-green-600) 16%,transparent);color:var(--dsw-static-green-600)}
 .dmPill.off{background:color-mix(in srgb,var(--dsw-static-red-500) 12%,transparent);color:var(--dsw-static-red-500)}
 .dmStatusLine{display:block;white-space:pre-line}
-.dmFeed{display:flex;flex-direction:column;gap:8px;max-height:42vh;min-height:120px;overflow-y:auto;padding:10px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);font-size:13px;line-height:1.5}
+.dmFeed{display:flex;flex-direction:column;gap:8px;min-height:120px;overflow-y:auto;padding:10px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);font-size:13px;line-height:1.5}
 .dmFeed:empty::before{content:"开始监听后，弹幕会出现在这里";margin:auto;padding:20px 12px;text-align:center;color:var(--dsw-alias-label-tertiary)}
 .dmFeedItem{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 11px;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-2);box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .dmFeedItem.gift{background:color-mix(in srgb,#ff9500 12%,var(--dsw-alias-bg-layer-2))}
@@ -231,11 +238,12 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dmFeedNick{font-size:12px;font-weight:560;color:var(--dsw-alias-label-tertiary);word-break:break-word}
 .dmFeedText{color:var(--dsw-alias-label-primary);word-break:break-word}
 .dmFeedTime{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
-.dmGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.dmLeft{display:flex;flex-direction:column;gap:14px;min-width:0;align-self:start}
+.dmGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.dmLeft{display:flex;flex-direction:column;gap:14px;min-width:0}
 .dmRight{display:flex;flex-direction:column;min-width:0}
-.dmRight .card{flex:1;display:flex;flex-direction:column;min-height:0}
-.dmRight .dmFeed{flex:1;min-height:200px;max-height:none}
+.dmRight .card{display:flex;flex-direction:column;min-height:0}
+.dmRight .dmFeed{min-height:200px;max-height:60vh;overflow-y:auto}
+#panel-danmaku .scroll{overflow-y:auto;padding-bottom:22px}
 /* 宽屏：内容区加宽到约三列舒适宽度，瀑布升 3 列（侧栏约 208 + 内边距后，视口 ≥1400 才够用）。 */
 @media(min-width:1400px){
   :root{--dsh-content-width:1240px}
@@ -256,6 +264,7 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
   #pet-cards{column-count:1}
   .dmGrid{grid-template-columns:1fr}
   .dmRight .dmFeed{min-height:200px;max-height:42vh}
+  .chatDialog{width:100%;height:100%;border-radius:0}
 }
 @media(prefers-reduced-motion:no-preference){.navCell,.btn,.tab{transition:background-color .12s ease,color .12s ease,opacity .12s ease}}
 ${PANEL_CSS}
