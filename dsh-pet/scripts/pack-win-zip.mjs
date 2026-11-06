@@ -2,7 +2,7 @@
 /**
  * 把 electron-builder 产出的 `dist-app/win-unpacked` 压成可分发 zip。
  * 外层文件名与内层目录均为：`<name>-<version>-win-x64`（name/version 来自 package.json）。
- * 打包前会弹窗询问是否升级版本号（patch 版本 +1）。
+ * 版本号只读不写：递增由 dist.mjs 在构建前完成，保证包内 package.json 与 zip 名同源。
  * @module dsh-pet/scripts/pack-win-zip
  */
 import { spawnSync } from 'node:child_process';
@@ -25,37 +25,7 @@ const root = resolve(here, '..');
 const pkgPath = join(root, 'package.json');
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 const name = typeof pkg.name === 'string' && pkg.name ? pkg.name : 'blue-fish';
-const currentVersion = typeof pkg.version === 'string' && pkg.version ? pkg.version : '0.0.0';
-
-// 计算下一个 patch 版本号
-const [major, minor, patch] = currentVersion.split('.').map(Number);
-const nextVersion = `${major}.${minor}.${patch + 1}`;
-
-// 弹窗询问是否升级版本号（PowerShell）
-const psConfirm = `
-Add-Type -AssemblyName System.Windows.Forms
-$result = [System.Windows.Forms.MessageBox]::Show(
-  "当前版本号: ${currentVersion}\n\n是否升级到 ${nextVersion}？\n\n点击"取消"保持当前版本号不变。",
-  "打包确认",
-  [System.Windows.Forms.MessageBoxButtons]::YesNo,
-  [System.Windows.Forms.MessageBoxIcon]::Question
-)
-if ($result -eq [System.Windows.Forms.DialogResult]::Yes) { exit 0 } else { exit 1 }
-`;
-const psResult = spawnSync('powershell.exe', ['-NoProfile', '-Command', psConfirm], {
-  stdio: 'ignore',
-});
-const shouldUpgrade = psResult.status === 0;
-const version = shouldUpgrade ? nextVersion : currentVersion;
-
-// 如果升级了，更新 package.json
-if (shouldUpgrade) {
-  pkg.version = version;
-  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-  console.log(`[pack:win] 版本号已升级到 ${version}`);
-} else {
-  console.log(`[pack:win] 保持版本号 ${version}`);
-}
+const version = typeof pkg.version === 'string' && pkg.version ? pkg.version : '0.0.0';
 
 const unpacked = join(root, 'dist-app', 'win-unpacked');
 const inner = `${name}-${version}-win-x64`;
