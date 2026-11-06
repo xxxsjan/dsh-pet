@@ -16,6 +16,7 @@ import {
   flattenCounters,
   readAnim,
   readBalance,
+  readDanmaku,
   readLock,
   readPosition,
   readSay,
@@ -192,6 +193,8 @@ export function createPetMulti(
     const sleepRef = useRef<Record<string, SleepState>>({});
     // 第三方菜单项只在打开右键菜单时读一次，不参与渲染。
     const menuItemsRef = useRef<MenuMoreItem[]>([]);
+    // 直播监听状态：只在打开右键菜单时读一次，决定是否显示「暂停直播」项。
+    const danmakuListeningRef = useRef<boolean>(false);
     /** 已处理过的跳会话时刻：首拉补跳与后续增量可能指向同一条信号，靠它只跳一次。 */
     const lastFocusTsRef = useRef(0);
     useEffect(() => {
@@ -239,6 +242,17 @@ export function createPetMulti(
             // 桌面宠物点了会话气泡：宿主把意图写在这个叶子里，页面据此切会话。
             applyFocusSession(leaf.data);
             return;
+          case 'danmaku': {
+            // 直播监听状态只更新 ref，不触发渲染；右键菜单打开时读取。
+            console.log('[blue-fish][danmaku] applySection danmaku, leaf:', leaf);
+            const status = readDanmaku(leaf);
+            console.log('[blue-fish][danmaku] status:', status);
+            if (status) {
+              danmakuListeningRef.current = status.listening;
+              console.log('[blue-fish][danmaku] updated danmakuListeningRef to:', status.listening);
+            }
+            return;
+          }
         }
       };
 
@@ -310,6 +324,12 @@ export function createPetMulti(
           // 菜单项是当前状态而不是事件，首拉也必须装上，否则刷新后第三方菜单会一直为空。
           menuItemsRef.current = readMenuItems(s.sections.menu?.data, 'web');
           setMenuItems(menuItemsRef.current);
+          // 直播监听状态同样首拉补一次，否则刷新后菜单无法判断是否显示「暂停直播」。
+          const danmakuLeaf = s.sections.danmaku;
+          if (danmakuLeaf) {
+            const danmakuStatus = readDanmaku(danmakuLeaf);
+            if (danmakuStatus) danmakuListeningRef.current = danmakuStatus.listening;
+          }
           // 睡觉同样是状态而不是事件：刷新页面时宿主仍记着它在睡，首拉必须补一次；
           // 否则页面显示醒着，而宿主对「已在睡」不回写叶子，只能等宿主重启才恢复。
           for (const [petId, entry] of Object.entries(s.pets)) {
@@ -370,6 +390,7 @@ export function createPetMulti(
             sleep: sleepRef.current[p.id],
             sleepTick,
             menuItemsRef,
+            danmakuListeningRef,
             arena: arenaRef,
           }),
         )

@@ -62,6 +62,8 @@ export interface CardEntryInput {
   drag: Drag;
   /** 第三方菜单项快照；只在右键那一刻读。 */
   menuItemsRef: ReactNS.MutableRefObject<MenuMoreItem[]>;
+  /** 直播监听状态；只在右键那一刻读，决定是否显示「暂停直播」项。 */
+  danmakuListeningRef: ReactNS.MutableRefObject<boolean>;
   /** 菜单动作派发。 */
   runMenuAction: MenuActions['run'];
   /** 打开待办面板：面板占气泡槽，显隐归气泡单槽管。 */
@@ -100,7 +102,7 @@ export function createCardEntry(rt: CardEntryRuntime) {
   const { useEffect, useRef } = rt;
 
   return function useCardEntry(input: CardEntryInput): CardEntry {
-    const { card, cfgRef, drag, live, menuItemsRef, motion, runMenuAction, showTodo, stage, tipRef, toggleTodo } =
+    const { card, cfgRef, drag, live, menuItemsRef, danmakuListeningRef, motion, runMenuAction, showTodo, stage, tipRef, toggleTodo } =
       input;
     // 右键菜单与对话弹窗当前的句柄，卸载或重开前清理。对话弹窗还要按住说话遥控开录/收尾。
     const menuRef = useRef<{ close: () => void } | null>(null);
@@ -357,7 +359,11 @@ export function createCardEntry(rt: CardEntryRuntime) {
       const voiceItem: MenuNode = voiceOn
         ? { label: '关闭朗读', action: 'toggle-voice' }
         : { label: '开启朗读', action: 'toggle-voice' };
-      // 顺序与桌面端同一排法：余额 / 碎碎念 / 对话 / 配图 / 睡觉 / 朗读 → 动作树 → 显示位置 / 回到初始位置。
+      // 直播监听开关：根据当前监听状态显示不同文案。
+      const danmakuItem: MenuNode = danmakuListeningRef.current
+        ? { label: '暂停直播', action: 'stop-danmaku' }
+        : { label: '开始直播', action: 'start-danmaku' };
+      // 顺序与桌面端同一排法：余额 / 碎碎念 / 对话 / 配图 / 睡觉 / 朗读 / 直播 → 动作树 → 显示位置 / 回到初始位置。
       // 待办走 D 快捷键，不进右键菜单。桌面专属的两项（打开软件、重载配置）在网页端没有对应动作，不出现。
       const tools: MenuNode[] = [
         { label: '查看余额', action: 'show-balance' },
@@ -366,6 +372,7 @@ export function createCardEntry(rt: CardEntryRuntime) {
         ...(memes ? [memes] : []),
         ...(canSleep ? [sleepItem] : []),
         voiceItem,
+        danmakuItem,
       ];
       const tail: MenuNode[] = [
         // 显示位置子菜单与桌面端同一份；改成不含 web 的值后本宠物会从页面消失。

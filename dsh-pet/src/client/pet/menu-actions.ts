@@ -105,6 +105,28 @@ async function toggleVoice(deps: MenuActionDeps): Promise<void> {
   }
 }
 
+/** 暂停直播监听：调用 /danmaku/douyin/stop 停止监听。 */
+async function stopDanmaku(deps: MenuActionDeps): Promise<void> {
+  try {
+    const response = await fetch(ROUTE_PATH + '/danmaku/douyin/stop', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('danmaku/stop HTTP ' + response.status);
+    const body = (await response.json()) as Record<string, unknown>;
+    if (body.ok === false) throw new Error('danmaku/stop 被拒：' + String(body.reason ?? ''));
+    console.info('[blue-fish] 直播监听已暂停 pet=' + deps.petId);
+  } catch (error) {
+    deps.warn('[blue-fish] 暂停直播失败 ' + (error instanceof Error ? error.message : String(error)));
+  }
+}
+
+/** 开始直播监听：需要先在设置页配置直播间 URL，此处仅提示。 */
+function startDanmaku(deps: MenuActionDeps): void {
+  deps.say?.('请先在设置页配置直播间地址哦');
+  console.info('[blue-fish] 开始直播需要先配置直播间 pet=' + deps.petId);
+}
+
 /**
  * 造菜单派发器。
  *
@@ -191,6 +213,16 @@ export function createMenuActions(deps: MenuActionDeps): MenuActions {
     if (leaf.action === 'toggle-voice') {
       console.info('[blue-fish] 菜单切换朗读开关 pet=' + petId);
       void toggleVoice(deps);
+      return;
+    }
+    if (leaf.action === 'stop-danmaku') {
+      console.info('[blue-fish] 菜单暂停直播 pet=' + petId);
+      void stopDanmaku(deps);
+      return;
+    }
+    if (leaf.action === 'start-danmaku') {
+      console.info('[blue-fish] 菜单开始直播 pet=' + petId);
+      startDanmaku(deps);
       return;
     }
     if (leaf.action === 'home') {

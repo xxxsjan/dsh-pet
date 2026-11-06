@@ -114,7 +114,7 @@ export function takeChanged(s: PollState, baseline: Record<string, number>): Sta
 }
 
 /** `sections.<名>` 里会被消费端分发的那几个叶子。 */
-export type SectionLeafName = 'config' | 'balance' | 'workStatus' | 'notify' | 'menu' | 'focusSession';
+export type SectionLeafName = 'config' | 'balance' | 'workStatus' | 'notify' | 'menu' | 'focusSession' | 'danmaku';
 
 /** `pets.<id>.<名>` 里会被消费端分发的那几个叶子。 */
 export type PetLeafName = 'say' | 'anim' | 'position' | 'throw' | 'lock' | 'sleep';
@@ -124,7 +124,7 @@ export type LeafTarget =
   { where: 'section'; name: SectionLeafName } | { where: 'pet'; name: PetLeafName; petId: string };
 
 /** 分段叶子名的全集；新增 section 叶子时与 {@link SectionLeafName} 一起改。 */
-const SECTION_LEAF_NAMES = ['config', 'balance', 'workStatus', 'notify', 'menu', 'focusSession'] as const;
+const SECTION_LEAF_NAMES = ['config', 'balance', 'workStatus', 'notify', 'menu', 'focusSession', 'danmaku'] as const;
 
 /** 宠物叶子名的全集；新增宠物叶子时与 {@link PetLeafName} 一起改。 */
 const PET_LEAF_NAMES = ['say', 'anim', 'position', 'throw', 'lock', 'sleep'] as const;
@@ -337,6 +337,18 @@ export function readThrow(leaf: StateLeaf): { angle: number; power: number } | n
   if (typeof d.angle !== 'number' || !Number.isFinite(d.angle)) return null;
   if (typeof d.power !== 'number' || !Number.isFinite(d.power) || d.power <= 0) return null;
   return { angle: d.angle, power: d.power };
+}
+
+/** 直播监听状态：listening = 是否正在监听中。 */
+export type DanmakuStatus = { listening: boolean };
+
+/** 类型收窄：直播监听叶子 → DanmakuStatus（形状非法 → null，消费端跳过这一拍）。
+ *  只关心 listening 字段：右键菜单据此决定是否显示「暂停直播」项。 */
+export function readDanmaku(leaf: StateLeaf): DanmakuStatus | null {
+  if (!leaf.data || typeof leaf.data !== 'object') return null;
+  const d = leaf.data as { listening?: unknown };
+  if (typeof d.listening !== 'boolean') return null;
+  return { listening: d.listening };
 }
 
 /** 动作端点：POST 一次，返回是否成功。

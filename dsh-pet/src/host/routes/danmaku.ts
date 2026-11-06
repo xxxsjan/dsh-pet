@@ -41,6 +41,8 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
       replyChat: typeof replyChat === 'boolean' ? replyChat : undefined,
       thankGift: typeof thankGift === 'boolean' ? thankGift : undefined,
     });
+    // 状态变化写入 state，供右键菜单读取
+    deps.state.writeSection('danmaku', status);
     return okResult({ ok: true, ...status });
   }
 
@@ -73,6 +75,9 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
         replyChat: replyChat === true,
         thankGift: thankGift === true,
       });
+      // 状态变化写入 state，供右键菜单读取
+      console.log('[blue-fish][danmaku] start success, writing status to state:', status);
+      deps.state.writeSection('danmaku', status);
       return okResult({ ok: true, ...status });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -84,6 +89,8 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
   if (rest === 'danmaku/douyin/stop') {
     if (method !== 'POST') return methodNotAllowed();
     const status = deps.douyinDanmaku.stop();
+    // 状态变化写入 state，供右键菜单读取
+    deps.state.writeSection('danmaku', status);
     return okResult({ ok: true, ...status });
   }
 

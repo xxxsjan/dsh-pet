@@ -14,7 +14,7 @@ export interface MenuLeaf {
   anim?: string;
   /** 自定义动作：打开网站 / 查看余额 / 立即碎碎念 / 打开对话弹窗 / 打开待办面板 / 回到初始位置 /
    *  重载配置（桌面端专属，重启桌面 Helper 并按最新配置重建窗口）/ 改显示位置（目标值见 display，
-   *  两端都注入）/ 切换语音播报开关 / 第三方菜单项（只把 owner 与 label 上报给注册方，具体做什么由它决定）。
+   *  两端都注入）/ 切换语音播报开关 / 开始直播监听 / 暂停直播监听 / 第三方菜单项（只把 owner 与 label 上报给注册方，具体做什么由它决定）。
    *  手动触发均不受 whisperEnabled 影响——那个字段只关自动轮询。 */
   action?:
     | 'open-site'
@@ -28,6 +28,8 @@ export interface MenuLeaf {
     | 'sleep'
     | 'wake'
     | 'toggle-voice'
+    | 'start-danmaku'
+    | 'stop-danmaku'
     | 'third-party';
   /** set-display 的目标显示位置（与设置页的下拉框同一套取值） */
   display?: PetDisplay;

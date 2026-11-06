@@ -56,6 +56,8 @@ export interface PetCardProps {
   sleepTick: number;
   /** 第三方菜单项快照；传 ref 是因为只在右键那一刻读。 */
   menuItemsRef: ReactNS.MutableRefObject<MenuMoreItem[]>;
+  /** 直播监听状态；传 ref 是因为只在右键那一刻读。 */
+  danmakuListeningRef: ReactNS.MutableRefObject<boolean>;
   /** 宠物间碰撞站场。 */
   arena: ReactNS.MutableRefObject<{ slots: Record<string, PetCollisionSlot> }>;
 }

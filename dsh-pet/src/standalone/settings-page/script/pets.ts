@@ -35,7 +35,7 @@ function pickGlobals(main) {
     voiceProvider: source.voiceProvider === 'fish' ? 'fish' : 'edge',
     voiceName: typeof source.voiceName === 'string' && source.voiceName ? source.voiceName : (VOICES[1] ? VOICES[1].id : ''),
     voiceVolume: typeof source.voiceVolume === 'number' && Number.isFinite(source.voiceVolume)
-      ? Math.min(2, Math.max(0, source.voiceVolume))
+      ? Math.min(3, Math.max(0, source.voiceVolume))
       : 1,
     voiceRate: typeof source.voiceRate === 'number' && Number.isFinite(source.voiceRate)
       ? Math.min(2, Math.max(0.5, source.voiceRate))

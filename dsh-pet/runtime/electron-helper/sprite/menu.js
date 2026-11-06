@@ -51,6 +51,8 @@ Object.assign(PetSprite.prototype, {
     // 朗读开关：根据当前 voiceEnabled 状态显示不同文案。
     const voiceOn = S.getVoiceEnabled();
     tools.push(voiceOn ? { label: '关闭朗读', action: 'toggle-voice' } : { label: '开启朗读', action: 'toggle-voice' });
+    // 直播监听开关：根据当前监听状态显示不同文案。
+    tools.push(this.danmakuListening ? { label: '暂停直播', action: 'stop-danmaku' } : { label: '开始直播', action: 'start-danmaku' });
     // 动作树之后是维护类：重载配置 → 回到初始位置。显示位置不进菜单（改用悬停快捷键 1-4，
     // 见 input.js），设置页下拉框仍在；「都不」的单向门语义随之只留在设置页这一处。
     const tail = [
@@ -144,6 +146,14 @@ Object.assign(PetSprite.prototype, {
     }
     if (leaf.action === 'toggle-voice') {
       this.toggleVoiceFromMenu(); // 切换语音播报开关
+      return;
+    }
+    if (leaf.action === 'stop-danmaku') {
+      this.stopDanmakuFromMenu(); // 暂停直播监听
+      return;
+    }
+    if (leaf.action === 'start-danmaku') {
+      this.startDanmakuFromMenu(); // 开始直播（需先在设置页配置）
       return;
     }
     if (!leaf.anim) return;
@@ -401,6 +411,21 @@ Object.assign(PetSprite.prototype, {
     }).catch((e) => {
       console.warn('[blue-fish] 朗读开关请求失败（宿主不可达？）', e);
     });
+  },
+
+  // 「暂停直播」菜单：调用 /danmaku/douyin/stop 停止监听。
+  // 与 toggleVoiceFromMenu 同一处境：不 await、不重试，失败只记日志。
+  stopDanmakuFromMenu() {
+    fetch(BASE + '/danmaku/douyin/stop', {
+      method: 'POST',
+    }).catch((e) => {
+      console.warn('[blue-fish] 暂停直播请求失败（宿主不可达？）', e);
+    });
+  },
+
+  // 「开始直播」菜单：需要先在设置页配置直播间 URL，此处仅提示。
+  startDanmakuFromMenu() {
+    this.showWhisper('请先在设置页配置直播间地址哦', undefined, undefined, SLEEP_REFUSE_BUBBLE_MS, false);
   },
 
   /**

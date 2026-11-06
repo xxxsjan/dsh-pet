@@ -61,7 +61,7 @@ export function createCardRuntime(rt: PetRuntime) {
   const useCardEntry = createCardEntry({ useEffect, useRef });
 
   return function useCardRuntime(props: PetCardProps): CardViewProps {
-    const { arena, balance, balanceManual, cfg, lock, lockTick, menuItemsRef, sleep, sleepTick, workStatus } = props;
+    const { arena, balance, balanceManual, cfg, lock, lockTick, menuItemsRef, danmakuListeningRef, sleep, sleepTick, workStatus } = props;
     const { onFocusSession } = props;
 
     // 实际渲染宽度：百分比只在挂载与配置变更时按当次视口宽解析一次，拖窗口不跟随。
@@ -184,6 +184,7 @@ export function createCardRuntime(rt: PetRuntime) {
       drag,
       live: liveRef,
       menuItemsRef,
+      danmakuListeningRef,
       motion,
       runMenuAction: (leaf, playbackId, keepFacing) => menuActionsRef.current?.run(leaf, playbackId, keepFacing),
       showTodo: bubbles.showTodo,

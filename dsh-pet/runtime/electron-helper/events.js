@@ -421,6 +421,16 @@ function applyMenuLeaf(leaf) {
   for (const s of sprites) s.menuItems = items;
 }
 
+/** 直播监听状态叶子 → 灌进各宠物（右键菜单据此决定是否显示「暂停直播」）。 */
+function applyDanmakuLeaf(leaf) {
+  console.log('[blue-fish][danmaku] applyDanmakuLeaf called, leaf:', leaf);
+  const status = leaf ? S.readDanmaku(leaf) : null;
+  console.log('[blue-fish][danmaku] status:', status);
+  const listening = status ? status.listening : false;
+  console.log('[blue-fish][danmaku] listening:', listening);
+  for (const s of sprites) s.danmakuListening = listening;
+}
+
 /** 跑一拍 /state。返回 true = 按长轮询命中（宿主支持长轮询，可以立刻再请求）。 */
 async function pollStateOnce() {
   try {
@@ -437,6 +447,8 @@ async function pollStateOnce() {
       stateBaseline = S.flattenCounters(s); // 首拉：只记基线，不渲染（避免启动/重载时重放旧气泡）
       // 第三方菜单项是状态而不是事件：首拉就要装上，否则 helper 重启后要等下次注册才出现
       applyMenuLeaf(s.sections ? s.sections.menu : null);
+      // 直播监听状态同样是状态：首拉补一次，否则刷新后要等状态变化才显示菜单项
+      applyDanmakuLeaf(s.sections ? s.sections.danmaku : null);
       // 睡觉同样是状态：helper 重启 / 重载配置后宿主仍记着它在睡，这里必须补一次；
       // 否则渲染端显示醒着，而宿主因「已在睡」不回写叶子，只能等宿主重启才恢复。
       for (const [petId, entry] of Object.entries((s && s.pets) || {})) {
@@ -449,6 +461,7 @@ async function pollStateOnce() {
       if (change.path === 'sections.balance') applyBalanceLeaf(change.leaf);
       else if (change.path === 'sections.workStatus') applyWorkStatusLeaf(change.leaf);
       else if (change.path === 'sections.menu') applyMenuLeaf(change.leaf);
+      else if (change.path === 'sections.danmaku') applyDanmakuLeaf(change.leaf);
       else if (change.path.startsWith('pets.') && change.path.endsWith('.say')) {
         // 宠物 id 允许含点号：按前缀/后缀切片，绝不 split('.')
         applySayLeaf(change.path.slice('pets.'.length, -'.say'.length), change.leaf);
