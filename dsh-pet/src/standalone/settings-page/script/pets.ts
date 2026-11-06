@@ -9,6 +9,8 @@
 /** 生成宠物面板片段。 */
 export function petsScript(): string {
   return `
+let configTab = 'pet';
+
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -103,22 +105,65 @@ function renderVoicePanel() {
 
 function renderPetsPanel() {
   const host = byId('pet-cards');
+  const modelHost = byId('model-settings-host');
+  const voiceHost = byId('voice-settings-host');
   if (!host) return;
-  host.textContent = '';
+  // 隐藏所有区域
+  if (host) host.hidden = true;
+  if (modelHost) modelHost.hidden = true;
+  if (voiceHost) voiceHost.hidden = true;
   if (!state.globals) {
+    host.hidden = false;
+    host.textContent = '';
     host.append(make('p', { class: 'empty', text: '正在读取本机配置…' }));
     renderVoicePanel();
     return;
   }
-  const keys = Object.keys(state.pets);
-  if (keys.length > 1) host.append(entryTabs(keys));
-  host.append(petCard());
-  if (state.entry === 'main') {
-    for (const builder of globalCards()) host.append(builder());
-  } else {
-    host.append(packNote());
+  // 宠物 Tab：显示条目切换 + 宠物卡片
+  if (configTab === 'pet') {
+    host.hidden = false;
+    host.textContent = '';
+    const keys = Object.keys(state.pets);
+    if (keys.length > 1) host.append(entryTabs(keys));
+    host.append(petCard());
+    if (state.entry !== 'main') host.append(packNote());
   }
-  renderVoicePanel();
+  // 模型 Tab：显示模型设置
+  else if (configTab === 'model') {
+    if (modelHost) modelHost.hidden = false;
+  }
+  // 语音 Tab：显示语音设置
+  else if (configTab === 'voice') {
+    if (voiceHost) voiceHost.hidden = false;
+    renderVoicePanel();
+  }
+  // 其他 Tab：显示对应的全局卡片
+  else {
+    host.hidden = false;
+    host.textContent = '';
+    const cardMap = {
+      global: globalFlagsCard,
+      font: fontCard,
+      physics: physicsCard,
+      advanced: advancedCard,
+    };
+    const builder = cardMap[configTab];
+    if (builder) host.append(builder());
+  }
+}
+
+function selectConfigTab(name) {
+  configTab = name;
+  for (const tab of document.querySelectorAll('.configTab')) {
+    tab.setAttribute('aria-selected', tab.dataset.configTab === name ? 'true' : 'false');
+  }
+  renderPetsPanel();
+}
+
+function wireConfigTabs() {
+  for (const tab of document.querySelectorAll('.configTab')) {
+    tab.addEventListener('click', () => selectConfigTab(tab.dataset.configTab));
+  }
 }
 
 /** 提交用的 physics 段：原配置没写过的可选键不带出去，避免保存时凭空补键。 */

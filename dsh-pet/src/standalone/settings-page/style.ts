@@ -106,18 +106,21 @@ a.navCell{text-decoration:none;color:inherit;box-sizing:border-box}
 .panel{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 30px 4px}
 .scroll>*{width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
-/* 对话面板自己管内边距与滚动，这里只负责给它一个确定高度的容器；宽度与配置页对齐。 */
-.pet-chat-host{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;width:100%;max-width:var(--dsh-content-width);margin-left:auto;margin-right:auto}
+/* 对话面板自己管内边距与滚动，这里只负责给它一个确定高度的容器；宽度收窄到对话合适的尺寸。 */
+.pet-chat-host{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;width:100%;max-width:640px;margin-left:auto;margin-right:auto}
+/* 配置面板：Tab 与内容区共用一个居中容器，宽度适配两列宠物卡片。 */
+.scroll>.configContent{width:100%;max-width:720px;margin-left:auto;margin-right:auto}
 /* 配置页多列瀑布流：桌宠/全局卡同列填；条目 tabs / 空态通栏。
    窄屏 1 列、常态 2 列；视口够宽时放宽内容区并升到 3 列（见下方 media）。 */
-#pet-cards{column-count:2;column-gap:14px}
-#pet-cards>.card{display:inline-block;width:100%;vertical-align:top;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
-#pet-cards>.tabs,#pet-cards>.empty{column-span:all}
+#pet-cards{display:flex;flex-direction:column;gap:14px}
+#pet-cards>.card{width:100%}
+#pet-cards>.tabs,#pet-cards>.empty{width:100%}
 .card{background:var(--dsw-alias-settings-card-fill);border:0;border-radius:var(--dsw-radius-lg);box-shadow:var(--dsw-elevation-prominent);padding:18px 20px;margin-bottom:14px}
 #pet-cards>.card:first-child{margin-top:2px}
-/* 模型 / 语音分区：单列内容，宽度跟配置内容区一致 */
-#panel-model #settings,#panel-voice #voice-host{max-width:var(--dsh-content-width);margin:0 auto 24px}
-#panel-model #settings>.card,#panel-voice #voice-host>.card{margin-bottom:12px}
+/* 模型 / 语音设置：嵌入配置 Tab 内，宽度与容器一致 */
+#model-settings-host,#voice-settings-host{width:100%}
+#model-settings-host #settings,#voice-settings-host #voice-host{margin:0}
+#model-settings-host .card,#voice-settings-host .card{margin-bottom:12px}
 .cardHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 4px}
 .cardTitle{margin:0;font-size:15px;font-weight:650;line-height:22px}
 .cardHint{margin:0 0 12px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}
@@ -147,7 +150,10 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--dsw-static-blue-500)}
 .btn.ghost:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 12px}
+.configTabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 16px;padding-bottom:2px;border-bottom:.5px solid var(--dsw-alias-border-l1)}
+.configTab{height:30px;padding:0 14px;border:0;border-radius:980px 980px 0 0;background:transparent;color:var(--dsw-alias-label-secondary);font:560 13px/1 var(--dsw-font-family);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px}
+.configTab:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.configTab[aria-selected=true]{color:var(--dsw-alias-label-primary);border-bottom-color:var(--dsw-static-blue-500)}
 .tab{height:30px;padding:0 12px;border:0;border-radius:980px;background:transparent;color:var(--dsw-alias-label-secondary);font:560 13px/1 var(--dsw-font-family);cursor:pointer}
 .tab:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .tab[aria-selected=true]{background:var(--dsw-specific-sidebar-nav-item-active);color:var(--dsw-alias-label-primary)}
@@ -193,13 +199,6 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dialogTitle{margin:0 0 8px;font-size:17px;font-weight:650;line-height:22px}
 .dialogText{margin:0;font-size:13px;line-height:1.65;color:var(--dsw-alias-label-secondary);white-space:pre-line;word-break:break-word}
 .dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-.chatDialogMask{z-index:90}
-.chatDialog{width:min(960px,100%);height:min(720px,100%);padding:0;display:flex;flex-direction:column}
-.chatDialogHead{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:.5px solid var(--dsw-alias-border-l1)}
-.chatDialogHead .dialogTitle{margin:0}
-.chatDialogClose{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:980px}
-.chatDialogBody{flex:1;min-height:0;overflow:hidden}
-.chatDialogBody .pet-chat-host{height:100%;max-width:none;margin:0}
 .personaWrap{position:relative}
 .personaCount{position:absolute;right:10px;bottom:8px;padding:2px 5px;border-radius:var(--dsw-radius-xs);background:var(--dsw-alias-bg-layer-2);font-size:11px;line-height:1.2;color:var(--dsw-alias-label-tertiary);pointer-events:none}
 .btn.danger{background:color-mix(in srgb,var(--dsw-static-red-500) 14%,transparent);border-color:transparent;color:var(--dsw-static-red-500)}
@@ -244,10 +243,9 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dmRight .card{display:flex;flex-direction:column;min-height:0}
 .dmRight .dmFeed{min-height:200px;max-height:60vh;overflow-y:auto}
 #panel-danmaku .scroll{overflow-y:auto;padding-bottom:22px}
-/* 宽屏：内容区加宽到约三列舒适宽度，瀑布升 3 列（侧栏约 208 + 内边距后，视口 ≥1400 才够用）。 */
+/* 宽屏：内容区加宽到约三列舒适宽度（侧栏约 208 + 内边距后，视口 ≥1400 才够用）。 */
 @media(min-width:1400px){
   :root{--dsh-content-width:1240px}
-  #pet-cards{column-count:3}
 }
 @media(max-width:767px){
   .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
@@ -261,10 +259,8 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
   .topbar{height:48px;padding:0 16px}
   .scroll{padding:16px 16px 4px}
   .grid2,.grid3{grid-template-columns:1fr}
-  #pet-cards{column-count:1}
   .dmGrid{grid-template-columns:1fr}
   .dmRight .dmFeed{min-height:200px;max-height:42vh}
-  .chatDialog{width:100%;height:100%;border-radius:0}
 }
 @media(prefers-reduced-motion:no-preference){.navCell,.btn,.tab{transition:background-color .12s ease,color .12s ease,opacity .12s ease}}
 ${PANEL_CSS}

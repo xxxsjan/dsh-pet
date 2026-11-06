@@ -1,7 +1,8 @@
 /**
  * 设置页启动：分区切换、初次加载与保存按钮接线。
  *
- * 配置 / 语音读 /config（共用顶栏保存）；模型在侧栏独立分区（读 /standalone-ai/settings）。
+ * 配置面板包含宠物、全局开关、字体、物理、模型、语音、高级等 Tab；
+ * 模型与语音集成在配置面板中，不再作为独立侧栏分区。
  * 缺令牌时只提示、不发任何请求——本页所有写操作都依赖那次运行有效的凭证。
  * @module dsh-pet/src/standalone/settings-page/script/boot
  */
@@ -54,15 +55,6 @@ function mountBalanceSelect() {
 }
 
 function selectTab(name) {
-  // 对话标签：只打开全局悬浮弹窗，不切换面板、不改导航高亮。
-  if (name === 'chat') {
-    const chatDialog = byId('chat-dialog');
-    if (chatDialog) chatDialog.hidden = false;
-    return;
-  }
-  // 其他标签：正常切换面板，同时关闭对话弹窗。
-  const chatDialog = byId('chat-dialog');
-  if (chatDialog) chatDialog.hidden = true;
   for (const cell of document.querySelectorAll('[data-tab]')) {
     const active = cell.dataset.tab === name;
     cell.setAttribute('aria-selected', active ? 'true' : 'false');
@@ -73,18 +65,13 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
-  // 配置与语音共用顶栏 pet-save（/config）；模型用顶栏 save（/standalone-ai/settings）。
+  // 配置面板用顶栏 pet-save（/config）。
   const petSave = byId('pet-save');
-  if (petSave) petSave.hidden = name !== 'config' && name !== 'voice';
+  if (petSave) petSave.hidden = name !== 'config';
   const modelSave = byId('save');
-  if (modelSave) modelSave.hidden = name !== 'model';
+  if (modelSave) modelSave.hidden = true;
   // 弹幕分区切进来就立刻拉一次状态，不用等下一轮轮询。
   if (name === 'danmaku') void dmRefresh().catch(() => {});
-}
-
-function closeChatDialog() {
-  const chatDialog = byId('chat-dialog');
-  if (chatDialog) chatDialog.hidden = true;
 }
 
 function wireTabs() {
@@ -170,8 +157,9 @@ function wireTheme() {
 function boot() {
   wireTheme();
   wireTabs();
-  // 默认显示配置面板，对话以弹窗形式悬浮。
-  selectTab('config');
+  wireConfigTabs();
+  // 默认显示对话面板。
+  selectTab('chat');
   // 刷新后地址栏里的令牌已被清掉，此时靠首次访问换来的 HttpOnly cookie 继续；
   // cookie 也没了的时候，各面板自己的请求会失败并显示重新打开设置的提示。
   mountProtocolSelect();
@@ -179,17 +167,17 @@ function boot() {
   wireAiPanel();
   wireDanmakuPanel();
   byId('pet-save').addEventListener('click', savePets);
-  // 对话弹窗：关闭按钮 + 点遮罩关闭 + Esc 关闭。
-  const chatCloseBtn = byId('chat-dialog-close');
-  if (chatCloseBtn) chatCloseBtn.addEventListener('click', closeChatDialog);
-  const chatDialog = byId('chat-dialog');
-  if (chatDialog) {
-    chatDialog.addEventListener('click', (event) => {
-      if (event.target === chatDialog) closeChatDialog();
+  // 弹幕 Cookie 弹窗：关闭按钮 + 点遮罩 + Esc。
+  const dmCookieDialog = byId('dm-cookie-dialog');
+  const dmCookieClose = byId('dm-cookie-close');
+  if (dmCookieClose) dmCookieClose.addEventListener('click', () => { if (dmCookieDialog) dmCookieDialog.hidden = true; });
+  if (dmCookieDialog) {
+    dmCookieDialog.addEventListener('click', (event) => {
+      if (event.target === dmCookieDialog) dmCookieDialog.hidden = true;
     });
   }
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && chatDialog && !chatDialog.hidden) closeChatDialog();
+    if (event.key === 'Escape' && dmCookieDialog && !dmCookieDialog.hidden) dmCookieDialog.hidden = true;
   });
   window.addEventListener('beforeunload', (event) => {
     if (!state.dirty) return;

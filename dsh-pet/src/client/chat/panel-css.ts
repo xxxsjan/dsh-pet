@@ -483,7 +483,7 @@ export const PANEL_CSS = `
   border: none;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  padding: 0;
+  padding: 0 8px;
   min-height: ${px(SIZE.inputMinH)};
   max-height: ${px(SIZE.inputMaxH)};
   overflow-y: auto;
