@@ -23,6 +23,7 @@ import { setPetDisplay } from './display.ts';
 import { setObsCapture } from './obs-capture.ts';
 import { setVoiceToggle } from './voice-toggle.ts';
 import { savePetLayer } from './entry.ts';
+import { handleUiTheme } from './ui-theme.ts';
 
 /** 内容配置领域：未命中返回 undefined，命中返回应答。 */
 export async function handleConfigRoutes(deps: PetRouteDeps, input: RouteInput): Promise<RouteResult | undefined> {
@@ -38,6 +39,8 @@ export async function handleConfigRoutes(deps: PetRouteDeps, input: RouteInput):
   if (input.rest === 'voice-toggle') return setVoiceToggle(deps, input);
   // 整个种类层的实例写回（设置页改文件宠物的配置 → POST /pet-config）
   if (input.rest === 'pet-config') return savePetLayer(deps, input);
+  // 设置页主题偏好（GET 读 / POST 写）：独立小文件，不重启 Helper、不广播配置
+  if (input.rest === 'ui-theme') return handleUiTheme(deps, input);
   // 配置文件路径 + 存储位置清单（设置页「高级配置」与「卸载与存储」展示用）
   if (input.rest === 'config/meta') return getMeta(deps);
   return undefined;

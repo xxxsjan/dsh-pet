@@ -3,6 +3,8 @@
  *
  * 配置面板包含宠物、全局开关、字体、物理、模型、语音、高级等 Tab；
  * 模型与语音集成在配置面板中，不再作为独立侧栏分区。
+ * 主题以服务端 `GET /ui-theme` 为准（磁盘是唯一真相），localStorage / cookie 只是首帧缓存：
+ * 独立模式端口会被占用顺延、浏览器也可能换 host，只有服务端能跨这些差异记住偏好。
  * 缺令牌时只提示、不发任何请求——本页所有写操作都依赖那次运行有效的凭证。
  * @module dsh-pet/src/standalone/settings-page/script/boot
  */
@@ -123,12 +125,27 @@ async function loadAi() {
 
 const THEME_KEY = 'blue_fish_ui_theme';
 
-function readTheme() {
+// 读 cookie 里的主题值；不区分端口，独立模式端口被占用顺延（3080→3081）也读得到。
+function readThemeCookie() {
   try {
-    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    const hit = document.cookie
+      .split(';')
+      .map((part) => part.trim())
+      .filter((part) => part.indexOf(THEME_KEY + '=') === 0)[0];
+    return hit ? decodeURIComponent(hit.slice(THEME_KEY.length + 1)) : '';
   } catch (_) {
-    return 'light';
+    return '';
   }
+}
+
+// 主题记忆：cookie 优先（按域名隔离、跨端口共享），localStorage 仅作同端口兜底。
+// 只存 localStorage 时，端口一变 localStorage 的 origin 也跟着变，主题就被当成新站点重置成亮色。
+function readTheme() {
+  let stored = readThemeCookie();
+  if (!stored) {
+    try { stored = localStorage.getItem(THEME_KEY) || ''; } catch (_) { stored = ''; }
+  }
+  return stored === 'dark' ? 'dark' : 'light';
 }
 
 function applyTheme(theme) {
@@ -143,14 +160,38 @@ function applyTheme(theme) {
     btn.setAttribute('aria-label', next === 'dark' ? '切换到亮色' : '切换到暗色');
   }
   try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+  // 双写：cookie 是跨端口的那份记忆，localStorage 只在本端口兜底。
+  try { document.cookie = THEME_KEY + '=' + next + '; path=/standalone-ai; max-age=31536000; SameSite=Lax'; } catch (_) {}
+}
+
+async function saveThemeRemote(theme) {
+  try { await callApi('POST', '/ui-theme', { theme }); } catch (_) {}
+}
+
+// 磁盘是唯一真相：首帧先按本地缓存画出，再拿服务端值纠正（端口/host/浏览器换了也一致）。
+// 服务端还没有记录（saved=false）时，把浏览器里此前的选择迁过去，避免升级后第一次打开被默认值覆盖。
+async function syncThemeRemote() {
+  try {
+    const result = await callApi('GET', '/ui-theme');
+    if (!result) return;
+    if (result.saved === false) {
+      if (readTheme() === 'dark') void saveThemeRemote('dark');
+      return;
+    }
+    const theme = result.theme === 'dark' || result.theme === 'light' ? result.theme : '';
+    if (theme && theme !== readTheme()) applyTheme(theme);
+  } catch (_) {}
 }
 
 function wireTheme() {
   applyTheme(readTheme());
+  void syncThemeRemote();
   const btn = byId('theme-toggle');
   if (!btn) return;
   btn.addEventListener('click', () => {
-    applyTheme(readTheme() === 'dark' ? 'light' : 'dark');
+    const next = readTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    void saveThemeRemote(next);
   });
 }
 

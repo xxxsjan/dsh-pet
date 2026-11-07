@@ -342,9 +342,16 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsScript, /X-Blue-Fish-Token/);
   assert.match(settingsScript, /voice\/speak/);
   assert.match(settingsScript, /试听/);
-  // 主题偏好可写 localStorage；密钥/令牌与 sessionStorage、cookie、innerHTML 仍禁止。
+  // 主题偏好以服务端 /ui-theme 为准，localStorage 与 cookie 只做首帧缓存。
+  // 只允许 cookie 承载主题这类非敏感偏好；令牌/密钥仍不得进 sessionStorage / cookie / innerHTML。
   assert.match(settingsScript, /blue_fish_ui_theme/);
-  assert.doesNotMatch(settingsScript, /sessionStorage|document\.cookie|innerHTML/);
+  assert.match(settingsScript, /document\.cookie/);
+  assert.match(settingsScript, /\/ui-theme/);
+  assert.doesNotMatch(settingsScript, /sessionStorage|innerHTML/);
+  assert.doesNotMatch(
+    settingsScript,
+    /document\.cookie\s*=\s*[^;]*(apiKey|token|secret|password|credential)/i,
+  );
   assert.doesNotMatch(
     settingsScript,
     /localStorage\.[gs]etItem\([^)]*(apiKey|token|secret|password|credential)/i,
