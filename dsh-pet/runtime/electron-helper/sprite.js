@@ -14,13 +14,18 @@ const OPEN_SHORTCUT_HINT = /Mac/i.test(navigator.platform || navigator.userAgent
 /** 本次点击是否按住了「呼出 DSH」的修饰键（Ctrl / Cmd） */
 const isOpenShortcut = (e) => !!(e && (e.ctrlKey || e.metaKey));
 
-// 点击音效：与浏览器端同一套参数（单例 audio、音量 0.5、100ms 节流、失败静默）。
+// 点击音效：与浏览器端同一套参数（单例 audio、音量走配置 clickSoundVolume、100ms 节流、失败静默）。
 // 复用素材通道：bridge 模式由主进程取回音频，普通模式仍走 HTTP。
 const CLICK_SOUND_URL = BASE + '/sound/click-duck.wav';
-const CLICK_SOUND_VOLUME = 0.5;
+const CLICK_SOUND_VOLUME_DEFAULT = 0.5;
 const CLICK_SOUND_THROTTLE_MS = 100;
 let clickAudio = null;
 let lastClickSoundAt = 0;
+// 音量来自成品配置 main.clickSoundVolume（0–1）；缺失或非法回退缺省 0.5
+const clickSoundVolume = () => {
+  const v = config && config.clickSoundVolume;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : CLICK_SOUND_VOLUME_DEFAULT;
+};
 const playClickSound = () => {
   // 开关来自成品配置 main.clickSoundEnabled（renderer.js 的 loadConfig 带入）；缺失一律静音
   if (!config || config.clickSoundEnabled !== true) return;
@@ -29,7 +34,7 @@ const playClickSound = () => {
   lastClickSoundAt = now;
   try {
     clickAudio = clickAudio || new Audio(CLICK_SOUND_URL);
-    clickAudio.volume = CLICK_SOUND_VOLUME;
+    clickAudio.volume = clickSoundVolume();
     clickAudio.currentTime = 0;
     const p = clickAudio.play();
     if (p && typeof p.catch === 'function') p.catch(() => {});

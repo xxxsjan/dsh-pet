@@ -25,6 +25,8 @@ function pickGlobals(main) {
   return {
     notificationsEnabled: source.notificationsEnabled !== false,
     clickSoundEnabled: source.clickSoundEnabled !== false,
+    clickSoundVolume: typeof source.clickSoundVolume === 'number' && Number.isFinite(source.clickSoundVolume)
+      ? clampNumber(source.clickSoundVolume, 0, 1, 0.5) : 0.5,
     whisperImageEnabled: source.whisperImageEnabled === true,
     chatImageEnabled: source.chatImageEnabled === true,
     chatAnimationEnabled: source.chatAnimationEnabled === true,
@@ -179,6 +181,7 @@ function petsBody() {
   return Object.assign({ pets: state.pets.main }, {
     notificationsEnabled: state.globals.notificationsEnabled,
     clickSoundEnabled: state.globals.clickSoundEnabled,
+    clickSoundVolume: state.globals.clickSoundVolume,
     whisperImageEnabled: state.globals.whisperImageEnabled,
     chatImageEnabled: state.globals.chatImageEnabled,
     chatAnimationEnabled: state.globals.chatAnimationEnabled,

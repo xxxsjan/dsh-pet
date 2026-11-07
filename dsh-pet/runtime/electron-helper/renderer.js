@@ -46,8 +46,9 @@ async function loadConfig() {
     physics: (merged && merged.main && merged.main.physics) || S.DEFAULT_PHYSICS,
     // 抛掷锁定在当前屏幕（根字段；合并器已填内置默认 false）
     confineToScreen: (merged && merged.main && merged.main.confineToScreen) === true,
-    // 点击音效开关（全局一份，只读 main 条目；合并器已填内置默认 false = 静音）
+    // 点击音效开关与音量（全局一份，只读 main 条目；合并器已填内置默认 false = 静音、0.5）
     clickSoundEnabled: (merged && merged.main && merged.main.clickSoundEnabled) === true,
+    clickSoundVolume: merged && merged.main && typeof merged.main.clickSoundVolume === 'number' ? merged.main.clickSoundVolume : undefined,
     // 字体（全局一份，合并器已填内置默认）：字体族在此注入全局变量，字号由每只宠物按自己的尺寸算
     font: (merged && merged.main && merged.main.font) || S.DEFAULT_FONT,
     // 语音：音色、总开关与音量（缺省 = 不播，与网页端同一口径）

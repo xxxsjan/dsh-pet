@@ -6,10 +6,10 @@ import { test } from 'node:test';
 
 const sprite = readFileSync(new URL('../../runtime/electron-helper/sprite.js', import.meta.url), 'utf8');
 
-function fixture(base: string, enabled: boolean | undefined = true, failure?: 'construct' | 'play' | 'reject') {
+function fixture(base: string, enabled: boolean | undefined = true, failure?: 'construct' | 'play' | 'reject', volume?: number) {
   let now = 1000;
   const sounds: Array<{ url: string; plays: number; currentTime: number; volume: number }> = [];
-  const config: { clickSoundEnabled: boolean | undefined } = { clickSoundEnabled: enabled };
+  const config: { clickSoundEnabled: boolean | undefined; clickSoundVolume?: number } = { clickSoundEnabled: enabled, clickSoundVolume: volume };
   const controls = runInNewContext(sprite + '\n({ play: playClickSound })', {
     BASE: base,
     ORIGIN: 'http://127.0.0.1:3080',
@@ -76,6 +76,15 @@ test('click sound reuses its audio element and throttles rapid clicks', () => {
   assert.equal(audio.sounds[0].plays, 2);
   assert.equal(audio.sounds[0].currentTime, 0);
   assert.equal(audio.sounds[0].volume, 0.5);
+});
+
+test('click sound volume follows config and clamps to 0-1', () => {
+  const quiet = fixture('blue-fish-bridge://dsh-pet/blue-fish', true, undefined, 0.2);
+  quiet.play();
+  assert.equal(quiet.sounds[0].volume, 0.2);
+  const loud = fixture('blue-fish-bridge://dsh-pet/blue-fish', true, undefined, 7);
+  loud.play();
+  assert.equal(loud.sounds[0].volume, 1);
 });
 
 for (const failure of ['construct', 'play', 'reject'] as const) {
