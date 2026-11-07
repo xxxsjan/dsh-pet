@@ -307,8 +307,8 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /data-tab="chat"/);
   assert.match(settingsPage, /data-tab="model"/);
   assert.match(settingsPage, /data-tab="voice"/);
-  assert.match(settingsPage, /data-tab="danmaku"/);
-  assert.match(settingsPage, /id="panel-danmaku"/);
+  assert.doesNotMatch(settingsPage, /id="tab-danmaku"/); // 直播入口已隐藏，侧栏不再有「抖音弹幕」分区
+  assert.match(settingsPage, /id="panel-danmaku"/); // 面板保留在 DOM 中供脚本绑定，仅 UI 不可达
   assert.match(settingsPage, /id="dm-url"/);
   assert.doesNotMatch(settingsPage, /id="link-danmaku"/);
   assert.match(settingsPage, /id="panel-config"/);

@@ -1,6 +1,7 @@
 /**
  * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
- * 分区为对话 / 配置 / 抖音弹幕；模型与语音集成在配置面板的横向 Tab 中。
+ * 分区为对话 / 配置；模型与语音集成在配置面板的横向 Tab 中。
+ * 抖音弹幕分区已从侧栏隐藏（直播入口只保留 HTTP API），面板仍留在 DOM 中供脚本绑定。
  * 配置面板包含宠物、全局开关、字体、物理、模型、语音、高级等 Tab；
  * 模型「保存」在顶栏（form=settings → `/standalone-ai/settings`）；语音与桌宠共用顶栏「保存」（/config）。
  *
@@ -23,7 +24,6 @@ export const settingsPage = `<!doctype html>
 <nav class="nav" aria-label="设置分区"><div class="navList" role="tablist">
 <button type="button" class="navCell" role="tab" id="tab-chat" data-tab="chat" data-title="对话" aria-controls="panel-chat" aria-selected="true"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="navLabel">对话</span></button>
 <button type="button" class="navCell" role="tab" id="tab-config" data-tab="config" data-title="配置" aria-controls="panel-config" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2.6 4.6h10.8M2.6 11.4h10.8"/><circle cx="6.2" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.4" r="1.6" fill="currentColor" stroke="none"/></g></svg><span class="navLabel">配置</span></button>
-<button type="button" class="navCell" role="tab" id="tab-danmaku" data-tab="danmaku" data-title="抖音弹幕" aria-controls="panel-danmaku" aria-selected="false"><svg class="navGlyph" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.2h10.4a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H9.2L6.4 13v-2.6H2.8a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 6.2h5.6M5.2 8.4h3.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="navLabel">抖音弹幕</span></button>
 </div></nav>
 <div class="sideFoot">独立模式</div>
 </aside>
@@ -69,7 +69,7 @@ export const settingsPage = `<!doctype html>
 </div>
 </div>
 </section>
-<section class="panel" id="panel-danmaku" role="tabpanel" aria-labelledby="tab-danmaku" hidden>
+<section class="panel" id="panel-danmaku" role="tabpanel" hidden>
 <div class="scroll">
 <div class="dmGrid">
 <div class="dmLeft">

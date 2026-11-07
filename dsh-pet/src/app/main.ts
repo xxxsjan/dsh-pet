@@ -266,7 +266,7 @@ function landingPage(port: number): string {
   <p><code>${escapeHtml(String(info.configFile))}</code></p>
   <p>改完配置后从托盘退出、重新打开应用即可生效（本模式没有「重载配置」菜单）。</p>
   <h2>AI 设置</h2>
-  <p>AI 模型与密钥的配置页需要令牌，请<strong>右键桌宠 →「打开 AI 设置」</strong>，会直接打开已授权的页面。</p>
+  <p>AI 模型与密钥的配置页需要令牌，请<strong>右键桌宠 →「打开 AI 设置」</strong>，会在应用内弹窗中打开已授权的页面。</p>
   <h2>状态</h2>
   <p><a href="/health">/health</a> · <a href="/standalone-ai/">配置页（未授权时读写会返回 403）</a></p>
 </main></body></html>`;

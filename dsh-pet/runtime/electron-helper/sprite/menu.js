@@ -51,8 +51,7 @@ Object.assign(PetSprite.prototype, {
     // 朗读开关：根据当前 voiceEnabled 状态显示不同文案。
     const voiceOn = S.getVoiceEnabled();
     tools.push(voiceOn ? { label: '关闭朗读', action: 'toggle-voice' } : { label: '开启朗读', action: 'toggle-voice' });
-    // 直播监听开关：根据当前监听状态显示不同文案。
-    tools.push(this.danmakuListening ? { label: '暂停直播', action: 'stop-danmaku' } : { label: '开始直播', action: 'start-danmaku' });
+    // 直播入口已隐藏：弹幕监听只保留 HTTP API（/danmaku/douyin/*），右键菜单不再提供开始/暂停项。
     // 动作树之后是维护类：重载配置 → 回到初始位置。显示位置不进菜单（改用悬停快捷键 1-4，
     // 见 input.js），设置页下拉框仍在；「都不」的单向门语义随之只留在设置页这一处。
     const tail = [
@@ -111,7 +110,8 @@ Object.assign(PetSprite.prototype, {
       return;
     }
     if (leaf.action === 'open-site') {
-      if (window.petBridge) window.petBridge.openDshSite(ORIGIN); // 系统默认浏览器打开（等效 Ctrl+点击链接）
+      // 独立模式打开应用内设置窗口；桌面应用唤起主窗口；web 交给系统默认浏览器。去向由主进程按形态决定。
+      if (window.petBridge) window.petBridge.openDshSite(ORIGIN);
       return;
     }
     if (leaf.action === 'show-balance') {

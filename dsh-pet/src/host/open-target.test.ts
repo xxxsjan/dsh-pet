@@ -86,6 +86,10 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
     assert.ok(/openTarget: OPEN_TARGET/.test(main), '形态要沿窗口 query 透到渲染端（文案在那里决定）');
     assert.ok(/shell\.openExternal\('dsh:\/\/open'\)/.test(main), '桌面宿主必须走 dsh://open 唤起应用窗口');
     assert.ok(
+      /(?:OPEN_TARGET|openTarget) === 'standalone'\) \{[\s\S]*?openSettingsWindow\(url\)/.test(main),
+      '独立模式必须在应用内窗口打开设置页，不得再交给系统默认浏览器',
+    );
+    assert.ok(
       /(?:OPEN_TARGET|openTarget) === 'desktop'\) \{[\s\S]*?openSite\(url\)/.test(main),
       'dsh:// 失败要回落成打开站点（协议未注册时不能"点了没反应"）',
     );

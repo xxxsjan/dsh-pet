@@ -316,7 +316,7 @@ app.whenReady().then(() => {
   powerMonitor.on('resume', reassertTaskbar);
   powerMonitor.on('unlock-screen', reassertTaskbar);
 
-  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE });
+  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi });
   createDisplaySync({ screen, petWindows, dpi });
 
   // 抖音弹幕签名桥：隐藏窗跑 webmssdk，本机 HTTP 给宿主半侧签 X-Bogus（与进房/WSS 监听配套）。

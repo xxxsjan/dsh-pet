@@ -1,10 +1,11 @@
 'use strict';
+const path = require('node:path');
 const { BrowserWindow, desktopCapturer, screen } = require('electron');
 const { decideWindowIgnore } = require('../pointer-target.js');
 /**
  * 渲染端到主进程的 ipc：窗口跟随、飞行状态、碰撞转发、穿透翻转、输入租约与菜单首项（打开软件 / 打开 AI 设置）。
  *
- * 唯一的窗口状态入口是 windows 模块导出的方法与 state；本模块不自己存任何状态。
+ * 唯一的窗口状态入口是 windows 模块导出的方法与 state；本模块不自己存任何状态（设置窗口是独立普通窗口，不算宠物窗）。
  * @module dsh-pet/runtime/electron-helper/main/ipc
  */
 
@@ -13,11 +14,12 @@ const { decideWindowIgnore } = require('../pointer-target.js');
  *
  * @param deps.ipcMain - Electron ipcMain。
  * @param deps.petWindows - 窗口能力（state 与方法）。
- * @param deps.shell - Electron shell（打开站点）。
- * @param deps.openTarget - 菜单首项的去向：desktop 唤起桌面应用；其余形态交给默认浏览器打开已鉴权地址。
+ * @param deps.shell - Electron shell（打开站点 / 唤起应用）。
+ * @param deps.openTarget - 菜单首项的去向：desktop 唤起桌面应用；standalone 应用内窗口打开本机设置页；web 交给默认浏览器。
  * @param deps.petRoute - 宠物路由前缀。
+ * @param deps.dpi - DPI 能力（forcedScale / primaryScale）：设置窗口按真实主屏缩放还原。
  */
-function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
+function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) {
   // 宠物窗口跟随：renderer 逐帧上报窗口内容区位置/尺寸
   ipcMain.on('pet:set-bounds', (event, bounds) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -143,12 +145,10 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
     win.webContents.focus();
   });
 
-  // 右键菜单首项（打开软件 / 打开 AI 设置 / 打开网站）：交给系统默认浏览器（等效网页里 Ctrl+点击链接），不建专属窗口——
-  // 宠物窗口是透明小窗，不该承载常规网页浏览。URL 由渲染端从 configUrl 推导。
-  const openSite = (url) => {
-    // 宿主注入的已鉴权站点 URL（含本进程启动令牌）：DSH 只在 GET / 接受它并换发浏览器 Cookie，
-    // 裸 origin 在默认浏览器里必然 401。令牌等价登录态，只在与目标同 origin 时启用，
-    // 绝不让它被带去别的站点；取不到该变量时行为与以前一致。
+  // 宿主注入的已鉴权站点 URL（含本进程启动令牌）：DSH 只在 GET / 接受它并换发浏览器 Cookie，
+  // 裸 origin 在默认浏览器里必然 401。令牌等价登录态，只在与目标同 origin 时启用，
+  // 绝不让它被带去别的站点；取不到该变量时行为与以前一致。
+  const resolveSiteUrl = (url) => {
     let target = url;
     const authed = process.env.BLUE_FISH_SITE_URL || '';
     if (/^https?:[/][/]/.test(authed)) {
@@ -158,20 +158,98 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute }) {
         /* 形状不对：保持裸地址（原行为） */
       }
     }
+    return target;
+  };
+
+  // 右键菜单首项（打开网站 / 回落路径）：交给系统默认浏览器（等效网页里 Ctrl+点击链接），不建专属窗口——
+  // 宠物窗口是透明小窗，不该承载常规网页浏览。URL 由渲染端从 configUrl 推导。
+  const openSite = (url) => {
+    const target = resolveSiteUrl(url);
     shell.openExternal(target).catch((error) => {
       console.error('[blue-fish-desktop-helper] openExternal failed:', error);
     });
+  };
+
+  // 全局 DPI 线性化把 device scale factor 锁成 1：宠物窗靠 setZoomFactor 补偿，普通窗口没有这层补偿，
+  // 设置页就会按 1 物理像素 = 1 CSS 像素渲染，在 125%/150% 的屏幕上比浏览器里小一圈。
+  // 这里按真实主屏缩放还原：窗口尺寸是 DIP 单位，同样要乘上去，否则内容放大后可用布局反而变窄。
+  const uiScale = () => {
+    const forced = Number(dpi && dpi.forcedScale) || 0;
+    const primary = Number(dpi && dpi.primaryScale) || 0;
+    return forced > 0 && primary > 0 ? primary / forced : 1;
+  };
+
+  // 独立模式的「打开 AI 设置」：本机设置页是带令牌的地址，交给系统浏览器会另开一个标签，关掉后
+  // 很难找回来。这里改用应用内的普通窗口承载；重复点击只把已开的窗口提到前台，不重新载入——
+  // 页面里可能有还没保存的表单。
+  let settingsWindow = null;
+  const openSettingsWindow = (url) => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      if (settingsWindow.isMinimized()) settingsWindow.restore();
+      settingsWindow.show();
+      settingsWindow.focus();
+      return;
+    }
+    const target = resolveSiteUrl(url);
+    const scale = uiScale();
+    const win = new BrowserWindow({
+      width: Math.round(1040 * scale),
+      height: Math.round(780 * scale),
+      minWidth: Math.round(720 * scale),
+      minHeight: Math.round(520 * scale),
+      autoHideMenuBar: true,
+      backgroundColor: '#0f1115',
+      title: '桌宠设置',
+      // 与宠物窗同一份图标：任务栏按钮不该显示 Electron 默认原子图
+      icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
+      webPreferences: {
+        // 独立 App 模式会给 defaultSession 装「只对 file:// 渲染页补令牌、其余请求一律剥掉令牌头」
+        // 的出站拦截；设置页恰恰靠自带令牌头访问本机接口，必须换一个独立会话，否则一律 403。
+        partition: 'blue-fish-settings',
+        // 与窗口尺寸同源：DPI 线性化下补回系统缩放
+        zoomFactor: scale,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    win.on('closed', () => {
+      if (settingsWindow === win) settingsWindow = null;
+    });
+    // 与宠物窗同一处境：页面加载完成才是设置缩放的可靠时机（webPreferences 的值作为首帧兜底）
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed()) win.webContents.setZoomFactor(scale);
+    });
+    // 设置页里的外链仍交给系统浏览器；窗口本身只承载本机设置页。
+    win.webContents.setWindowOpenHandler(({ url: next }) => {
+      if (/^https?:[/][/]/.test(next)) {
+        shell.openExternal(next).catch((error) => {
+          console.error('[blue-fish-desktop-helper] openExternal failed:', error);
+        });
+      }
+      return { action: 'deny' };
+    });
+    win.loadURL(target).catch((error) => {
+      console.error('[blue-fish-desktop-helper] settings load failed:', error);
+      win.destroy();
+    });
+    settingsWindow = win;
   };
 
   // 应用自注册的 dsh:// 协议：已运行时把主窗口提到前台，未运行则直接把应用拉起来。
   // 只有 desktop 形态能发——协议是系统级注册的，dsh web 形态下发它会把桌面版 DSH 拉起来。
   const focusDesktopApp = () => shell.openExternal('dsh://open');
 
-  // 去向由宿主形态决定：desktop 把主窗口叫回前台，比 spawn 宿主 exe 干净；site 则是原行为：
-  // 系统默认浏览器打开站点。
+  // 去向由宿主形态决定：standalone 在应用内窗口打开本机设置页，desktop 把主窗口叫回前台，
+  // web 则是原行为：系统默认浏览器打开站点。
   ipcMain.on('pet:open-site', (event, payload) => {
     const url = payload && typeof payload === 'object' ? String(payload.url || '') : '';
     if (!/^https?:[/][/]/.test(url)) return;
+    if (openTarget === 'standalone') {
+      // 独立模式：设置页在应用内窗口里打开，不接管系统浏览器。
+      openSettingsWindow(url);
+      return;
+    }
     if (openTarget === 'desktop') {
       // 协议未注册（绿色版 / 注册表被清）时回落成打开站点，至少不是"点了没反应"
       focusDesktopApp().catch((error) => {
