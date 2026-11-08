@@ -9,7 +9,7 @@
  * @module dsh-pet/scripts/prepare
  */
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -21,6 +21,19 @@ const npmRun = process.platform === 'win32' ? 'cmd /c npm run bundle' : 'npm run
 const build = spawnSync(npmRun, { cwd: ROOT, stdio: 'inherit', shell: true });
 if (build.status !== 0) {
   console.error(`[prepare] 构建失败 (exit ${build.status})`);
+  process.exit(1);
+}
+
+// 桌面应用产物必须自带全部运行依赖（electron-builder 的 files 不带 node_modules），
+// 漏配 noExternal 只会到双击启动时才报 ERR_MODULE_NOT_FOUND，所以在打包前静态拦一道。
+// 细节见 check-app-deps.mjs。
+console.log('[prepare] checking desktop app dependencies...');
+const depCheck = spawnSync(process.execPath, [join(ROOT, 'scripts', 'check-app-deps.mjs')], {
+  cwd: ROOT,
+  stdio: 'inherit',
+});
+if (depCheck.status !== 0) {
+  console.error(`[prepare] 依赖校验失败 (exit ${depCheck.status})`);
   process.exit(1);
 }
 

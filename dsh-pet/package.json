@@ -1,7 +1,7 @@
 {
   "name": "blue-fish",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "吃白饭的蓝色大肥鱼，赖在 DeepSeek Harness 里不走了。平时爱玩魔方、爱吃各种零食、偶尔打个盹，闲不住就在桌面上溜达两圈，被你拖来甩去也照旧赖着；你忙起来它跟着忙前忙后，也会帮你打理余额钱包，闲下来爱碎碎念，还乐意陪你唠两句。",
   "icon": "assets/logo.png",
   "keywords": [
@@ -71,6 +71,7 @@
     "dev:mock": "node scripts/dev/mock-server.mjs",
     "dev:subpath": "node scripts/dev/subpath-proxy.mjs",
     "check:openapi": "node scripts/check-openapi.mjs",
+    "check:app-deps": "node scripts/check-app-deps.mjs",
     "test": "node --experimental-strip-types --import ./scripts/test-register.mjs --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "types": "node scripts/gen-types.mjs",

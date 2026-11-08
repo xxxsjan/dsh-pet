@@ -105,6 +105,10 @@ export default defineConfig([
       // 仍是裸引用——装到没有 node_modules 的目录里，朗读就报 Cannot find module 'ws'。
       /^@andresaya\/edge-tts$/,
       /^ws$/,
+      // 抖音弹幕：pako 解 gzip、protobufjs 解包消息体，均由宿主半边的 danmaku 模块静态 import。
+      // 它们同样是 dependencies，默认会被外部化；应用产物无 node_modules，必须内联。
+      /^pako$/,
+      /^protobufjs$/,
     ],
     external: ['electron', /^@electron\//, /^node:/, /^@deepseek-ai\/(?!dsh-home-paths$|dsh-credentials$|dsh-llm$)/],
     alias: {

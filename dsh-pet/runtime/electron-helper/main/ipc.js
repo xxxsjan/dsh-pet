@@ -210,7 +210,10 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
         zoomFactor: scale,
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: true,
+        // 与宠物窗/签名窗同口径：本机沙箱初始化不可靠（宿主进程靠 --no-sandbox 兜底，同进程应用
+        // 没有这条退路），sandbox:true 的渲染进程在打包形态起不来，loadURL 直接 ERR_FAILED (-2)。
+        // 页面无 preload、只载本机服务，contextIsolation + nodeIntegration:false 已够。
+        sandbox: false,
       },
     });
     win.on('closed', () => {
