@@ -25,7 +25,7 @@ const ELECTRON_REL =
       ? join('Electron.app', 'Contents', 'MacOS', 'Electron')
       : 'electron';
 
-const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh');
+const dshHome = process.env.DSH_HOME || join(homedir(), '.blue-fish');
 const electron = [process.env.BLUE_FISH_ELECTRON_PATH, join(dshHome, 'electron', ELECTRON_REL)].find(
   (value) => value && existsSync(value),
 );

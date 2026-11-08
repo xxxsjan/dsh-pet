@@ -28,8 +28,8 @@ import { widgetsScript } from './settings-page/script/widgets.ts';
 import { settingsPage as settingsPageFn } from './settings-page/chrome.ts';
 import { settingsStyle } from './settings-page/style.ts';
 
-/** 生产环境回落版本：隐藏「高级」Tab。 */
-const settingsPage = settingsPageFn(false);
+/** 设置页 HTML（「高级」Tab 始终露出）。 */
+const settingsPage = settingsPageFn();
 
 export { settingsPage, settingsStyle };
 

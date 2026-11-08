@@ -13,14 +13,14 @@ const path = require('node:path');
 const PROBE_NAME = '.blue-fish-write-probe';
 
 /**
- * DSH 主目录：DSH_HOME 优先，未设回落到 ~/.dsh（与宿主 dshHomeDir 同口径）。
+ * DSH 主目录：DSH_HOME 优先，未设回落到 ~/.blue-fish（与桌宠用户数据根同树）。
  *
  * @param {NodeJS.ProcessEnv} [env] - 环境变量，缺省 process.env。
  * @param {string} [home] - 用户主目录，缺省 os.homedir()。
  * @returns {string} 绝对路径。
  */
 function dshHomeDir(env = process.env, home = os.homedir()) {
-  return env.DSH_HOME || path.join(home, '.dsh');
+  return env.DSH_HOME || path.join(home, '.blue-fish');
 }
 
 /**

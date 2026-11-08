@@ -63,7 +63,7 @@ function bumpPatch(version) {
  * @returns 解压目录，或 undefined（交给 electron-builder 下载）。
  */
 function resolveElectronDist() {
-  const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh');
+  const dshHome = process.env.DSH_HOME || join(homedir(), '.blue-fish');
   const candidates = [
     process.env.BLUE_FISH_ELECTRON_DIST,
     process.env.BLUE_FISH_ELECTRON_PATH ? dirname(process.env.BLUE_FISH_ELECTRON_PATH) : undefined,

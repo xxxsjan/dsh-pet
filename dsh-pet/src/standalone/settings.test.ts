@@ -361,13 +361,11 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsStyle, /focus-visible/);
 });
 
-test('settingsPage: 生产环境隐藏「高级」Tab，开发环境露出', () => {
-  const prod = settingsPageFn(false);
-  const dev = settingsPageFn(true);
-  assert.doesNotMatch(prod, /data-config-tab="advanced"/, '生产环境不应有高级 Tab 按钮');
-  assert.match(dev, /data-config-tab="advanced"/, '开发环境应有高级 Tab 按钮');
-  // 生产回落版本（settings-page.ts 导出的）等同于 prod
-  assert.doesNotMatch(settingsPage, /data-config-tab="advanced"/);
+test('settingsPage: 「高级」Tab 始终露出', () => {
+  const page = settingsPageFn();
+  assert.match(page, /data-config-tab="advanced"/, '应有高级 Tab 按钮');
+  // 导出版本等同于直接调用
+  assert.match(settingsPage, /data-config-tab="advanced"/);
 });
 
 test('启动：地址片段被清掉，密钥框清空并显示已保存', async () => {

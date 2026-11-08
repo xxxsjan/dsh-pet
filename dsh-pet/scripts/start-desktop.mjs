@@ -33,7 +33,7 @@ const candidates = [
   process.env.BLUE_FISH_ELECTRON_PATH,
   process.env.ELECTRON_PATH,
   join(
-    process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.dsh'),
+    process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.blue-fish'),
     'electron',
     electronRel,
   ),

@@ -36,8 +36,8 @@ describe('dshHomeDir —— DSH 主目录解析', () => {
     assert.equal(dshHomeDir({ DSH_HOME: join('root', 'custom') }, join('root', 'home')), join('root', 'custom'));
   });
 
-  test('未设 DSH_HOME：回落到 ~/.dsh', () => {
-    assert.equal(dshHomeDir({}, join('root', 'home')), join('root', 'home', '.dsh'));
+  test('未设 DSH_HOME：回落到 ~/.blue-fish', () => {
+    assert.equal(dshHomeDir({}, join('root', 'home')), join('root', 'home', '.blue-fish'));
   });
 });
 

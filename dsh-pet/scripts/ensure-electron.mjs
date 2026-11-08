@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 把 Electron 下载并解压到 $DSH_HOME/electron（默认 ~/.dsh/electron），供桌面 Helper 使用。
+ * 把 Electron 下载并解压到 $DSH_HOME/electron（默认 ~/.blue-fish/electron），供桌面 Helper 使用。
  *
  * 下载交给 @electron/get（URL 拼装、镜像、SHA256 校验、缓存复用），解压交给
  * @electron-internal/extract-zip（纯 Node + native，跨平台处理 symlink 与权限，不依赖系统 unzip/tar）。
@@ -15,7 +15,7 @@ import { join, resolve } from 'node:path';
 import { downloadArtifact } from '@electron/get';
 import extract from '@electron-internal/extract-zip';
 
-const HOME = process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.dsh');
+const HOME = process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.blue-fish');
 const VERSION = process.env.BLUE_FISH_ELECTRON_VERSION || '43.3.0';
 const MIRROR = process.env.BLUE_FISH_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
 const TARGET_DIR = resolve(HOME, 'electron');

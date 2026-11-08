@@ -15,9 +15,8 @@
 
 const ADVANCED_TAB = '<button type="button" class="configTab" role="tab" data-config-tab="advanced" aria-selected="false">高级</button>';
 
-/** 设置页 HTML。`dev` 为真时额外露出「高级」Tab（配置文件路径、同步按钮等）。 */
-export function settingsPage(dev = false): string {
-  const advanced = dev ? ADVANCED_TAB : '';
+/** 设置页 HTML。「高级」Tab（配置文件路径、同步按钮等）始终露出。 */
+export function settingsPage(): string {
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>桌宠设置</title><link rel="icon" type="image/png" href="/standalone-ai/icon.png"><link rel="stylesheet" href="/standalone-ai/settings.css">
@@ -44,7 +43,7 @@ export function settingsPage(dev = false): string {
 <button type="button" class="configTab" role="tab" data-config-tab="physics" aria-selected="false">物理</button>
 <button type="button" class="configTab" role="tab" data-config-tab="model" aria-selected="false">模型</button>
 <button type="button" class="configTab" role="tab" data-config-tab="voice" aria-selected="false">语音</button>
-${advanced}
+${ADVANCED_TAB}
 </div>
 <div id="pet-cards">
 <p class="empty">正在读取本机配置…</p>

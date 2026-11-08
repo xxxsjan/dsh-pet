@@ -10,6 +10,7 @@ import { dirname, join, resolve } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { type LoggerLike } from '../log-file.ts';
 import { PACKAGE_ROOT } from '../paths.ts';
+import { PET_USER_DIR } from '../pet-user-root.ts';
 import type { HelperOptions } from './child.ts';
 
 // `@electron/get` 只在真要下载 Electron 时才用到，故按需动态加载（见 ensureElectronDownload）：
@@ -112,15 +113,18 @@ const ELECTRON_REL =
       : 'electron';
 
 /**
- * Electron 运行时落地目录（$DSH_HOME/electron）—— 下载解压的目标，也是设置页「卸载与存储」里让
- * 用户清理的那个目录。解析（resolveElectronPath / defaultElectronExe）与下载都必须走这里：同一个
- * 目录字面量在别处再写一遍，改了一处另一处没改，设置页就会显示一个永远不存在的路径。
+ * Electron 运行时落地目录（未设 DSH_HOME 时 ~/.blue-fish/electron，设了则 $DSH_HOME/electron）——
+ * 下载解压的目标，也是设置页「卸载与存储」里让用户清理的那个目录。解析（resolveElectronPath /
+ * defaultElectronExe）与下载都必须走这里：同一个目录字面量在别处再写一遍，改了一处另一处没改，
+ * 设置页就会显示一个永远不存在的路径。默认目录名取自 pet-user-root 的 PET_USER_DIR，与用户数据同树。
  */
 export function electronLandingDir(): string {
-  return join(dshHomeDir(), 'electron');
+  if (process.env.DSH_HOME) return join(process.env.DSH_HOME, 'electron');
+  const userProfile = process.env.USERPROFILE || process.env.HOME || '';
+  return join(userProfile, PET_USER_DIR, 'electron');
 }
 
-/** Electron 落地路径：$DSH_HOME/electron/<按平台的可执行文件>。 */
+/** Electron 落地路径：electronLandingDir()/<按平台的可执行文件>。 */
 export function defaultElectronExe(): string {
   return join(electronLandingDir(), ELECTRON_REL);
 }
