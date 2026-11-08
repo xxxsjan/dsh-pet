@@ -25,8 +25,11 @@ import { overlayScript } from './settings-page/script/overlay.ts';
 import { petCardScript } from './settings-page/script/pet-card.ts';
 import { petsScript } from './settings-page/script/pets.ts';
 import { widgetsScript } from './settings-page/script/widgets.ts';
-import { settingsPage } from './settings-page/chrome.ts';
+import { settingsPage as settingsPageFn } from './settings-page/chrome.ts';
 import { settingsStyle } from './settings-page/style.ts';
+
+/** 生产环境回落版本：隐藏「高级」Tab。 */
+const settingsPage = settingsPageFn(false);
 
 export { settingsPage, settingsStyle };
 

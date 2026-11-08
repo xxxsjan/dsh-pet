@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { validateSettings, publicSettings } from './settings.ts';
 import { settingsPage, settingsScript, settingsStyle } from './settings-page.ts';
+import { settingsPage as settingsPageFn } from './settings-page/chrome.ts';
 
 /** 记录到的一条请求。 */
 type RecordedRequest = {
@@ -358,6 +359,15 @@ test('settings shell is accessible, self contained, and never saves browser secr
   );
   assert.doesNotMatch(settingsPage, /https?:\/\/(?!example)/);
   assert.match(settingsStyle, /focus-visible/);
+});
+
+test('settingsPage: 生产环境隐藏「高级」Tab，开发环境露出', () => {
+  const prod = settingsPageFn(false);
+  const dev = settingsPageFn(true);
+  assert.doesNotMatch(prod, /data-config-tab="advanced"/, '生产环境不应有高级 Tab 按钮');
+  assert.match(dev, /data-config-tab="advanced"/, '开发环境应有高级 Tab 按钮');
+  // 生产回落版本（settings-page.ts 导出的）等同于 prod
+  assert.doesNotMatch(settingsPage, /data-config-tab="advanced"/);
 });
 
 test('启动：地址片段被清掉，密钥框清空并显示已保存', async () => {

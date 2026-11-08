@@ -13,8 +13,12 @@
  * @module dsh-pet/src/standalone/settings-page/chrome
  */
 
-/** 设置页 HTML。 */
-export const settingsPage = `<!doctype html>
+const ADVANCED_TAB = '<button type="button" class="configTab" role="tab" data-config-tab="advanced" aria-selected="false">高级</button>';
+
+/** 设置页 HTML。`dev` 为真时额外露出「高级」Tab（配置文件路径、同步按钮等）。 */
+export function settingsPage(dev = false): string {
+  const advanced = dev ? ADVANCED_TAB : '';
+  return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>桌宠设置</title><link rel="icon" type="image/png" href="/standalone-ai/icon.png"><link rel="stylesheet" href="/standalone-ai/settings.css">
 <script src="/standalone-ai/settings.js" defer></script><script src="/standalone-ai/chat-panel.js" defer></script></head><body>
@@ -40,7 +44,7 @@ export const settingsPage = `<!doctype html>
 <button type="button" class="configTab" role="tab" data-config-tab="physics" aria-selected="false">物理</button>
 <button type="button" class="configTab" role="tab" data-config-tab="model" aria-selected="false">模型</button>
 <button type="button" class="configTab" role="tab" data-config-tab="voice" aria-selected="false">语音</button>
-<button type="button" class="configTab" role="tab" data-config-tab="advanced" aria-selected="false">高级</button>
+${advanced}
 </div>
 <div id="pet-cards">
 <p class="empty">正在读取本机配置…</p>
@@ -115,3 +119,4 @@ export const settingsPage = `<!doctype html>
 </div>
 <noscript>需要启用 JavaScript 才能保存设置。请从桌宠右键菜单打开本页。</noscript>
 </body></html>`;
+}
