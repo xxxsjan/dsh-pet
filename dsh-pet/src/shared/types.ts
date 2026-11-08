@@ -213,8 +213,8 @@ export interface ClientConfig {
    *  （含 display 为 web/none 的），勾选即可切回桌面；false = 不建。
    *  缺失默认 true。关掉后「把不在桌面的宠物叫回桌面」在桌面侧没有入口，只能走设置页或网页端右键菜单。 */
   trayEnabled: boolean;
-  /** 窗口模式（OBS 可捕获）：true = 保持透明，但进任务栏并去掉 TOOLWINDOW，便于 OBS/WGC 枚举；
-   *  false = 透明 + 藏任务栏（默认，窗口捕获通常列不到）。缺失默认 false。只影响桌面 Helper。 */
+  /** 窗口模式（OBS 可捕获）：true = 保持透明，但进任务栏并去掉 TOOLWINDOW，便于 OBS/WGC 枚举（默认）；
+   *  false = 透明 + 藏任务栏（窗口捕获通常列不到）。缺失默认 true。只影响桌面 Helper。 */
   obsCaptureEnabled: boolean;
   /** 碎碎念配图开关：true = 每次从表情包池随机抽 1 张连同文本显示（碎碎念无上下文，故随机） */
   whisperImageEnabled: boolean;

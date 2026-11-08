@@ -211,12 +211,12 @@ function desktopPets(): Array<{ id: string; size: number }> {
   }
 }
 
-/** OBS 窗口捕获开关：读失败按关闭（与 desktop/pets 的 getObsCaptureOn 同口径）。 */
+/** OBS 窗口捕获开关：读失败按开启（与 desktop/pets 的 getObsCaptureOn 同口径）。 */
 function obsCaptureEnabled(): boolean {
   try {
-    return readAllConfig(configPathsFor(packageRoot, dshHomeDir())).main?.obsCaptureEnabled === true;
+    return readAllConfig(configPathsFor(packageRoot, dshHomeDir())).main?.obsCaptureEnabled !== false;
   } catch {
-    return false;
+    return true;
   }
 }
 

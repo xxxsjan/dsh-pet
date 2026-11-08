@@ -28,7 +28,7 @@ function globalFlagsCard() {
     toggleRow('g-chat-anim', '对话动作联动', '对话时让模型挑一个动作当场表演。', g.chatAnimationEnabled, (value) => setGlobal('chatAnimationEnabled', value)),
     toggleRow('g-confine', '锁定在当前屏幕', '抛掷与自主漫游只在当前所在的这块屏幕里活动。', g.confineToScreen, (value) => setGlobal('confineToScreen', value)),
     toggleRow('g-tray', '系统托盘图标', '桌面模式常驻托盘；关掉后只能从任务栏找回。', g.trayEnabled, (value) => setGlobal('trayEnabled', value)),
-    toggleRow('g-obs', '窗口模式', '开启后仍保持透明，但出现在任务栏并去掉工具窗样式，便于 OBS 窗口捕获；关掉则藏任务栏（窗口捕获通常列不到）。', g.obsCaptureEnabled === true, (value) => setGlobal('obsCaptureEnabled', value)),
+    toggleRow('g-obs', '窗口模式', '开启后仍保持透明，但出现在任务栏并去掉工具窗样式，便于 OBS 窗口捕获；关掉则藏任务栏（窗口捕获通常列不到）。', g.obsCaptureEnabled !== false, (value) => setGlobal('obsCaptureEnabled', value)),
   ]);
 }
 

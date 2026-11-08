@@ -57,12 +57,12 @@ export function createDesktopPets(deps: DesktopPetsInput) {
     }
   };
 
-  /** OBS 窗口捕获开关；读失败按关闭（保持原透明窗，不主动改窗口形态）。 */
+  /** OBS 窗口捕获开关；读失败按开启（缺省值即开启，保持与配置口径一致）。 */
   const getObsCaptureOn = (): boolean => {
     try {
-      return readAllConfig(configPaths).main?.obsCaptureEnabled === true;
+      return readAllConfig(configPaths).main?.obsCaptureEnabled !== false;
     } catch {
-      return false;
+      return true;
     }
   };
 

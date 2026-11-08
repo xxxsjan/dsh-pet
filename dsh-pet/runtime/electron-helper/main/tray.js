@@ -125,7 +125,7 @@ function createTray({
         console.error('[blue-fish-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
       });
     };
-    const obsCapture = !!(merged && merged.main && merged.main.obsCaptureEnabled === true);
+    const obsCapture = !!(merged && merged.main && merged.main.obsCaptureEnabled !== false);
     return Menu.buildFromTemplate([
       ...pets.map((pet) => ({
         label: pet.name || pet.id,

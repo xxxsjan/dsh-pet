@@ -32,7 +32,7 @@ function pickGlobals(main) {
     chatAnimationEnabled: source.chatAnimationEnabled === true,
     confineToScreen: source.confineToScreen === true,
     trayEnabled: source.trayEnabled !== false,
-    obsCaptureEnabled: source.obsCaptureEnabled === true,
+    obsCaptureEnabled: source.obsCaptureEnabled !== false,
     voiceEnabled: source.voiceEnabled === true,
     voiceProvider: source.voiceProvider === 'fish' ? 'fish' : 'edge',
     voiceName: typeof source.voiceName === 'string' && source.voiceName ? source.voiceName : (VOICES[1] ? VOICES[1].id : ''),

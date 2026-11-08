@@ -163,8 +163,8 @@ export function makePetConfigSection(
     const [confineScreen, setConfineScreen] = useState(false);
     // 系统托盘开关（全局）：随「保存」一起提交；宿主半侧据此决定建不建托盘、没桌面宠物时还值不值得常驻 Helper。
     const [trayEnabled, setTrayEnabled] = useState(true);
-    // OBS 窗口捕获（全局）：随「保存」一起提交；开启后桌宠用不透明窗，便于 OBS 窗口捕获。
-    const [obsCaptureEnabled, setObsCaptureEnabled] = useState(false);
+    // OBS 窗口捕获（全局）：随「保存」一起提交；开启后桌宠用不透明窗，便于 OBS 窗口捕获。默认开启。
+    const [obsCaptureEnabled, setObsCaptureEnabled] = useState(true);
     // 语音播报开关与音色（全局默认）：随「保存」整包写入；初值即内置默认，加载后用成品值覆盖。
     const [voiceEnabled, setVoiceEnabled] = useState(false);
     const [voiceProvider, setVoiceProvider] = useState<'edge' | 'fish'>('edge');
