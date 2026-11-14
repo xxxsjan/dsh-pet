@@ -306,39 +306,41 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /aria-live="polite"/);
   assert.match(settingsPage, /data-tab="config"/);
   assert.match(settingsPage, /data-tab="chat"/);
-  assert.match(settingsPage, /data-tab="model"/);
-  assert.match(settingsPage, /data-tab="voice"/);
+  assert.match(settingsPage, /data-config-tab="model"/);
+  assert.match(settingsPage, /data-config-tab="voice"/);
   assert.doesNotMatch(settingsPage, /id="tab-danmaku"/); // 直播入口已隐藏，侧栏不再有「抖音弹幕」分区
   assert.match(settingsPage, /id="panel-danmaku"/); // 面板保留在 DOM 中供脚本绑定，仅 UI 不可达
   assert.match(settingsPage, /id="dm-url"/);
   assert.doesNotMatch(settingsPage, /id="link-danmaku"/);
   assert.match(settingsPage, /id="panel-config"/);
-  assert.match(settingsPage, /id="panel-model"/);
-  assert.match(settingsPage, /id="panel-voice"/);
+  assert.match(settingsPage, /id="model-settings-host"/);
+  assert.match(settingsPage, /id="voice-settings-host"/);
   assert.match(settingsPage, /id="pet-cards"/);
   assert.match(settingsPage, /id="voice-host"/);
   assert.match(settingsPage, /<form id="settings"/);
   {
-    const modelAt = settingsPage.indexOf('id="panel-model"');
-    const voiceAt = settingsPage.indexOf('id="panel-voice"');
+    const modelAt = settingsPage.indexOf('id="model-settings-host"');
+    const voiceAt = settingsPage.indexOf('id="voice-settings-host"');
     const formAt = settingsPage.indexOf('<form id="settings"');
+    const saveAt = settingsPage.indexOf('id="save"');
     const cardsAt = settingsPage.indexOf('id="pet-cards"');
     const voiceHostAt = settingsPage.indexOf('id="voice-host"');
     const configAt = settingsPage.indexOf('id="panel-config"');
-    assert.ok(modelAt >= 0 && formAt > modelAt, '模型表单应落在 panel-model 内');
-    assert.ok(voiceAt >= 0 && voiceHostAt > voiceAt, '语音宿主应落在 panel-voice 内');
+    assert.ok(modelAt >= 0 && formAt > modelAt, '模型表单应落在 model-settings-host 内');
+    assert.ok(saveAt > formAt, '模型保存按钮应在模型表单内部，而不是顶栏');
+    assert.ok(voiceAt >= 0 && voiceHostAt > voiceAt, '语音宿主应落在 voice-settings-host 内');
     assert.ok(cardsAt > configAt && cardsAt < voiceAt, 'pet-cards 应在配置分区内');
   }
   assert.doesNotMatch(settingsPage, /id="voice-cards"|id="voice-save"|id="voice-status"/);
   assert.doesNotMatch(settingsStyle, /#pet-cards>#settings/);
-  assert.match(settingsStyle, /#panel-model #settings/);
-  assert.match(settingsStyle, /#panel-voice #voice-host/);
-  assert.match(settingsStyle, /@media\(min-width:1400px\)[\s\S]*column-count:3/);
+  assert.match(settingsStyle, /#model-settings-host #settings/);
+  assert.match(settingsStyle, /#voice-settings-host #voice-host/);
+  assert.match(settingsStyle, /@media\(min-width:1400px\)/);
+  assert.match(settingsStyle, /\.grid3\{[^}]*repeat\(3,1fr\)/);
   assert.match(settingsScript, /host\.append\(voiceCard\(\)\)/);
   assert.match(settingsScript, /function renderVoicePanel/);
-  assert.match(settingsScript, /name !== 'config' && name !== 'voice'/);
+  assert.match(settingsScript, /petSave\.hidden = !\(inConfig && configTab !== 'model'\)/);
   assert.match(settingsPage, /id="save"[^>]*form="settings"/);
-  assert.match(settingsScript, /modelSave\.hidden = name !== 'model'/);
   assert.match(settingsScript, /history\.replaceState/);
   assert.match(settingsScript, /X-Blue-Fish-Token/);
   assert.match(settingsScript, /voice\/speak/);

@@ -120,7 +120,7 @@ async function boot(): Promise<void> {
   const origin = `http://127.0.0.1:${port}`;
   log(`本机服务 ${origin}`);
 
-  // 桌面运行状态落在 ~/.blue-fish6（不进 .dsh）；外部程序读 port / token。
+  // 桌面运行状态落在 ~/.blue-fish（与用户数据同根，不进 .dsh）；外部程序读 port / token。
   let releaseRuntime: () => void;
   try {
     releaseRuntime = writeStandaloneRuntime(appRuntimeStateDir(), {

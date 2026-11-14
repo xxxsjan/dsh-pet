@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { test } from 'node:test';
 
 import { RUNTIME_STATE_FILE, appRuntimeStateDir, cliRuntimeStateDir, writeStandaloneRuntime } from './runtime-state.ts';
@@ -53,5 +53,5 @@ test('runtime cleanup is idempotent and removes its own manifest', () => {
 test('desktop and CLI resolve different state directories', () => {
   const home = join(tmpdir(), 'fake-dsh-home');
   assert.equal(cliRuntimeStateDir(home), join(home, 'blue-fish6'));
-  assert.match(appRuntimeStateDir(), /[/\\]\.blue-fish6$/);
+  assert.equal(appRuntimeStateDir(), join(homedir(), '.blue-fish'));
 });

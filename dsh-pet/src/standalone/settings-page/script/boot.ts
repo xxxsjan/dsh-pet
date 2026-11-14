@@ -14,6 +14,8 @@ export function bootScript(): string {
   return `
 let protocolSelect = null;
 let balanceSelect = null;
+// 当前顶层分区（对话 / 配置）；configTab 定义在 pets 片段里，二者一起决定顶栏保存按钮。
+let activeTab = 'chat';
 
 function mountProtocolSelect() {
   const host = byId('protocol-host');
@@ -56,7 +58,16 @@ function mountBalanceSelect() {
   host.append(balanceSelect.root);
 }
 
+// 顶栏只放桌宠配置保存（/config）；模型保存按钮在模型卡片内部，随卡片显隐。
+// 模型子标签下顶栏不显示宠物保存，避免在模型表单里误提交桌宠配置。
+function updateSaveButtons() {
+  const inConfig = activeTab === 'config';
+  const petSave = byId('pet-save');
+  if (petSave) petSave.hidden = !(inConfig && configTab !== 'model');
+}
+
 function selectTab(name) {
+  activeTab = name;
   for (const cell of document.querySelectorAll('[data-tab]')) {
     const active = cell.dataset.tab === name;
     cell.setAttribute('aria-selected', active ? 'true' : 'false');
@@ -67,11 +78,7 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
-  // 配置面板用顶栏 pet-save（/config）。
-  const petSave = byId('pet-save');
-  if (petSave) petSave.hidden = name !== 'config';
-  const modelSave = byId('save');
-  if (modelSave) modelSave.hidden = true;
+  updateSaveButtons();
   // 弹幕分区切进来就立刻拉一次状态，不用等下一轮轮询。
   if (name === 'danmaku') void dmRefresh().catch(() => {});
 }

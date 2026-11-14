@@ -3,7 +3,7 @@
  *
  * 只服务本机启动器与其它本机程序，不进入 /health 响应，也不参与路由。
  * 必须始终成立：权限沿用私有 JSON 写入；清理时只删自己写的那一份。
- * 桌面与 CLI 目录不同：桌面用用户主目录下的 `.blue-fish6`，CLI 仍在 DSH_HOME 下的 `blue-fish6`。
+ * 桌面与 CLI 目录不同：桌面与用户数据同根（`~/.blue-fish`），CLI 仍在 DSH_HOME 下的 `blue-fish6`。
  * @module dsh-pet/src/standalone/runtime-state
  */
 import { mkdirSync, readFileSync, unlinkSync } from 'node:fs';
@@ -15,8 +15,8 @@ import { writePrivateJson } from './ai-storage.ts';
 /** CLI 运行状态目录名（相对 DSH_HOME）。 */
 export const CLI_RUNTIME_STATE_DIR = 'blue-fish6';
 
-/** 桌面应用运行状态目录名（相对用户主目录，带点前缀）。 */
-export const APP_RUNTIME_STATE_DIR = '.blue-fish6';
+/** 桌面应用运行状态目录名（相对用户主目录，与用户数据根同一个目录）。 */
+export const APP_RUNTIME_STATE_DIR = '.blue-fish';
 
 /** 运行状态文件名。 */
 export const RUNTIME_STATE_FILE = 'standalone-runtime.json';
@@ -38,7 +38,7 @@ export function cliRuntimeStateDir(dshHome: string): string {
   return join(dshHome, CLI_RUNTIME_STATE_DIR);
 }
 
-/** 桌面应用：`{用户主目录}/.blue-fish6`。 */
+/** 桌面应用：`{用户主目录}/.blue-fish`（与配置、日志同根）。 */
 export function appRuntimeStateDir(): string {
   return join(homedir(), APP_RUNTIME_STATE_DIR);
 }

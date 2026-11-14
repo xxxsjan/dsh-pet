@@ -65,12 +65,12 @@ http://127.0.0.1:3080/blue-fish/chat?pet=main&surface=desktop
 
 | 模式         | 运行状态路径                                       | 端口                          |
 | ------------ | -------------------------------------------------- | ----------------------------- |
-| 桌面应用     | `{用户主目录}/.blue-fish6/standalone-runtime.json` | 固定 `3080`（占用即无法启动） |
+| 桌面应用     | `{用户主目录}/.blue-fish/standalone-runtime.json`  | 固定 `3080`（占用即无法启动） |
 | CLI 独立模式 | `{DSH_HOME}/blue-fish6/standalone-runtime.json`    | 首选 `3080`，占用可顺延       |
 
 Windows 常见示例：
 
-- 桌面：`C:\Users\<你>\.blue-fish6\standalone-runtime.json`
+- 桌面：`C:\Users\<你>\.blue-fish\standalone-runtime.json`
 - CLI：`C:\Users\<你>\.dsh\blue-fish6\standalone-runtime.json`（未设置 `DSH_HOME` 时）
 
 设置页仍可通过右键桌宠 →「打开 AI 设置」打开（应用内弹窗窗口，URL 短暂含 `#token=`，页面加载后会清掉地址栏 hash）；对接请优先读对应模式的 runtime 文件。

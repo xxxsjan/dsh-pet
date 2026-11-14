@@ -160,6 +160,7 @@ function selectConfigTab(name) {
     tab.setAttribute('aria-selected', tab.dataset.configTab === name ? 'true' : 'false');
   }
   renderPetsPanel();
+  updateSaveButtons();
 }
 
 function wireConfigTabs() {
