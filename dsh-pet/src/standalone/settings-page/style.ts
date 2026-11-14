@@ -200,6 +200,7 @@ input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
 .dialogText{margin:0;font-size:13px;line-height:1.65;color:var(--dsw-alias-label-secondary);white-space:pre-line;word-break:break-word}
 .dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .personaWrap{position:relative}
+.personaWrap textarea{min-height:150px;resize:vertical}
 .personaCount{position:absolute;right:10px;bottom:8px;padding:2px 5px;border-radius:var(--dsw-radius-xs);background:var(--dsw-alias-bg-layer-2);font-size:11px;line-height:1.2;color:var(--dsw-alias-label-tertiary);pointer-events:none}
 .btn.danger{background:color-mix(in srgb,var(--dsw-static-red-500) 14%,transparent);border-color:transparent;color:var(--dsw-static-red-500)}
 .btn.danger:hover{background:color-mix(in srgb,var(--dsw-static-red-500) 22%,transparent);opacity:1}

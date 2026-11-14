@@ -127,7 +127,7 @@ function personaWrap(pet) {
   const area = make('textarea', { id: 'pet-persona' });
   area.value = typeof pet.whisperPrompt === 'string' ? pet.whisperPrompt : '';
   area.maxLength = 4000;
-  area.rows = 4;
+  area.rows = 7;
   const entryPrompt = state.prompts[state.entry] || '';
   area.placeholder = entryPrompt || '留空则没有系统提示词';
   const count = make('span', { class: 'personaCount', text: area.value.length + ' 字' });
