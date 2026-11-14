@@ -8,7 +8,7 @@
  * 打包二进制统一走 npmmirror 镜像，因为本机 github.com 不通。
  * 版本号在构建前定死：控制台询问是否递增 patch，递增则先写 package.json 再构建，
  * 构建失败滚回递增前；package.json 在 files 白名单里会进 asar，构建后再改包内仍是旧号。
- * 打包成功后链式调用 pack-win-zip.mjs 压出分发 zip；压缩失败即整体失败。
+ * 打包成功后询问是否压成分发 zip（默认不压，自用只需解包目录）；选择压缩才调用 pack-win-zip.mjs，压缩失败即整体失败。
  * @module dsh-pet/scripts/dist
  */
 import { spawn, spawnSync } from 'node:child_process';
@@ -149,6 +149,11 @@ child.on('exit', (code) => {
       console.error(`[dist] 构建失败，已回滚版本 ${version} -> ${prevVersion}`);
     }
     process.exit(code ?? 1);
+  }
+  // 压缩是分发用的额外产物：自用时只要解包目录，默认跳过，免得白等一遍大文件拷贝
+  if (!/^y(es)?$/i.test(ask('[dist] 构建完成，是否压成分发 zip？(y/N) '))) {
+    console.log('[dist] 跳过压缩，产物：dist-app/win-unpacked');
+    process.exit(0);
   }
   const pack = spawn(process.execPath, [join(here, 'pack-win-zip.mjs')], {
     cwd: root,
