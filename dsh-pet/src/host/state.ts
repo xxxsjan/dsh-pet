@@ -21,7 +21,7 @@ export interface StateLeaf {
  *  不能塞进每秒一次的 /state。当前只有 POST /pet-display 写它：桌面端右键改显示位置时，浏览器
  *  页面不是发起方，只能靠这个信号知道配置被别处改过；保存 / 同步配置的调用方自己拿到了成品聚合，
  *  所以不写。 */
-export type SectionName = 'balance' | 'workStatus' | 'notify' | 'config' | 'menu' | 'focusSession' | 'danmaku';
+export type SectionName = 'balance' | 'workStatus' | 'notify' | 'config' | 'menu' | 'focusSession' | 'danmaku' | 'xhs-danmaku' | 'ks-danmaku' | 'bili-danmaku';
 
 /** 每宠物段（say = 要说的话；anim = 要播的动画名；position = 要挪到的位置；throw = 要给的初速度；
  *  lock = 占用锁状态；sleep = 睡觉状态）。
@@ -115,6 +115,12 @@ export class PollStateStore {
       focusSession: emptyLeaf(),
       // 直播监听状态：宿主启动/停止监听时写它，右键菜单据此决定是否显示「暂停直播」项。
       danmaku: emptyLeaf(),
+      // 小红书中控台弹幕监听状态（独立段，避免覆盖抖音段）。
+      'xhs-danmaku': emptyLeaf(),
+      // 快手直连弹幕监听状态（独立段，避免覆盖抖音 / 小红书段）。
+      'ks-danmaku': emptyLeaf(),
+      // B 站直连弹幕监听状态（独立段，避免覆盖其它平台段）。
+      'bili-danmaku': emptyLeaf(),
     };
     this.pets = new Map();
     this.waiters = new Set();

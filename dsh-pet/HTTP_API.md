@@ -431,7 +431,7 @@ X-Blue-Fish-Token: <token>
 
 ## 抖音弹幕监听
 
-前缀 `/blue-fish/danmaku/douyin`。启动依赖桌面 Helper 的本机签名桥；没有 Helper（例如纯 CLI 独立模式）时 `start` 会失败并回 `internal-error`。这些端点不接收 `?pet=` / `?surface=`，回复/答谢对象由宿主按活跃会话自动选择。
+前缀 `/blue-fish/danmaku/douyin`。主路径是桌面 Helper 开一个隐藏内嵌窗加载直播间、用 CDP 旁听弹幕 WebSocket 帧（不自己签名、不发心跳）；拿不到 CDP 桥时回退旧的本机签名桥直连 WSS。Cookie 只由前端手动粘贴；不填时内嵌窗会弹出供扫码登录，登录态留在该窗自己的持久分区。没有 Helper（例如纯 CLI 独立模式）且无桥可用时 `start` 会失败并回 `internal-error`。这些端点不接收 `?pet=` / `?surface=`，回复/答谢对象由宿主按活跃会话自动选择。
 
 ### GET `/danmaku/douyin/status`
 
@@ -457,13 +457,16 @@ GET http://127.0.0.1:3080/blue-fish/danmaku/douyin/status
   "startedAt": 1730000000000,
   "replyChat": true,
   "thankGift": false,
+  "mode": "cdp",
+  "cdpVisible": false,
+  "cdpLoggedIn": true,
   "recent": [
     { "id": 1, "at": 1730000000000, "kind": "chat", "nick": "观众", "text": "你好", "count": 0 }
   ]
 }
 ```
 
-`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。
+`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `direct`（旧直连回退）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。
 
 ### POST `/danmaku/douyin/start`
 

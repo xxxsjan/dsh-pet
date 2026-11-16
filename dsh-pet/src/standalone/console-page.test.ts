@@ -90,16 +90,27 @@ test('其余分区全部接真控件：宠物、全局、物理、字体、模�
   for (const gone of ['chatMemoryRounds', 'chatImageLimit', 'whisperModel', 'chatModel']) {
     assert.doesNotMatch(consoleScript, new RegExp(gone), `旧页不暴露该字段，脚本不应再写：${gone}`);
   }
-  for (const key of ['g-notify', 'g-click', 'g-confine', 'g-tray', 'g-obs', 'g-whisper-image', 'g-chat-image', 'g-chat-anim', 'ph-ceiling', 'ph-collide', 'ph-haptic', 'ph-tilt', 'ph-shake', 'font-follow']) {
+  for (const key of ['g-notify', 'g-click', 'g-confine', 'g-tray', 'g-obs', 'g-whisper-image', 'g-chat-image', 'g-chat-anim', 'ph-ceiling', 'ph-collide', 'font-follow']) {
     assert.match(html, new RegExp(`data-switch="${key}"`), `开关 ${key} 应存在于静态壳`);
+  }
+  // 三个手机端体感开关（碰撞震动 / 倾斜控制重力 / 摇一摇抛出）旧页没有 UI，控制台一并对齐移除
+  for (const gone of ['ph-haptic', 'ph-tilt', 'ph-shake']) {
+    assert.doesNotMatch(html, new RegExp(`data-switch="${gone}"`), `旧页物理卡没有该开关，不应出现：${gone}`);
+  }
+  for (const gone of ['碰撞震动', '倾斜控制重力', '摇一摇抛出']) {
+    assert.ok(!html.includes(gone), `旧页没有这行开关，文案也不应残留：${gone}`);
   }
   // 这些分区提交的都是宿主真实字段名，写错一个就会整包失败
   for (const field of ['notificationsEnabled', 'clickSoundEnabled', 'clickSoundVolume', 'confineToScreen', 'trayEnabled', 'obsCaptureEnabled', 'whisperImageEnabled', 'chatImageEnabled', 'chatAnimationEnabled', 'physics', 'font']) {
     assert.match(consoleScript, new RegExp(`${field}:`), `保存体应回传 ${field}`);
   }
-  for (const sub of ['gravity', 'restitution', 'groundFriction', 'throwPower', 'ceilingBounce', 'petCollision', 'hapticEnabled', 'tiltGravity', 'shakeThrow']) {
+  for (const sub of ['gravity', 'restitution', 'groundFriction', 'throwPower', 'ceilingBounce', 'petCollision']) {
     assert.match(consoleScript, new RegExp(`${sub}:`), `physics 段必须写全，缺子键会整段非法：${sub}`);
   }
+  // 三个可选体感键：界面不编辑，但要「原配置写过才原值带回」，避免保存物理时凭空补键或抹掉手改值
+  assert.match(consoleScript, /PHYSICS_OPTIONAL_KEYS = \['hapticEnabled', 'tiltGravity', 'shakeThrow'\]/, '可选体感键清单应显式列出');
+  assert.match(consoleScript, /function physicsOptionalOf\(main\)/, '应记录原配置里写过的可选键');
+  assert.match(consoleScript, /if \(key in optional\) out\[key\] = optional\[key\]/, '保存物理时只透传原配置写过的键');
   assert.match(consoleScript, /followPet:/, 'font 段需带上 followPet');
   assert.match(consoleScript, /family:/, 'font 段需带上 family');
   // 每个开关都必须有点击映射：漏一个就会出现「拨了开关但保存没变」的假功能
@@ -162,14 +173,15 @@ test('板块与旧设置页对齐：宠物、全局开关、字体、物理、�
   const html = consolePage();
   const titles = [...html.matchAll(/class="cardTitle">([^<]+)</g)].map((m) => m[1]);
   assert.deepEqual(titles, ['宠物', '全局开关', '字体', '物理', '模型', '语音', '高级'], '七个板块的顺序与名称要与旧页配置 Tab 一一对应');
-  // 旧页没有「移动端效果」板块：三开关并入物理，独立卡与它的保存按钮都不该再有
+  // 旧页没有「移动端效果」板块：那张卡与它的保存按钮都不该再有；它的三个体感开关旧页物理卡也没做，一并不放
   assert.doesNotMatch(html, /移动端效果/, '不应再有独立「移动端效果」板块');
   assert.doesNotMatch(html, /id="mobile-save"/, '移动端卡的保存按钮应已移除');
   assert.doesNotMatch(consoleScript, /saveMobile/, '脚本不应再有移动端分段保存');
   const physicsSection = html.slice(html.indexOf('class="cardTitle">物理<'), html.indexOf('class="cardTitle">模型<'));
-  for (const key of ['ph-ceiling', 'ph-collide', 'ph-haptic', 'ph-tilt', 'ph-shake']) {
+  for (const key of ['ph-ceiling', 'ph-collide']) {
     assert.ok(physicsSection.includes(`data-switch="${key}"`), `物理板块应包含开关 ${key}`);
   }
+  assert.equal((physicsSection.match(/data-switch="ph-/g) ?? []).length, 2, '物理卡只保留旧页那两个开关');
   // 全局开关补齐旧页的九个开关（三个配图 / 动作联动开关原先落在模型卡）
   const globalSection = html.slice(html.indexOf('class="cardTitle">全局开关<'), html.indexOf('class="cardTitle">字体<'));
   for (const key of ['g-notify', 'g-click', 'g-whisper-image', 'g-chat-image', 'g-chat-anim', 'g-confine', 'g-tray', 'g-obs']) {
@@ -321,4 +333,109 @@ test('对话入口：头像下的图标按钮 + 弹窗即对话窗口，复用�
   assert.match(consoleScript, /event\.key === 'Escape'/, 'Esc 应能关闭弹窗');
   assert.match(consoleScript, /event\.target === chatDialog/, '点遮罩空白处应能关闭弹窗');
   assert.match(consoleScript, /\.pet-chat-input/, '打开弹窗应把焦点交给输入框');
+});
+
+test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 logo、居中配置模态；各平台面板与接口齐备', () => {
+  const html = consolePage();
+  const styles = consoleStyles();
+  const script = consoleScript;
+
+  // 入口：头像区里排在对话 icon 右侧，只有一个直播间入口
+  const entryRow = html.slice(html.indexOf('<div class="entryRow">'), html.indexOf('</div>', html.indexOf('id="live-open"')));
+  assert.match(entryRow, /id="live-open"/, '直播间入口应在头像区');
+  assert.ok(
+    entryRow.indexOf('id="chat-open"') < entryRow.indexOf('id="live-open"'),
+    '直播间入口应排在对话 icon 右侧',
+  );
+
+  // 弹窗骨架：遮罩、标题、右上角 logo 行、关闭按钮、居中配置模态
+  assert.match(html, /id="live-dialog"/, '缺少直播间弹窗遮罩');
+  assert.match(html, /id="live-dialog-title"/, '弹窗应有标题');
+  assert.match(html, /id="live-close"/, '弹窗应有关闭按钮');
+  assert.match(html, /id="live-logos"/, '右上角应有平台 logo 行');
+  assert.match(html, /id="live-config-mask"/, '配置模态遮罩容器');
+  assert.match(html, /id="live-config-close"/, '配置模态应有关闭按钮');
+
+  // 右上角四枚平台 logo：可点选、配置面板居中弹出、监听徽标；主区四个弹幕面板铺满
+  for (const p of ['dm', 'xs', 'ks', 'bl']) {
+    assert.match(html, new RegExp(`data-platform="${p}"`), `应有平台项 ${p}`);
+    assert.match(html, new RegExp(`data-select="${p}"`), `平台 logo 应可点选 ${p}`);
+    assert.match(html, new RegExp(`data-panel="${p}"`), `配置模态内应含设置面板 ${p}`);
+    assert.match(html, new RegExp(`data-pill="${p}"`), `平台 logo 应有监听徽标 ${p}`);
+    assert.match(html, new RegExp(`data-feed="${p}"`), `主区应有弹幕面板 ${p}`);
+  }
+
+  // 各平台原面板字段仍保留在折叠设置里
+  const dmIds = ['dm-url', 'dm-cookie', 'dm-reply-chat', 'dm-thank-gift', 'dm-toggle', 'dm-refresh', 'dm-open-live', 'dm-msg', 'dm-status', 'dm-feed-meta', 'dm-feed'];
+  const xsIds = ['xs-cookie', 'xs-reply-chat', 'xs-thank-gift', 'xs-toggle', 'xs-refresh', 'xs-msg', 'xs-status', 'xs-feed-meta', 'xs-feed'];
+  const ksIds = ['ks-url', 'ks-cookie', 'ks-reply-chat', 'ks-thank-gift', 'ks-toggle', 'ks-refresh', 'ks-msg', 'ks-status', 'ks-feed-meta', 'ks-feed'];
+  const blIds = ['bl-url', 'bl-cookie', 'bl-reply-chat', 'bl-thank-gift', 'bl-toggle', 'bl-refresh', 'bl-msg', 'bl-status', 'bl-feed-meta', 'bl-feed'];
+  for (const id of [...dmIds, ...xsIds, ...ksIds, ...blIds]) {
+    assert.match(html, new RegExp(`id="${id}"`), `弹窗内缺少原面板控件：${id}`);
+  }
+  assert.match(html, /id="dm-url"[\s\S]*?placeholder="粘贴直播间链接，或直接填纯数字房间号"/, '直播间输入框占位符应与旧页一致');
+  assert.match(html, /id="dm-cookie"[\s\S]*?placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里"/, 'Cookie 占位符应说明不填走弹窗扫码');
+  assert.doesNotMatch(html, /id="panel-danmaku"/, '控制台里不该出现旧页的面板容器');
+
+  // 旧四枚平台入口与旧四套遮罩已拆除，统一进 #live-dialog
+  for (const gone of ['dm-open', 'xs-open', 'ks-open', 'bl-open', 'dm-dialog', 'xs-dialog', 'ks-dialog', 'bl-dialog', 'dm-close', 'xs-close', 'ks-close', 'bl-close']) {
+    assert.doesNotMatch(html, new RegExp(`id="${gone}"`), `旧入口 / 遮罩不应再出现：${gone}`);
+  }
+
+  // 样式：弹幕铺满主区、配置模态覆盖居中、非当前平台配置面板隐藏、仅当前平台弹幕面板显示、停止监听红色按钮
+  assert.match(styles, /\.liveMain\{[^}]*display:flex;flex-direction:column/, '弹幕主区应铺满');
+  assert.match(styles, /\.liveConfigMask\{position:absolute;inset:0/, '配置模态应覆盖弹幕主区');
+  assert.match(styles, /\.liveConfig\{width:min\(440px,100%\)/, '配置卡片应居中限宽');
+  assert.match(styles, /\.liveConfigPanel\{display:none/, '非当前平台配置面板隐藏');
+  assert.match(styles, /\.liveFeedPanel\.is-active\{display:flex/, '只有当前选中平台的弹幕面板显示');
+  assert.match(styles, /\.dmFeedItem\.gift\{/, '礼物弹幕应有单独配色');
+  assert.match(styles, /\.btn\.danger\{background:color-mix/, '停止监听需要红色按钮');
+
+  // 缓存 key 与四组接口沿用旧页，四个平台各自的接线函数保留
+  assert.match(script, /blue_fish_douyin_danmaku_form_v1/, '抖音表单缓存 key 应与旧页一致');
+  assert.match(script, /blue_fish_xhs_danmaku_form_v1/, '小红书表单缓存 key');
+  assert.match(script, /blue_fish_ks_danmaku_form_v1/, '快手表单缓存 key');
+  assert.match(script, /blue_fish_bili_danmaku_form_v1/, 'B站表单缓存 key');
+  for (const [prefix, seg] of [['douyin', 'douyin'], ['xiaohongshu', 'xiaohongshu'], ['kuaishou', 'kuaishou'], ['bilibili', 'bilibili']]) {
+    for (const route of ['status', 'options', 'start', 'stop']) {
+      assert.match(script, new RegExp(`/danmaku/${seg}/${route}`), `${prefix} 应接入 ${route} 接口`);
+    }
+  }
+  for (const wire of ['wireDanmakuDialog', 'wireXhsDialog', 'wireKsDialog', 'wireBiliDialog']) {
+    assert.match(script, new RegExp(`function ${wire}\\(\\)`), `平台弹窗接线入口应保留：${wire}`);
+  }
+
+  // 统一调度层：单一开关入口、平台单选切换、轮询只在弹窗打开且选中该平台时发请求
+  assert.match(script, /function wireLiveDialog\(\)/, '统一直播间弹窗应有单一接线入口');
+  assert.match(script, /function selectLive\(/, '平台单选应切换当前监听平台');
+  assert.match(script, /function setLiveDialog\(open\)/, '统一弹窗开关应是单一入口函数');
+  assert.match(script, /function setLiveConfig\(open\)/, '配置模态应有独立开关函数');
+  assert.match(script, /liveConfigOpen/, '应记录配置模态显隐状态');
+  assert.match(script, /liveIsOpen\(\) \|\| liveCurrent !== 'dm'/, '抖音轮询只在弹窗打开且选中抖音时发请求');
+  for (const gone of ['setDmDialog', 'setXsDialog', 'setKsDialog', 'setBlDialog']) {
+    assert.doesNotMatch(script, new RegExp(gone), `旧弹窗开关函数应已拆除：${gone}`);
+  }
+  assert.match(script, /function dmNode\(tag, cls, text\)/, '弹幕内容应走 dmNode 建文本节点');
+  assert.match(script, /node\.textContent = String\(text\)/, 'dmNode 只写 textContent，不拼 HTML');
+  assert.match(script, /feedBox\.textContent = '';/, '弹幕区清空应清文本节点');
+
+  // Cookie 只手动输入：不再有自动读浏览器入口、状态行、说明弹窗与探针接口
+  assert.doesNotMatch(html, /id="dm-cookie-help"/, '不应再有「从浏览器读取」按钮');
+  assert.doesNotMatch(html, /id="dm-cookie-state"/, '不应再有 Cookie 状态行');
+  assert.doesNotMatch(html, /id="dm-cookie-dialog"/, '不应再有 Cookie 说明弹窗');
+  assert.doesNotMatch(script, /dmReadBrowserCookie/, '不应再有自动读取函数');
+  assert.doesNotMatch(script, /\/danmaku\/douyin\/cookie/, '不应再调用 Cookie 探针接口');
+  assert.doesNotMatch(styles, /\.dmCookieState/, '不应再有 Cookie 状态行样式');
+  assert.doesNotMatch(html, /id="dm-save-cookie"/, '不应再有「保存到本地」勾选开关，Cookie 默认存本地');
+
+  // 独立 Windows 窗口模式：?live=1 进 standalone，入口走桥开窗，无桥回落页内弹窗；关闭按钮关窗
+  assert.match(script, /LIVE_STANDALONE = new URLSearchParams\(location\.search\)\.get\('live'\) === '1'/, '应从 query 读取 live 独立模式标志');
+  assert.match(script, /hasLiveBridge = !!\(window\.petBridge && typeof window\.petBridge\.openLive === 'function'\)/, '应探测开窗桥是否可用');
+  assert.match(script, /window\.petBridge\.openLive\(\)/, '有桥时入口应通知主进程开独立窗口');
+  assert.match(script, /window\.petBridge\.closeLive\(\)/, '独立窗口内关闭按钮应走桥关窗');
+  assert.match(script, /function closeLiveWindow\(\)/, '关闭动作应有独立收口函数');
+  assert.match(script, /body\.classList\.add\('live-standalone'\)/, '独立模式应给 body 打模式类');
+  assert.match(styles, /body\.live-standalone \.console/, '独立模式应隐藏控制台主体');
+  assert.match(styles, /body\.live-standalone #live-dialog/, '独立模式直播间应铺满整窗');
+  assert.match(styles, /-webkit-app-region:drag/, '独立无边框窗口头部应可拖动');
 });

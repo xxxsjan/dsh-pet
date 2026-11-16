@@ -20,6 +20,9 @@ import type { PollStateStore } from '../state.ts';
 import type { VoiceTarget } from '../surface.ts';
 import type { TodoStore } from '../todo/store.ts';
 import type { DouyinMonitor } from '../danmaku/douyin/monitor.ts';
+import type { KsMonitor } from '../danmaku/kuaishou/monitor.ts';
+import type { XhsMonitor } from '../danmaku/xiaohongshu/monitor.ts';
+import type { BiliMonitor } from '../danmaku/bilibili/monitor.ts';
 import type { HearService } from '../voice/hear.ts';
 import type { VoiceService } from '../voice/speak.ts';
 import type { VoiceUtteranceStore } from '../voice/utterance.ts';
@@ -171,6 +174,12 @@ export interface PetRouteDeps {
   readonly voice: VoiceService;
   /** 语音识别服务（音频转文字；宿主没启用语音输入时由它自己回 unsupported）。 */
   readonly speech: HearService;
-  /** 抖音弹幕监听（进房 + 签名桥 + WSS 聊天日志）。 */
+  /** 抖音弹幕监听（内嵌窗 CDP 旁听，直连为回退）。 */
   readonly douyinDanmaku: DouyinMonitor;
+  /** 小红书中控台弹幕监听（内嵌窗 CDP 旁听自己这场直播）。 */
+  readonly xiaohongshuDanmaku: XhsMonitor;
+  /** 快手直连 WSS 弹幕监听。 */
+  readonly kuaishouDanmaku: KsMonitor;
+  /** B 站直连 WSS 弹幕监听。 */
+  readonly bilibiliDanmaku: BiliMonitor;
 }

@@ -85,6 +85,207 @@ let aiPutCount = 0;
 const chatHistory: Record<string, Array<{ role: string; content: string; ts: number }>> = { p1: [], p2: [] };
 let chatSendCount = 0;
 
+/** 抖音弹幕（mock）：start 之后每 3 秒追加一条假弹幕，stop 停下。 */
+const danmakuState = {
+  listening: false,
+  url: '',
+  title: '',
+  anchor: '',
+  roomId: '',
+  chatCount: 0,
+  giftCount: 0,
+  lastError: '',
+  replyChat: false,
+  thankGift: false,
+  mode: 'cdp' as 'cdp' | 'direct' | 'idle',
+  cdpVisible: false,
+  cdpLoggedIn: true,
+  recent: [] as Array<{ id: number; kind: string; nick: string; text: string; at: number; count?: number }>
+};
+let danmakuTimer: ReturnType<typeof setInterval> | null = null;
+let danmakuSeq = 0;
+
+/** 小红书中控台弹幕（mock）：start 之后每 3 秒追加一条假弹幕，stop 停下。 */
+const xhsState = {
+  listening: false,
+  chatCount: 0,
+  giftCount: 0,
+  lastError: '',
+  replyChat: false,
+  thankGift: false,
+  mode: 'cdp' as 'cdp' | 'idle',
+  cdpVisible: false,
+  cdpLoggedIn: true,
+  recent: [] as Array<{ id: number; kind: string; nick: string; text: string; at: number; count?: number }>
+};
+let xhsTimer: ReturnType<typeof setInterval> | null = null;
+let xhsSeq = 0;
+
+function xhsPush(kind: 'chat' | 'gift') {
+  xhsSeq += 1;
+  xhsState.recent.push({
+    id: xhsSeq,
+    kind,
+    nick: (kind === 'gift' ? '送礼观众' : '观众') + xhsSeq,
+    text: kind === 'gift' ? '小心心' : '这是第 ' + xhsSeq + ' 条 mock 弹幕',
+    at: Date.now(),
+    ...(kind === 'gift' ? { count: 1 } : {})
+  });
+  if (xhsState.recent.length > 50) xhsState.recent.shift();
+  if (kind === 'gift') xhsState.giftCount += 1;
+  else xhsState.chatCount += 1;
+}
+
+function xhsStatus() {
+  return {
+    listening: xhsState.listening,
+    url: 'https://redlive.xiaohongshu.com/live_center_control',
+    roomId: '',
+    title: '',
+    anchor: '',
+    chatCount: xhsState.chatCount,
+    giftCount: xhsState.giftCount,
+    lastError: xhsState.lastError,
+    replyChat: xhsState.replyChat,
+    thankGift: xhsState.thankGift,
+    mode: xhsState.mode,
+    cdpVisible: xhsState.cdpVisible,
+    cdpLoggedIn: xhsState.cdpLoggedIn,
+    recent: xhsState.recent.slice(-50)
+  };
+}
+
+/** 快手直连弹幕（mock）：start 之后每 3 秒追加一条假弹幕，stop 停下。 */
+const ksState = {
+  listening: false,
+  url: '',
+  chatCount: 0,
+  giftCount: 0,
+  lastError: '',
+  replyChat: false,
+  thankGift: false,
+  mode: 'idle' as 'ws' | 'idle',
+  recent: [] as Array<{ id: number; kind: string; nick: string; text: string; at: number; count?: number }>
+};
+let ksTimer: ReturnType<typeof setInterval> | null = null;
+let ksSeq = 0;
+
+function ksPush(kind: 'chat' | 'gift') {
+  ksSeq += 1;
+  ksState.recent.push({
+    id: ksSeq,
+    kind,
+    nick: (kind === 'gift' ? '送礼观众' : '快手观众') + ksSeq,
+    text: kind === 'gift' ? '礼物#' + ksSeq : '这是第 ' + ksSeq + ' 条 mock 弹幕',
+    at: Date.now(),
+    ...(kind === 'gift' ? { count: 1 } : {})
+  });
+  if (ksState.recent.length > 50) ksState.recent.shift();
+  if (kind === 'gift') ksState.giftCount += 1;
+  else ksState.chatCount += 1;
+}
+
+function ksStatus() {
+  return {
+    listening: ksState.listening,
+    url: ksState.url,
+    roomId: '',
+    title: '',
+    anchor: '',
+    chatCount: ksState.chatCount,
+    giftCount: ksState.giftCount,
+    lastError: ksState.lastError,
+    replyChat: ksState.replyChat,
+    thankGift: ksState.thankGift,
+    mode: ksState.mode,
+    recent: ksState.recent.slice(-50)
+  };
+}
+
+/** B 站直连弹幕（mock）：start 之后每 3 秒追加一条假弹幕，stop 停下。 */
+const blState = {
+  listening: false,
+  url: '',
+  roomId: '',
+  title: '',
+  anchor: '',
+  chatCount: 0,
+  giftCount: 0,
+  lastError: '',
+  replyChat: false,
+  thankGift: false,
+  mode: 'idle' as 'ws' | 'idle',
+  recent: [] as Array<{ id: number; kind: string; nick: string; text: string; at: number; count?: number }>
+};
+let blTimer: ReturnType<typeof setInterval> | null = null;
+let blSeq = 0;
+
+function blPush(kind: 'chat' | 'gift') {
+  blSeq += 1;
+  blState.recent.push({
+    id: blSeq,
+    kind,
+    nick: (kind === 'gift' ? '送礼观众' : 'B站观众') + blSeq,
+    text: kind === 'gift' ? '点赞' : '这是第 ' + blSeq + ' 条 mock 弹幕',
+    at: Date.now(),
+    ...(kind === 'gift' ? { count: 1 } : {})
+  });
+  if (blState.recent.length > 50) blState.recent.shift();
+  if (kind === 'gift') blState.giftCount += 1;
+  else blState.chatCount += 1;
+}
+
+function blStatus() {
+  return {
+    listening: blState.listening,
+    url: blState.url,
+    roomId: blState.roomId,
+    title: blState.title,
+    anchor: blState.anchor,
+    chatCount: blState.chatCount,
+    giftCount: blState.giftCount,
+    lastError: blState.lastError,
+    replyChat: blState.replyChat,
+    thankGift: blState.thankGift,
+    mode: blState.mode,
+    recent: blState.recent.slice(-50)
+  };
+}
+
+function danmakuPush(kind: 'chat' | 'gift') {
+  danmakuSeq += 1;
+  danmakuState.recent.push({
+    id: danmakuSeq,
+    kind,
+    nick: (kind === 'gift' ? '送礼观众' : '观众') + danmakuSeq,
+    text: kind === 'gift' ? '小心心' : '这是第 ' + danmakuSeq + ' 条 mock 弹幕',
+    at: Date.now(),
+    ...(kind === 'gift' ? { count: 1 } : {})
+  });
+  if (danmakuState.recent.length > 50) danmakuState.recent.shift();
+  if (kind === 'gift') danmakuState.giftCount += 1;
+  else danmakuState.chatCount += 1;
+}
+
+function danmakuStatus() {
+  return {
+    listening: danmakuState.listening,
+    url: danmakuState.url,
+    title: danmakuState.title,
+    anchor: danmakuState.anchor,
+    roomId: danmakuState.roomId,
+    chatCount: danmakuState.chatCount,
+    giftCount: danmakuState.giftCount,
+    lastError: danmakuState.lastError,
+    replyChat: danmakuState.replyChat,
+    thankGift: danmakuState.thankGift,
+    mode: danmakuState.mode,
+    cdpVisible: danmakuState.cdpVisible,
+    cdpLoggedIn: danmakuState.cdpLoggedIn,
+    recent: danmakuState.recent.slice(-50)
+  };
+}
+
 function makeWav(seconds = 1, freq = 440): Buffer {
   const sampleRate = 8000;
   const n = Math.floor(seconds * sampleRate);
@@ -228,6 +429,160 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (url === '/blue-fish/voice/speak') { send(200, 'audio/wav', makeWav()); return; }
+  if (url === '/blue-fish/danmaku/douyin/status' && req.method === 'GET') {
+    send(200, 'application/json', JSON.stringify({ ok: true, ...danmakuStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/douyin/options' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { replyChat?: unknown; thankGift?: unknown };
+      if (typeof body.replyChat === 'boolean') danmakuState.replyChat = body.replyChat;
+      if (typeof body.thankGift === 'boolean') danmakuState.thankGift = body.thankGift;
+    } catch { /* 体不合法就按原状态返回 */ }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...danmakuStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/douyin/start' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { url?: unknown; replyChat?: unknown; thankGift?: unknown };
+      const room = String(body.url ?? '').trim();
+      danmakuState.url = room.indexOf('live.douyin.com/') >= 0 ? room : 'https://live.douyin.com/' + room;
+      danmakuState.replyChat = body.replyChat === true;
+      danmakuState.thankGift = body.thankGift === true;
+    } catch { /* 体不合法就按原状态启动 */ }
+    danmakuState.listening = true;
+    danmakuState.title = danmakuState.title || 'mock 直播间';
+    danmakuState.anchor = danmakuState.anchor || 'mock 主播';
+    danmakuState.roomId = danmakuState.roomId || '123456789';
+    danmakuState.lastError = '';
+    if (danmakuTimer) clearInterval(danmakuTimer);
+    danmakuPush('chat');
+    danmakuTimer = setInterval(() => danmakuPush(danmakuSeq % 4 === 0 ? 'gift' : 'chat'), 3000);
+    send(200, 'application/json', JSON.stringify({ ok: true, ...danmakuStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/douyin/stop' && req.method === 'POST') {
+    danmakuState.listening = false;
+    if (danmakuTimer) { clearInterval(danmakuTimer); danmakuTimer = null; }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...danmakuStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/xiaohongshu/status' && req.method === 'GET') {
+    send(200, 'application/json', JSON.stringify({ ok: true, ...xhsStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/xiaohongshu/options' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { replyChat?: unknown; thankGift?: unknown };
+      if (typeof body.replyChat === 'boolean') xhsState.replyChat = body.replyChat;
+      if (typeof body.thankGift === 'boolean') xhsState.thankGift = body.thankGift;
+    } catch { /* 体不合法就按原状态返回 */ }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...xhsStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/xiaohongshu/start' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { cookie?: unknown; replyChat?: unknown; thankGift?: unknown };
+      xhsState.replyChat = body.replyChat === true;
+      xhsState.thankGift = body.thankGift === true;
+    } catch { /* 体不合法就按原状态启动 */ }
+    xhsState.listening = true;
+    xhsState.lastError = '';
+    if (xhsTimer) clearInterval(xhsTimer);
+    xhsPush('chat');
+    xhsTimer = setInterval(() => xhsPush(xhsSeq % 4 === 0 ? 'gift' : 'chat'), 3000);
+    send(200, 'application/json', JSON.stringify({ ok: true, ...xhsStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/xiaohongshu/stop' && req.method === 'POST') {
+    xhsState.listening = false;
+    if (xhsTimer) { clearInterval(xhsTimer); xhsTimer = null; }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...xhsStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/kuaishou/status' && req.method === 'GET') {
+    send(200, 'application/json', JSON.stringify({ ok: true, ...ksStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/kuaishou/options' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { replyChat?: unknown; thankGift?: unknown };
+      if (typeof body.replyChat === 'boolean') ksState.replyChat = body.replyChat;
+      if (typeof body.thankGift === 'boolean') ksState.thankGift = body.thankGift;
+    } catch { /* 体不合法就按原状态返回 */ }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...ksStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/kuaishou/start' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { url?: unknown; replyChat?: unknown; thankGift?: unknown };
+      ksState.url = String(body.url || '');
+      ksState.replyChat = body.replyChat === true;
+      ksState.thankGift = body.thankGift === true;
+    } catch { /* 体不合法就按原状态启动 */ }
+    ksState.listening = true;
+    ksState.mode = 'ws';
+    ksState.lastError = '';
+    if (ksTimer) clearInterval(ksTimer);
+    ksPush('chat');
+    ksTimer = setInterval(() => ksPush(ksSeq % 4 === 0 ? 'gift' : 'chat'), 3000);
+    send(200, 'application/json', JSON.stringify({ ok: true, ...ksStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/kuaishou/stop' && req.method === 'POST') {
+    ksState.listening = false;
+    ksState.mode = 'idle';
+    if (ksTimer) { clearInterval(ksTimer); ksTimer = null; }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...ksStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/bilibili/status' && req.method === 'GET') {
+    send(200, 'application/json', JSON.stringify({ ok: true, ...blStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/bilibili/options' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { replyChat?: unknown; thankGift?: unknown };
+      if (typeof body.replyChat === 'boolean') blState.replyChat = body.replyChat;
+      if (typeof body.thankGift === 'boolean') blState.thankGift = body.thankGift;
+    } catch { /* 体不合法就按原状态返回 */ }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...blStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/bilibili/start' && req.method === 'POST') {
+    const raw = await readBody(req);
+    try {
+      const body = JSON.parse(raw) as { url?: unknown; replyChat?: unknown; thankGift?: unknown };
+      blState.url = String(body.url || '');
+      blState.replyChat = body.replyChat === true;
+      blState.thankGift = body.thankGift === true;
+    } catch { /* 体不合法就按原状态启动 */ }
+    blState.listening = true;
+    blState.mode = 'ws';
+    blState.title = 'mock B站直播间';
+    blState.anchor = 'mock 主播';
+    blState.roomId = '10086';
+    blState.lastError = '';
+    if (blTimer) clearInterval(blTimer);
+    blPush('chat');
+    blTimer = setInterval(() => blPush(blSeq % 4 === 0 ? 'gift' : 'chat'), 3000);
+    send(200, 'application/json', JSON.stringify({ ok: true, ...blStatus() }));
+    return;
+  }
+  if (url === '/blue-fish/danmaku/bilibili/stop' && req.method === 'POST') {
+    blState.listening = false;
+    blState.mode = 'idle';
+    if (blTimer) { clearInterval(blTimer); blTimer = null; }
+    send(200, 'application/json', JSON.stringify({ ok: true, ...blStatus() }));
+    return;
+  }
   if (url === '/blue-fish/pet-avatar') { send(200, 'application/json', JSON.stringify({ ok: false, message: '内置条目固定用包里的 logo' })); return; }
   if (url.startsWith('/blue-fish/chat/memory')) { send(200, 'application/json', JSON.stringify({ ok: true, orphans: [] })); return; }
   if (url.startsWith('/blue-fish/chat') && req.method === 'GET') {
@@ -238,7 +593,7 @@ const server = http.createServer(async (req, res) => {
   if (url.startsWith('/blue-fish/chat') && req.method === 'POST') {
     const pet = new URL(url, 'http://127.0.0.1').searchParams.get('pet') || 'p1';
     const raw = await readBody(req);
-    let text = '';
+    let text: string;
     try { text = String((JSON.parse(raw) as { text?: unknown }).text ?? ''); } catch { text = ''; }
     const now = Date.now();
     chatSendCount += 1;

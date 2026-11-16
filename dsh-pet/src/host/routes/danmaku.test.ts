@@ -1,0 +1,119 @@
+/**
+ * 弹幕路由的平台互斥契约测试。
+ *
+ * 口径：同一时刻只允许一个直播间在采集。启动某平台前，路由先停止其余三个平台
+ * 监听并回写各自状态段；当前平台自身不被 stop。
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+
+import { handleDanmakuRoutes } from './danmaku.ts';
+import type { PetRouteDeps, RouteInput } from './types.ts';
+import type { RouteResult } from '../http.ts';
+
+type Monitor = {
+  calls: { stop: number; start: number; setOptions: number };
+  status: () => Record<string, unknown>;
+  stop: () => Record<string, unknown>;
+  start: () => Promise<Record<string, unknown>>;
+  setOptions: () => Record<string, unknown>;
+};
+
+function makeMonitor(source: string): Monitor {
+  const calls = { stop: 0, start: 0, setOptions: 0 };
+  return {
+    calls,
+    status: () => ({ listening: false, source }),
+    stop: () => {
+      calls.stop += 1;
+      return { listening: false, source };
+    },
+    start: async () => {
+      calls.start += 1;
+      return { listening: true, source };
+    },
+    setOptions: () => {
+      calls.setOptions += 1;
+      return { listening: false, source };
+    },
+  };
+}
+
+function makeHarness(): {
+  deps: PetRouteDeps;
+  monitors: Record<'douyin' | 'xiaohongshu' | 'kuaishou' | 'bilibili', Monitor>;
+  sections: Array<[string, unknown]>;
+} {
+  const monitors = {
+    douyin: makeMonitor('douyin'),
+    xiaohongshu: makeMonitor('xiaohongshu'),
+    kuaishou: makeMonitor('kuaishou'),
+    bilibili: makeMonitor('bilibili'),
+  };
+  const sections: Array<[string, unknown]> = [];
+  const deps = {
+    state: { writeSection: (name: string, data: unknown) => sections.push([name, data]) },
+    log: { warn: () => {} },
+    douyinDanmaku: monitors.douyin,
+    xiaohongshuDanmaku: monitors.xiaohongshu,
+    kuaishouDanmaku: monitors.kuaishou,
+    bilibiliDanmaku: monitors.bilibili,
+  } as unknown as PetRouteDeps;
+  return { deps, monitors, sections };
+}
+
+function input(rest: string, body: unknown, method = 'POST'): RouteInput {
+  return {
+    url: new URL(`http://localhost/blue-fish/${rest}`),
+    rest,
+    method,
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  };
+}
+
+function jsonOf(res: RouteResult | undefined): { status: number; obj: Record<string, unknown> } {
+  assert.ok(res, '路由应命中弹幕分支');
+  assert.equal(res.kind, 'json', `期望 JSON 应答，实际是 ${res.kind}`);
+  return { status: res.status, obj: res.obj as Record<string, unknown> };
+}
+
+test('启动抖音：停止小红书 / 快手 / B 站，抖音自身不被 stop', async () => {
+  const { deps, monitors } = makeHarness();
+  const { status, obj } = jsonOf(
+    await handleDanmakuRoutes(deps, input('danmaku/douyin/start', { url: '123' })),
+  );
+  assert.equal(status, 200);
+  assert.equal(obj.listening, true);
+
+  assert.equal(monitors.douyin.calls.stop, 0, '当前平台不应被自己停止');
+  assert.equal(monitors.douyin.calls.start, 1, '当前平台应被启动');
+  assert.equal(monitors.xiaohongshu.calls.stop, 1, '其余平台应先被停止');
+  assert.equal(monitors.kuaishou.calls.stop, 1, '其余平台应先被停止');
+  assert.equal(monitors.bilibili.calls.stop, 1, '其余平台应先被停止');
+});
+
+test('启动 B 站：停止抖音 / 小红书 / 快手，B 站自身不被 stop', async () => {
+  const { deps, monitors } = makeHarness();
+  const { status, obj } = jsonOf(
+    await handleDanmakuRoutes(deps, input('danmaku/bilibili/start', { url: '456' })),
+  );
+  assert.equal(status, 200);
+  assert.equal(obj.listening, true);
+
+  assert.equal(monitors.bilibili.calls.stop, 0, '当前平台不应被自己停止');
+  assert.equal(monitors.bilibili.calls.start, 1, '当前平台应被启动');
+  assert.equal(monitors.douyin.calls.stop, 1, '其余平台应先被停止');
+  assert.equal(monitors.xiaohongshu.calls.stop, 1, '其余平台应先被停止');
+  assert.equal(monitors.kuaishou.calls.stop, 1, '其余平台应先被停止');
+});
+
+test('互斥停止会回写其余三个状态段，当前段由 start 结果回写', async () => {
+  const { deps, sections } = makeHarness();
+  await handleDanmakuRoutes(deps, input('danmaku/kuaishou/start', { url: '789' }));
+  const written = sections.map(([name]) => name);
+  // 先停其余三段，再写当前快手段
+  assert.deepEqual(
+    written.sort(),
+    ['bili-danmaku', 'danmaku', 'ks-danmaku', 'xhs-danmaku'].sort(),
+  );
+});

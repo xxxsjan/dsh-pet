@@ -2,6 +2,9 @@
 const path = require('node:path');
 const { BrowserWindow, desktopCapturer, screen } = require('electron');
 const { decideWindowIgnore } = require('../pointer-target.js');
+// 设置/控制台窗使用持久分区（persist: 前缀）：弹幕表单 Cookie、界面主题等写在 localStorage，
+// 不带 persist: 前缀会被当作内存会话，退出应用即清空，Cookie 下次打开回填不到。
+const SETTINGS_PARTITION = 'persist:blue-fish-settings';
 /**
  * 渲染端到主进程的 ipc：窗口跟随、飞行状态、碰撞转发、穿透翻转、输入租约与菜单首项（打开软件 / 打开 AI 设置）。
  *
@@ -19,7 +22,7 @@ const { decideWindowIgnore } = require('../pointer-target.js');
  * @param deps.petRoute - 宠物路由前缀。
  * @param deps.dpi - DPI 能力（forcedScale / primaryScale）：设置窗口按真实主屏缩放还原。
  */
-function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) {
+function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, helperDir }) {
   // 宠物窗口跟随：renderer 逐帧上报窗口内容区位置/尺寸
   ipcMain.on('pet:set-bounds', (event, bounds) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -205,7 +208,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
       webPreferences: {
         // 独立 App 模式会给 defaultSession 装「只对 file:// 渲染页补令牌、其余请求一律剥掉令牌头」
         // 的出站拦截；设置页恰恰靠自带令牌头访问本机接口，必须换一个独立会话，否则一律 403。
-        partition: 'blue-fish-settings',
+        partition: SETTINGS_PARTITION,
         // 与窗口尺寸同源：DPI 线性化下补回系统缩放
         zoomFactor: scale,
         contextIsolation: true,
@@ -266,11 +269,13 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
       icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
       webPreferences: {
         // 与设置窗同一份独立会话：复用首访换来的令牌 cookie，避免控制台页 403。
-        partition: 'blue-fish-settings',
+        partition: SETTINGS_PARTITION,
         zoomFactor: scale,
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: false,
+        // 控制台页里的直播间入口要经桥通知主进程另开独立窗，必须挂同一座 preload。
+        preload: path.join(helperDir, 'preload.js'),
       },
     });
     win.on('closed', () => {
@@ -292,6 +297,74 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
       win.destroy();
     });
     consoleWindow = win;
+  };
+
+  // 直播间独立窗口：与控制台窗同一份页面，但走 `?live=1` 独立模式（隐藏控制台表单、直播间铺满整窗）。
+  // 无边框卡片外观：沿用原来弹窗那套头部（标题 + 右上 logo + 关闭按钮），不套系统标题栏。重复点击只把已开窗提到前台。
+  const liveUrlFromConsole = () => {
+    const base = process.env.BLUE_FISH_CONSOLE_URL || '';
+    if (!/^https?:[/][/]/.test(base)) return '';
+    try {
+      const u = new URL(base);
+      u.searchParams.set('live', '1');
+      return u.toString();
+    } catch {
+      return base;
+    }
+  };
+  let liveWindow = null;
+  const openLiveWindow = () => {
+    if (liveWindow && !liveWindow.isDestroyed()) {
+      if (liveWindow.isMinimized()) liveWindow.restore();
+      liveWindow.show();
+      liveWindow.focus();
+      return;
+    }
+    const target = liveUrlFromConsole();
+    if (!/^https?:[/][/]/.test(target)) {
+      console.warn('[blue-fish-desktop-helper] live url missing, skip opening live window');
+      return;
+    }
+    const scale = uiScale();
+    const win = new BrowserWindow({
+      width: Math.round(1040 * scale),
+      height: Math.round(780 * scale),
+      minWidth: Math.round(720 * scale),
+      minHeight: Math.round(520 * scale),
+      autoHideMenuBar: true,
+      backgroundColor: '#0f1115',
+      title: '直播间弹幕',
+      icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
+      // 无边框：头部由页面自绘（标题 + 平台 logo + 关闭按钮），拖动区域与关闭按钮都在页面内处理。
+      frame: false,
+      webPreferences: {
+        partition: SETTINGS_PARTITION,
+        zoomFactor: scale,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+        preload: path.join(helperDir, 'preload.js'),
+      },
+    });
+    win.on('closed', () => {
+      if (liveWindow === win) liveWindow = null;
+    });
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed()) win.webContents.setZoomFactor(scale);
+    });
+    win.webContents.setWindowOpenHandler(({ url: next }) => {
+      if (/^https?:[/][/]/.test(next)) {
+        shell.openExternal(next).catch((error) => {
+          console.error('[blue-fish-desktop-helper] openExternal failed:', error);
+        });
+      }
+      return { action: 'deny' };
+    });
+    win.loadURL(target).catch((error) => {
+      console.error('[blue-fish-desktop-helper] live load failed:', error);
+      win.destroy();
+    });
+    liveWindow = win;
   };
 
   // 应用自注册的 dsh:// 协议：已运行时把主窗口提到前台，未运行则直接把应用拉起来。
@@ -324,6 +397,18 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
   ipcMain.on('pet:open-console', () => {
     if (openTarget !== 'standalone') return;
     openConsoleWindow();
+  });
+
+  // 控制台页内直播间入口：同样只在独立模式开窗——desktop/web 形态没有本机 /standalone-console/ 服务。
+  ipcMain.on('pet:open-live', () => {
+    if (openTarget !== 'standalone') return;
+    openLiveWindow();
+  });
+
+  // 直播间独立窗口的页内关闭按钮：关掉发消息所在的那个窗口（不影响后台监听）。
+  ipcMain.on('pet:close-live', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) win.close();
   });
 
   // 只叫窗口、不改去向：被别的窗口挡住时把主窗口提到前台。

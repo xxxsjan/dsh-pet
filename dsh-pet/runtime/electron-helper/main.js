@@ -22,7 +22,7 @@ try {
   );
   process.exit(3);
 }
-const { app, BrowserWindow, ipcMain, screen, shell, protocol, Tray, Menu, nativeImage, powerMonitor } = electronApi;
+const { app, BrowserWindow, session, ipcMain, screen, shell, protocol, Tray, Menu, nativeImage, powerMonitor } = electronApi;
 const path = require('node:path');
 const fsPromises = require('node:fs/promises');
 // 点击穿透兜底通道的纯判定（不依赖 Electron 的 forward 鼠标钩子；见文件头）
@@ -53,6 +53,8 @@ const { registerIpc } = require('./main/ipc.js');
 const { createDisplaySync } = require('./main/displays.js');
 const { dshHomeDir, resolveUserDataDir } = require('./main/user-data.js');
 const { startDouyinSignBridge } = require('./main/douyin-sign.js');
+const { startDouyinCdpBridge } = require('./main/douyin-cdp.js');
+const { startXhsCdpBridge } = require('./main/xhs-cdp.js');
 
 /** Linux 指针提供者：仅在 Linux 创建；查询失败时 get() 返回 null（调用方回退 Electron 原生 API） */
 const linuxPointer = process.platform === 'linux' ? createLinuxPointer() : null;
@@ -328,7 +330,7 @@ app.whenReady().then(() => {
   powerMonitor.on('resume', reassertTaskbar);
   powerMonitor.on('unlock-screen', reassertTaskbar);
 
-  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi });
+  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi, helperDir: __dirname });
   createDisplaySync({ screen, petWindows, dpi });
 
   // 抖音弹幕签名桥：隐藏窗跑 webmssdk，本机 HTTP 给宿主半侧签 X-Bogus（与进房/WSS 监听配套）。
@@ -341,6 +343,28 @@ app.whenReady().then(() => {
         '[blue-fish-desktop-helper] douyin sign stop failed:',
         String(e && e.message ? e.message : e),
       );
+    }
+  });
+
+  // 抖音弹幕 CDP 旁听桥：隐藏内嵌窗加载直播间，CDP 抓弹幕 WS 帧交宿主解码（与旧签名桥直连并存，CDP 为主）。
+  const douyinCdp = startDouyinCdpBridge({ BrowserWindow, session, log: console });
+  globalThis.__dshPetDouyinCdp = douyinCdp;
+  app.once('before-quit', () => {
+    try {
+      douyinCdp.stop();
+    } catch (e) {
+      console.error('[blue-fish-desktop-helper] douyin cdp stop failed:', String(e && e.message ? e.message : e));
+    }
+  });
+
+  // 小红书中控台 CDP 旁听桥：隐藏内嵌窗进主播中控台扫码登录，CDP 抓 longlink 帧交宿主 JSON 解码。
+  const xhsCdp = startXhsCdpBridge({ BrowserWindow, session, log: console });
+  globalThis.__dshPetXhsCdp = xhsCdp;
+  app.once('before-quit', () => {
+    try {
+      xhsCdp.stop();
+    } catch (e) {
+      console.error('[blue-fish-desktop-helper] xhs cdp stop failed:', String(e && e.message ? e.message : e));
     }
   });
 

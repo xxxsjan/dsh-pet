@@ -10,6 +10,7 @@ import type { LoggerLike } from '../../log-file.ts';
 import { DY_UA, fetchDyLiveInfo, normalizeDyCookieHeader, type DyLiveInfo } from './live-info.ts';
 import { ChatMessage, DyResponse, GiftMessage, PushFrame, encodeAck, encodeHeartbeat } from './proto.ts';
 import { readInProcessSignBaseUrl, requestDySignature } from './sign-client.ts';
+import type { DouyinCdpBridge } from './cdp-bridge.ts';
 
 /** 启动参数。 */
 export type DouyinMonitorStartInput = {
@@ -53,6 +54,12 @@ export type DouyinMonitorStatus = {
   startedAt: number | null;
   replyChat: boolean;
   thankGift: boolean;
+  /** 当前链路：cdp = 内嵌窗旁听；direct = 旧直连 WSS（回退）；idle = 未启动。 */
+  mode: 'cdp' | 'direct' | 'idle';
+  /** CDP 内嵌窗当前是否可见（扫码登录时为 true）。 */
+  cdpVisible: boolean;
+  /** CDP 分区内是否已检测到登录态。 */
+  cdpLoggedIn: boolean;
   /** 最近消息（新→旧或旧→新：按 at 升序，页面底部最新）。 */
   recent: DouyinFeedItem[];
 };
@@ -65,6 +72,8 @@ export type DouyinMonitorDeps = {
   log: LoggerLike;
   /** 解析签名桥基址；缺省时再读同进程 globalThis。 */
   getSignBaseUrl: () => string | undefined;
+  /** 取进程内 CDP 旁听桥控制器；返回 undefined 时回退旧直连链路。 */
+  getCdpBridge?: () => DouyinCdpBridge | undefined;
   /** 活跃宠物；空串时回落 main。 */
   resolvePetId: () => string;
   /** 把一条用户文本交给宠物对话。 */
@@ -131,7 +140,7 @@ function buildWsUrl(roomId: string, userUniqueId: string, signature: string): st
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createDouyinMonitor(deps: DouyinMonitorDeps) {
-  const { log, getSignBaseUrl, resolvePetId, chatWithPet } = deps;
+  const { log, getSignBaseUrl, getCdpBridge, resolvePetId, chatWithPet } = deps;
 
   let listening = false;
   let connecting = false;
@@ -149,6 +158,13 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let replyChat = false;
   let thankGift = false;
   let info: DyLiveInfo | null = null;
+  /** 当前链路模式。 */
+  let mode: 'cdp' | 'direct' | 'idle' = 'idle';
+  /** CDP 桥实例与订阅回退集合。 */
+  let cdp: DouyinCdpBridge | null = null;
+  let cdpUnsubs: Array<() => void> = [];
+  let cdpVisible = false;
+  let cdpLoggedIn = false;
   const recentKeys = new Map<string, number>();
   /** 礼物连击：key → 已处理的最高件数（用于放行升高、拦重放） */
   const giftCounts = new Map<string, number>();
@@ -194,6 +210,61 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     } catch {
       /* ignore */
     }
+  }
+
+  function clearCdp(): void {
+    for (const unsub of cdpUnsubs) {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    }
+    cdpUnsubs = [];
+    if (cdp) {
+      try {
+        cdp.stop();
+      } catch (e) {
+        noteError(e);
+      }
+    }
+    cdp = null;
+    cdpVisible = false;
+    cdpLoggedIn = false;
+  }
+
+  /**
+   * CDP 旁听路径：让 Helper 开内嵌隐藏窗加载直播间，页面自己连弹幕 WS，我们抓帧交 onBinary。
+   * 不发心跳/ACK（页面自己维护）；不做签名进房。
+   */
+  async function startCdp(bridge: DouyinCdpBridge): Promise<void> {
+    clearCdp();
+    cdp = bridge;
+    cdpUnsubs.push(
+      bridge.onFrame((frame) => {
+        void onBinary(frame).catch((e) => noteError(e));
+      }),
+      bridge.onLogin(() => {
+        cdpLoggedIn = true;
+        cdpVisible = false;
+      }),
+      bridge.onClosed(() => {
+        if (!wantListen) return;
+        listening = false;
+        noteError('内嵌窗口已关闭，弹幕旁听中断');
+      }),
+    );
+    await bridge.start({ url: currentUrl, cookie: currentCookie });
+    const snap = bridge.status();
+    cdpVisible = snap.visible;
+    cdpLoggedIn = snap.loggedIn;
+    mode = 'cdp';
+    listening = true;
+    lastError = '';
+    if (!startedAt) startedAt = Date.now();
+    log.info?.(
+      `[blue-fish][douyin] cdp window room=${currentUrl} replyChat=${replyChat} thankGift=${thankGift} loggedIn=${cdpLoggedIn}`,
+    );
   }
 
   function noteError(err: unknown): void {
@@ -333,6 +404,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       });
 
       listening = true;
+      mode = 'direct';
       lastError = '';
       if (!startedAt) startedAt = Date.now();
 
@@ -483,6 +555,11 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       try {
         if (m.method === 'WebcastChatMessage') handleChatPayload(m);
         else if (m.method === 'WebcastGiftMessage') handleGiftPayload(m);
+        else if (m.method === 'WebcastLightGiftMessage') handleGiftPayload(m);
+        else {
+          // 进场 / 点赞 / 在线人数榜单 / 关注分享 / 下播等：本轮先不入库，留 method 样本便于后续补解码。
+          log.debug?.(`[blue-fish][douyin] skip method=${m.method}`);
+        }
       } catch (e) {
         log.debug?.(
           `[blue-fish][douyin] decode failed method=${m.method}: ${e instanceof Error ? e.message : String(e)}`,
@@ -508,21 +585,29 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       thankGift: input.thankGift === true,
     });
     clearReconnect();
+    clearCdp();
     chatCount = 0;
     giftCount = 0;
     feedSeq = 0;
     recentFeed.length = 0;
     startedAt = null;
     lastError = '';
-    await connect();
+    const bridge = getCdpBridge?.();
+    if (bridge) {
+      await startCdp(bridge);
+    } else {
+      await connect();
+    }
     return status();
   }
 
   function stop(): DouyinMonitorStatus {
     wantListen = false;
     clearReconnect();
+    clearCdp();
     teardownSocket();
     listening = false;
+    mode = 'idle';
     if (pendingChats.length) {
       log.info?.(`[blue-fish][douyin] stop: clear chat queue dropped=${pendingChats.length}`);
       pendingChats.length = 0;
@@ -549,6 +634,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       startedAt,
       replyChat,
       thankGift,
+      mode,
+      cdpVisible,
+      cdpLoggedIn,
       recent: recentFeed.slice(),
     };
   }

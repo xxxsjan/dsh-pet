@@ -1,0 +1,405 @@
+/**
+ * 快手直连弹幕监听器：进房换票 → WSS 直连 → 进房帧 + 20s 心跳 → protobuf 解码分发。
+ *
+ * 不走 CDP 旁听；本轮只入库弹幕 + 礼物，进场 / 点赞 / 在线榜 / 分享 / 系统通知留样本不展示。
+ * 进房握手（登录 Cookie / 换票 / 风控）只能桌面真机连直播间验证。
+ * @module dsh-pet/src/host/danmaku/kuaishou/monitor
+ */
+import WebSocket from 'ws';
+
+import type { LoggerLike } from '../../log-file.ts';
+import { resolveKsWsInfo, type KsWsInfo } from './ks-live-info.ts';
+import { parseKsWsFrame, type KsParsedItem } from './ks-danmaku.ts';
+import { createKsGiftCatalog, preloadKsGiftCatalog } from './ks-gift-catalog.ts';
+import {
+  encodeEnterRoom,
+  encodeHeartbeat,
+  encodeSocketMessage,
+  makeKsPageId,
+  KS_PAYLOAD,
+} from './proto.ts';
+
+/** 启动参数。 */
+export type KsMonitorStartInput = {
+  /** 直播间 URL / 主播短链 / 裸 id。 */
+  url: string;
+  /** 登录 Cookie（直连需 userId + passToken/web_st/webday7_st）。 */
+  cookie?: string;
+  /** 是否把弹幕交给宠物 /chat。 */
+  replyChat?: boolean;
+  /** 是否把礼物感谢交给宠物 /chat。 */
+  thankGift?: boolean;
+};
+
+/** 运行中可热更新的开关。 */
+export type KsMonitorOptions = {
+  replyChat: boolean;
+  thankGift: boolean;
+};
+
+/** 控制页轮询展示的一条消息。 */
+export type KsFeedItem = {
+  id: number;
+  at: number;
+  kind: 'chat' | 'gift';
+  nick: string;
+  text: string;
+  /** 礼物件数；聊天为 0。 */
+  count: number;
+};
+
+/** 对外状态快照。 */
+export type KsMonitorStatus = {
+  listening: boolean;
+  url: string;
+  roomId: string;
+  title: string;
+  anchor: string;
+  chatCount: number;
+  giftCount: number;
+  lastError: string;
+  startedAt: number | null;
+  replyChat: boolean;
+  thankGift: boolean;
+  /** 当前链路：ws = 直连；idle = 未启动。 */
+  mode: 'ws' | 'idle';
+  recent: KsFeedItem[];
+};
+
+/** 对话入口（与路由层 chatWithPet 同形，只要 text）。 */
+export type KsChatFn = (petId: string, text: string) => Promise<{ ok: boolean; message?: string }>;
+
+/** createKsMonitor 依赖。 */
+export type KsMonitorDeps = {
+  log: LoggerLike;
+  /** 活跃宠物；空串时回落 main。 */
+  resolvePetId: () => string;
+  /** 把一条用户文本交给宠物对话。 */
+  chatWithPet: KsChatFn;
+};
+
+const HEARTBEAT_INTERVAL_MS = 20_000;
+const FEED_MAX = 50;
+const CHAT_QUEUE_MAX = 3;
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+/**
+ * 创建快手直连弹幕监听器（进程内单例语义由调用方保证）。
+ */
+export function createKsMonitor(deps: KsMonitorDeps) {
+  const { log, resolvePetId, chatWithPet } = deps;
+
+  let listening = false;
+  let wantListen = false;
+  let connecting = false;
+  let chatCount = 0;
+  let giftCount = 0;
+  let feedSeq = 0;
+  let lastError = '';
+  let startedAt: number | null = null;
+  let currentUrl = '';
+  let currentCookie = '';
+  let replyChat = false;
+  let thankGift = false;
+  let mode: 'ws' | 'idle' = 'idle';
+  let info: KsWsInfo | null = null;
+  let ws: WebSocket | null = null;
+  let hbTimer: ReturnType<typeof setInterval> | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** WS 消息去重集合。 */
+  const seenIds = new Set<string>();
+  /** 控制页展示：最多保留 50 条（旧→新）。 */
+  const recentFeed: KsFeedItem[] = [];
+  /** 待发给宠物的对话；超出则丢最旧。 */
+  const pendingChats: Array<{ prompt: string; kind: 'chat' | 'gift' }> = [];
+  let chatPumpRunning = false;
+  /** 礼物名称目录：giftId → 名称；未命中兜底 礼物#<id>。 */
+  const catalog = createKsGiftCatalog();
+
+  function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): void {
+    feedSeq += 1;
+    recentFeed.push({
+      id: feedSeq,
+      at: Date.now(),
+      kind,
+      nick,
+      text,
+      count: kind === 'gift' ? Math.max(1, count) : 0,
+    });
+    while (recentFeed.length > FEED_MAX) recentFeed.shift();
+  }
+
+  function noteError(err: unknown): void {
+    lastError = err instanceof Error ? err.message : String(err);
+    log.warn?.(`[blue-fish][kuaishou] ${lastError}`);
+  }
+
+  function enqueueChat(prompt: string, kind: 'chat' | 'gift'): void {
+    pendingChats.push({ prompt, kind });
+    while (pendingChats.length > CHAT_QUEUE_MAX) {
+      const dropped = pendingChats.shift();
+      if (dropped) {
+        log.info?.(
+          `[blue-fish][kuaishou] chat queue full, drop oldest kind=${dropped.kind} pending=${pendingChats.length}`,
+        );
+      }
+    }
+    void pumpChatQueue();
+  }
+
+  async function pumpChatQueue(): Promise<void> {
+    if (chatPumpRunning) return;
+    chatPumpRunning = true;
+    try {
+      while (pendingChats.length > 0) {
+        const job = pendingChats.shift();
+        if (!job) break;
+        const petId = (resolvePetId() || 'main').trim() || 'main';
+        try {
+          log.info?.(
+            `[blue-fish][kuaishou] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
+          );
+          const r = await chatWithPet(petId, job.prompt);
+          if (!r.ok) {
+            log.warn?.(`[blue-fish][kuaishou] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
+          }
+        } catch (e) {
+          log.warn?.(
+            `[blue-fish][kuaishou] chat exception kind=${job.kind}: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+    } finally {
+      chatPumpRunning = false;
+      if (pendingChats.length > 0) void pumpChatQueue();
+    }
+  }
+
+  function handleItem(item: KsParsedItem): void {
+    if (item.kind === 'chat') {
+      chatCount += 1;
+      pushFeed('chat', item.nick, item.text);
+      log.info?.(`[blue-fish][kuaishou] chat nick=${item.nick} text=${item.text}`);
+      if (replyChat) {
+        enqueueChat(
+          `[直播弹幕] 观众「${item.nick}」说：${item.text}\n请用你的人设简短回复这条弹幕（一两句即可）。`,
+          'chat',
+        );
+      }
+      return;
+    }
+    giftCount += 1;
+    const giftName = catalog.nameFor(item.giftId);
+    pushFeed('gift', item.nick, giftName, item.count);
+    log.info?.(`[blue-fish][kuaishou] gift nick=${item.nick} gift=${giftName} x${item.count}`);
+    if (thankGift) {
+      enqueueChat(
+        `[直播礼物] 观众「${item.nick}」送出了「${giftName}」×${item.count}。\n请用你的人设简短感谢对方（一两句即可）。`,
+        'gift',
+      );
+    }
+  }
+
+  function onMessage(data: WebSocket.RawData): void {
+    const buf =
+      data instanceof Buffer
+        ? new Uint8Array(data)
+        : data instanceof ArrayBuffer
+          ? new Uint8Array(data)
+          : Array.isArray(data)
+            ? Buffer.concat(data)
+            : new Uint8Array(data as Uint8Array);
+    let items: KsParsedItem[];
+    try {
+      items = parseKsWsFrame(buf, seenIds);
+    } catch (e) {
+      log.debug?.(`[blue-fish][kuaishou] decode failed: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    for (const item of items) handleItem(item);
+  }
+
+  function clearHb(): void {
+    if (hbTimer) clearInterval(hbTimer);
+    hbTimer = null;
+  }
+
+  function clearReconnect(): void {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  function teardownSocket(): void {
+    clearHb();
+    const cur = ws;
+    ws = null;
+    if (!cur) return;
+    try {
+      cur.removeAllListeners();
+      cur.close();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function scheduleReconnect(reason: string): void {
+    if (!wantListen || reconnectTimer) return;
+    noteError(reason);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      if (!wantListen) return;
+      void connect().catch((e) => {
+        noteError(e);
+        scheduleReconnect('reconnect failed');
+      });
+    }, 2000);
+    reconnectTimer.unref?.();
+  }
+
+  async function connect(): Promise<void> {
+    if (connecting) return;
+    connecting = true;
+    try {
+      teardownSocket();
+      info = await resolveKsWsInfo(currentUrl, currentCookie);
+
+      log.info?.(
+        `[blue-fish][kuaishou] connect stream=${info.liveStreamId} title=${info.title || '-'} replyChat=${replyChat} thankGift=${thankGift}`,
+      );
+
+      const socket = new WebSocket(info.websocketUrl, {
+        headers: {
+          cookie: info.cookie || currentCookie,
+          'user-agent': UA,
+          origin: 'https://live.kuaishou.com',
+          referer: 'https://live.kuaishou.com/',
+        },
+        perMessageDeflate: false,
+      });
+      ws = socket;
+
+      await new Promise<void>((resolve, reject) => {
+        const onOpen = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = (err: Error) => {
+          cleanup();
+          reject(err);
+        };
+        const cleanup = () => {
+          socket.off('open', onOpen);
+          socket.off('error', onError);
+        };
+        socket.once('open', onOpen);
+        socket.once('error', onError);
+      });
+
+      // 进房帧：token + liveStreamId + pageId。
+      socket.send(
+        encodeSocketMessage(
+          KS_PAYLOAD.CS_ENTER_ROOM,
+          encodeEnterRoom(info.token, info.liveStreamId, makeKsPageId()),
+        ),
+      );
+
+      listening = true;
+      mode = 'ws';
+      lastError = '';
+      if (!startedAt) startedAt = Date.now();
+
+      hbTimer = setInterval(() => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        try {
+          ws.send(encodeSocketMessage(KS_PAYLOAD.CS_HEARTBEAT, encodeHeartbeat(Date.now())));
+        } catch {
+          scheduleReconnect('heartbeat send failed');
+        }
+      }, HEARTBEAT_INTERVAL_MS);
+      hbTimer.unref?.();
+
+      socket.on('message', (data) => onMessage(data));
+      socket.on('close', () => {
+        ws = null;
+        clearHb();
+        listening = false;
+        if (wantListen) scheduleReconnect('closed');
+      });
+      socket.on('error', (err) => {
+        noteError(err);
+      });
+    } finally {
+      connecting = false;
+    }
+  }
+
+  function applyOptions(input: Partial<KsMonitorOptions>): KsMonitorOptions {
+    if (typeof input.replyChat === 'boolean') replyChat = input.replyChat;
+    if (typeof input.thankGift === 'boolean') thankGift = input.thankGift;
+    return { replyChat, thankGift };
+  }
+
+  async function startMonitor(input: KsMonitorStartInput): Promise<KsMonitorStatus> {
+    wantListen = true;
+    currentUrl = String(input.url || '').trim();
+    currentCookie = String(input.cookie || '');
+    applyOptions({ replyChat: input.replyChat === true, thankGift: input.thankGift === true });
+    seenIds.clear();
+    chatCount = 0;
+    giftCount = 0;
+    feedSeq = 0;
+    recentFeed.length = 0;
+    startedAt = null;
+    lastError = '';
+
+    // 礼物名称目录异步预拉，不阻塞进房；失败回落 礼物#<id>。
+    void preloadKsGiftCatalog(catalog);
+
+    await connect();
+    return status();
+  }
+
+  function stop(): KsMonitorStatus {
+    wantListen = false;
+    clearReconnect();
+    teardownSocket();
+    listening = false;
+    mode = 'idle';
+    info = null;
+    if (pendingChats.length) {
+      log.info?.(`[blue-fish][kuaishou] stop: clear chat queue dropped=${pendingChats.length}`);
+      pendingChats.length = 0;
+    }
+    return status();
+  }
+
+  function setOptions(input: Partial<KsMonitorOptions>): KsMonitorStatus {
+    applyOptions(input);
+    log.info?.(`[blue-fish][kuaishou] options replyChat=${replyChat} thankGift=${thankGift}`);
+    return status();
+  }
+
+  function status(): KsMonitorStatus {
+    return {
+      listening: listening && wantListen,
+      url: currentUrl,
+      roomId: info?.liveStreamId || '',
+      title: info?.title || '',
+      anchor: '',
+      chatCount,
+      giftCount,
+      lastError,
+      startedAt,
+      replyChat,
+      thankGift,
+      mode,
+      recent: recentFeed.slice(),
+    };
+  }
+
+  return { start: startMonitor, stop, status, setOptions };
+}
+
+/** 快手直连弹幕监听器实例。 */
+export type KsMonitor = ReturnType<typeof createKsMonitor>;

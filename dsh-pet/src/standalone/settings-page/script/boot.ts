@@ -73,8 +73,6 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
-  // 弹幕分区切进来就立刻拉一次状态，不用等下一轮轮询。
-  if (name === 'danmaku') void dmRefresh().catch(() => {});
 }
 
 function wireTabs() {
@@ -206,19 +204,6 @@ function boot() {
   mountProtocolSelect();
   mountBalanceSelect();
   wireAiPanel();
-  wireDanmakuPanel();
-  // 弹幕 Cookie 弹窗：关闭按钮 + 点遮罩 + Esc。
-  const dmCookieDialog = byId('dm-cookie-dialog');
-  const dmCookieClose = byId('dm-cookie-close');
-  if (dmCookieClose) dmCookieClose.addEventListener('click', () => { if (dmCookieDialog) dmCookieDialog.hidden = true; });
-  if (dmCookieDialog) {
-    dmCookieDialog.addEventListener('click', (event) => {
-      if (event.target === dmCookieDialog) dmCookieDialog.hidden = true;
-    });
-  }
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && dmCookieDialog && !dmCookieDialog.hidden) dmCookieDialog.hidden = true;
-  });
   window.addEventListener('beforeunload', (event) => {
     if (!state.dirty) return;
     event.preventDefault();

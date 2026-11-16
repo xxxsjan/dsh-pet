@@ -23,6 +23,11 @@ import { registerTodoReminders } from './plugin/todo-reminders.ts';
 import { createVoiceService, voiceRuntimeFromMain } from './voice/speak.ts';
 import { createHearService } from './voice/hear.ts';
 import { createDouyinMonitor } from './danmaku/douyin/monitor.ts';
+import { getDouyinCdpBridge } from './danmaku/douyin/cdp-bridge.ts';
+import { createXhsMonitor } from './danmaku/xiaohongshu/monitor.ts';
+import { getXhsCdpBridge } from './danmaku/xiaohongshu/cdp-bridge.ts';
+import { createKsMonitor } from './danmaku/kuaishou/monitor.ts';
+import { createBiliMonitor } from './danmaku/bilibili/monitor.ts';
 import { VOICE_UTTERANCE_WAIT_MS } from './voice/utterance.ts';
 import { TODO_FILE_NAME, TodoStore } from './todo/store.ts';
 import { join } from 'node:path';
@@ -112,6 +117,7 @@ export function apply(ctx: any): void {
   const douyinDanmaku = createDouyinMonitor({
     log,
     getSignBaseUrl: getDouyinSignBaseUrl,
+    getCdpBridge: () => getDouyinCdpBridge(),
     resolvePetId: () => {
       const id = String(resolveActivePetId() || '').trim();
       return id || 'main';
@@ -127,9 +133,57 @@ export function apply(ctx: any): void {
     },
   });
 
+  const xiaohongshuDanmaku = createXhsMonitor({
+    log,
+    getCdpBridge: () => getXhsCdpBridge(),
+    resolvePetId: () => {
+      const id = String(resolveActivePetId() || '').trim();
+      return id || 'main';
+    },
+    chatWithPet: async (petId, text) => {
+      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
+      if (!r.ok) return { ok: false, message: r.message || r.reason };
+      if (r.voiceUtteranceId) {
+        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
+      }
+      return { ok: true };
+    },
+  });
+
+  const kuaishouDanmaku = createKsMonitor({
+    log,
+    resolvePetId: () => {
+      const id = String(resolveActivePetId() || '').trim();
+      return id || 'main';
+    },
+    chatWithPet: async (petId, text) => {
+      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
+      if (!r.ok) return { ok: false, message: r.message || r.reason };
+      if (r.voiceUtteranceId) {
+        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
+      }
+      return { ok: true };
+    },
+  });
+
+  const bilibiliDanmaku = createBiliMonitor({
+    log,
+    resolvePetId: () => {
+      const id = String(resolveActivePetId() || '').trim();
+      return id || 'main';
+    },
+    chatWithPet: async (petId, text) => {
+      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
+      if (!r.ok) return { ok: false, message: r.message || r.reason };
+      if (r.voiceUtteranceId) {
+        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
+      }
+      return { ok: true };
+    },
+  });
+
   const deps: PetRouteDeps = {
-    ...setup,
-    ...petLookup,
+    ...setup,    ...petLookup,
     ...workStatusBridge,
     ...chatMemory,
     ...balancePoll,
@@ -138,6 +192,9 @@ export function apply(ctx: any): void {
     ctx,
     todos,
     douyinDanmaku,
+    xiaohongshuDanmaku,
+    kuaishouDanmaku,
+    bilibiliDanmaku,
     // 语音合成：缓存落 userRoot；引擎 / Key / 模型每次现读成品 main（保存后立刻生效）
     voice: createVoiceService({
       userRoot,
@@ -211,7 +268,12 @@ export function apply(ctx: any): void {
     stopDownloadSlotTimer,
     stopHelper,
     stopWorkStatusFlush,
-    stop: douyinDanmaku.stop,
+    stop: () => {
+      kuaishouDanmaku.stop();
+      xiaohongshuDanmaku.stop();
+      bilibiliDanmaku.stop();
+      return douyinDanmaku.stop();
+    },
   });
 
   // 路由就绪后拉起桌面 Helper（Electron 缺失时仅告警，不影响 DSH 与浏览器 overlay）

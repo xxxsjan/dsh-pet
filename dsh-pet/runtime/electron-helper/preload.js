@@ -57,6 +57,14 @@ contextBridge.exposeInMainWorld('petBridge', {
   openConsole() {
     ipcRenderer.send('pet:open-console');
   },
+  // 控制台页内「直播间弹幕」入口：独立模式另开一个无边框桌面窗口承载直播间界面；地址由主进程从控制台地址派生。
+  openLive() {
+    ipcRenderer.send('pet:open-live');
+  },
+  // 直播间独立窗口内的关闭按钮：通知主进程关闭自己所在的窗口。
+  closeLive() {
+    ipcRenderer.send('pet:close-live');
+  },
   // 只把 DSH 主窗口提到前台：走应用自注册的 dsh:// 协议（单实例锁会让它聚焦），被别的窗口挡住也有效。
   // 主进程按宿主形态门控：只有桌面应用宿主才真发，web 形态下发它会把桌面版拉起来。
   focusDshHost() {

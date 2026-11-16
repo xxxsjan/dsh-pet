@@ -308,10 +308,14 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsPage, /data-tab="chat"/);
   assert.match(settingsPage, /data-config-tab="model"/);
   assert.match(settingsPage, /data-config-tab="voice"/);
-  assert.doesNotMatch(settingsPage, /id="tab-danmaku"/); // 直播入口已隐藏，侧栏不再有「抖音弹幕」分区
-  assert.match(settingsPage, /id="panel-danmaku"/); // 面板保留在 DOM 中供脚本绑定，仅 UI 不可达
-  assert.match(settingsPage, /id="dm-url"/);
+  assert.doesNotMatch(settingsPage, /id="tab-danmaku"/); // 抖音弹幕已整体搬到桌宠控制台
+  assert.doesNotMatch(settingsPage, /id="panel-danmaku"/); // 面板容器也不在本页
+  assert.doesNotMatch(settingsPage, /id="dm-url"/); // 表单字段随之移除
+  assert.doesNotMatch(settingsPage, /id="dm-cookie-dialog"/); // Cookie 帮助弹窗一并移除
   assert.doesNotMatch(settingsPage, /id="link-danmaku"/);
+  assert.doesNotMatch(settingsScript, /wireDanmakuPanel/); // 脚本里不再接弹幕面板
+  assert.doesNotMatch(settingsScript, /danmaku\/douyin/); // 也不再请求弹幕接口
+  assert.doesNotMatch(settingsStyle, /\.dmFeed/); // 弹幕样式随面板删除
   assert.match(settingsPage, /id="panel-config"/);
   assert.match(settingsPage, /id="model-settings-host"/);
   assert.match(settingsPage, /id="voice-settings-host"/);

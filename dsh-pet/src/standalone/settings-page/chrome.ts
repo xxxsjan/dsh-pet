@@ -1,7 +1,7 @@
 /**
  * 设置页 HTML 外壳：左侧固定分区导航 + 右侧内容区。
  * 分区为对话 / 配置；模型与语音集成在配置面板的横向 Tab 中。
- * 抖音弹幕分区已从侧栏隐藏（直播入口只保留 HTTP API），面板仍留在 DOM 中供脚本绑定。
+ * 抖音弹幕分区已整体搬到「桌宠控制台」（控制台头像区的抖音入口 + 弹窗），本页不再保留它的 DOM。
  * 配置面板包含宠物、全局开关、字体、物理、模型、语音、高级等 Tab；
  * 每个配置 Tab 自带「保存」，各自只提交自己的字段（模型页的保存仍在模型表单内部，写 `/standalone-ai/settings`）。
  *
@@ -72,50 +72,12 @@ ${ADVANCED_TAB}
 </div>
 </div>
 </section>
-<section class="panel" id="panel-danmaku" role="tabpanel" hidden>
-<div class="scroll">
-<div class="dmGrid">
-<div class="dmLeft">
-<div class="card">
-<div class="cardHead"><h2 class="cardTitle">抖音弹幕监听</h2></div>
-<p class="cardHint">关闭本页不影响监听，进程在后台继续运行；要停请点「停止监听」。</p>
-<div class="field"><label for="dm-url">直播间链接或房间号</label><input id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div>
-<div class="field"><div class="dmLabelRow"><label class="fieldLabel" for="dm-cookie">Cookie（可选）</label><button id="dm-cookie-help" class="btn ghost dmLinkBtn" type="button">获取 Cookie</button></div><textarea id="dm-cookie" placeholder="一般可不填；礼物建议粘贴登录 Cookie" spellcheck="false"></textarea><label class="dmPersist" for="dm-save-cookie"><input id="dm-save-cookie" type="checkbox"><span>保存到本地</span></label></div>
-<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div>
-<div class="dmActions"><button id="dm-toggle" class="btn primary" type="button">开始监听</button><button id="dm-refresh" class="btn ghost" type="button">刷新状态</button><button id="dm-open-live" class="btn ghost" type="button">打开直播间</button></div>
-<p class="status" id="dm-msg" role="status" aria-live="polite"></p>
-</div>
-<div class="card">
-<div class="dmCardHead"><h2 class="cardTitle">监听状态</h2></div>
-<div class="dmStatusBox" id="dm-status">加载中…</div>
-</div>
-</div>
-<div class="dmRight">
-<div class="card">
-<div class="dmCardHead"><h2 class="cardTitle">弹幕区</h2><span class="dmFeedMeta" id="dm-feed-meta">0 / 50</span></div>
-<div class="dmFeed" id="dm-feed" aria-live="polite"></div>
-</div>
-</div>
-</div>
-</div>
-</section>
 <section class="panel" id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
 <div class="pet-chat-host" id="pet-chat-root"></div>
 </section>
 </div>
 </div>
 </main>
-<div class="dialogMask" id="dm-cookie-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-cookie-title" hidden>
-<div class="dialog">
-<h2 class="dialogTitle" id="dm-cookie-title">如何获取 Cookie</h2>
-<p class="dialogText">1. 在浏览器登录抖音网页版，进入要监听的直播间。
-2. 按 F12 打开开发者工具，切到 Network（网络）标签。
-3. 在列表里点开任意一条 Fetch/XHR 请求（例如 get）。
-4. 在 Headers 里找到请求头 Cookie，整段复制。
-5. 粘贴到上面的 Cookie 输入框；需要下次自动填入就勾选「保存到本地」。</p>
-<div class="dialogActions"><button id="dm-cookie-close" class="btn primary" type="button">知道了</button></div>
-</div>
-</div>
 <noscript>需要启用 JavaScript 才能保存设置。请从桌宠右键菜单打开本页。</noscript>
 </body></html>`;
 }

@@ -20,7 +20,6 @@ import { aiScript } from './settings-page/script/ai.ts';
 import { avatarScript } from './settings-page/script/avatar.ts';
 import { bootScript } from './settings-page/script/boot.ts';
 import { coreScript } from './settings-page/script/core.ts';
-import { danmakuScript } from './settings-page/script/danmaku.ts';
 import { globalsScript } from './settings-page/script/globals.ts';
 import { modelPickerScript } from './settings-page/script/model-picker.ts';
 import { overlayScript } from './settings-page/script/overlay.ts';
@@ -60,7 +59,6 @@ export const settingsScript = [
   globalsScript(),
   modelPickerScript(),
   aiScript(),
-  danmakuScript(),
   bootScript(),
   'boot();',
   '})();',
