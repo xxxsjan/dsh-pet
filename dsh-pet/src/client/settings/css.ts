@@ -139,6 +139,9 @@ const SETTINGS_CSS = [
   '.blue-fish-cfg__btn.is-ghost{border-style:dashed;color:var(--dsw-alias-label-secondary)}',
   // 语音卡 Fish 区：纵向堆叠输入与自定义音色列表。
   '.blue-fish-cfg__stack{display:flex;flex-direction:column;gap:8px;min-width:0}',
+  '.blue-fish-cfg__keyRow{display:flex;align-items:center;gap:8px;min-width:0}',
+  '.blue-fish-cfg__keyRow>input{flex:1;min-width:0}',
+  '.blue-fish-cfg__keyRow>a{flex:none;text-decoration:none}',
   '.blue-fish-cfg__check{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);cursor:pointer;user-select:none}',
   '.blue-fish-cfg__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}',
   '.blue-fish-cfg__listRow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary)}',

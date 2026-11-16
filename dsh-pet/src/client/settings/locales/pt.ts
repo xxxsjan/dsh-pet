@@ -176,6 +176,7 @@ export const pt: Record<Key, string> = {
     'Edge é gratuito online, com cinco vozes em chinês; o Fish Audio precisa de uma chave de API, soa melhor e permite adicionar vozes próprias por Voice ID. Depois de trocar o motor, confira se a voz escolhida ainda está na lista correspondente.',
   voiceProviderEdge: 'Edge (grátis)',
   voiceProviderFish: 'Fish Audio',
+  voiceProviderBreeze: 'Breeze Blue (Peixe Gordo)',
   fishApiKeyLabel: 'Chave de API do Fish Audio',
   fishApiKeyHint:
     'Obtenha no console do Fish Audio. A chave só é gravada na configuração local do usuário; GET /config nunca devolve o texto puro. Deixe em branco ao salvar para manter a chave existente.',
@@ -188,6 +189,13 @@ export const pt: Record<Key, string> = {
   fishCustomVoiceLabel: 'Voice ID personalizada',
   fishCustomVoiceHint:
     'Copie uma Voice ID na página de vozes do Fish Audio (só letras, números, _ e -); vozes integradas não podem ser removidas.',
+  breezeApiKeyLabel: 'Chave de API do Breeze Blue',
+  breezeKeyLink: 'Obter chave de API',
+  breezeApiKeyHint:
+    'Chave de desenvolvedor do Breeze Blue (enviada no cabeçalho xi-api-key). A chave só é gravada na configuração local do usuário; GET /config nunca devolve o texto puro. Deixe em branco ao salvar para manter a chave existente.',
+  breezeCustomVoiceLabel: 'Voice ID personalizada',
+  breezeCustomVoiceHint:
+    'Copie uma Voice ID na biblioteca de vozes do Breeze Blue (só letras, números, _ e -); as duas vozes integradas do Peixe Gordo não podem ser removidas.',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: 'Nome de exibição (opcional)',
   fishCustomVoiceAdd: 'Adicionar',

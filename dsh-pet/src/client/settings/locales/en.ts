@@ -172,9 +172,10 @@ export const en: Record<Key, string> = {
   voiceNameLabel: 'Voice',
   voiceProviderLabel: 'Engine',
   voiceProviderHint:
-    'Edge is free online Chinese voices; Fish Audio needs an API key and supports custom Voice IDs. After switching, make sure the selected voice still belongs to that engine.',
+    'Edge is free online Chinese voices; Fish Audio needs an API key and supports custom Voice IDs; Breeze Blue ships the original Big Fat Fish voices and also takes an API key plus custom Voice IDs. After switching, make sure the selected voice still belongs to that engine.',
   voiceProviderEdge: 'Edge (free)',
   voiceProviderFish: 'Fish Audio',
+  voiceProviderBreeze: 'Breeze Blue (Big Fat Fish)',
   fishApiKeyLabel: 'Fish Audio API Key',
   fishApiKeyHint:
     'Get it from the Fish Audio console. The key is stored only in the local user config; GET /config never returns the plaintext. Leave blank on save to keep the existing key.',
@@ -186,6 +187,13 @@ export const en: Record<Key, string> = {
   fishCustomVoiceLabel: 'Custom Voice ID',
   fishCustomVoiceHint:
     'Copy a Voice ID from Fish Audio (letters, digits, _ and - only). Built-in voices cannot be removed.',
+  breezeApiKeyLabel: 'Breeze Blue API Key',
+  breezeKeyLink: 'Get API Key',
+  breezeApiKeyHint:
+    'Breeze Blue developer API key (sent as the xi-api-key header). The key is stored only in the local user config; GET /config never returns the plaintext. Leave blank on save to keep the existing key.',
+  breezeCustomVoiceLabel: 'Custom Voice ID',
+  breezeCustomVoiceHint:
+    'Copy a Voice ID from the Breeze Blue voice library (letters, digits, _ and - only). The two built-in Big Fat Fish voices cannot be removed.',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: 'Display name (optional)',
   fishCustomVoiceAdd: 'Add',

@@ -69,6 +69,7 @@ const scriptGlobals = {
   toScreen: 'readonly',
   toLocal: 'readonly',
   OPEN_TARGET: 'readonly',
+  DEV_MODE: 'readonly',
   VIEW: 'readonly',
   AREAS: 'readonly',
   WORK_AREAS: 'readonly',

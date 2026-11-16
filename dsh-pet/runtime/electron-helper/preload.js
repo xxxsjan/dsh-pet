@@ -53,6 +53,10 @@ contextBridge.exposeInMainWorld('petBridge', {
   openDshSite(url) {
     ipcRenderer.send('pet:open-site', { url });
   },
+  // 右键菜单「桌宠控制台」：独立模式在应用内独立窗口打开本机控制台页；地址由主进程从环境变量取，渲染端不传。
+  openConsole() {
+    ipcRenderer.send('pet:open-console');
+  },
   // 只把 DSH 主窗口提到前台：走应用自注册的 dsh:// 协议（单实例锁会让它聚焦），被别的窗口挡住也有效。
   // 主进程按宿主形态门控：只有桌面应用宿主才真发，web 形态下发它会把桌面版拉起来。
   focusDshHost() {

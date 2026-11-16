@@ -177,6 +177,7 @@ export const ru: Record<Key, string> = {
     'Edge — бесплатный онлайн-движок с пятью китайскими голосами; Fish Audio требует API-ключ, звучит лучше и позволяет добавлять свои голоса по Voice ID. После смены движка убедитесь, что выбранный голос остался в соответствующем списке.',
   voiceProviderEdge: 'Edge (бесплатно)',
   voiceProviderFish: 'Fish Audio',
+  voiceProviderBreeze: 'Breeze Blue (Толстая рыба)',
   fishApiKeyLabel: 'API-ключ Fish Audio',
   fishApiKeyHint:
     'Получите в консоли Fish Audio. Ключ записывается только в локальный пользовательский конфиг; GET /config открытым текстом его не возвращает. Чтобы сохранить существующий ключ, оставьте поле пустым при сохранении.',
@@ -189,6 +190,13 @@ export const ru: Record<Key, string> = {
   fishCustomVoiceLabel: 'Своя Voice ID',
   fishCustomVoiceHint:
     'Скопируйте Voice ID со страницы голосов Fish Audio (только буквы, цифры, _ и -); встроенные голоса удалить нельзя.',
+  breezeApiKeyLabel: 'API-ключ Breeze Blue',
+  breezeKeyLink: 'Получить API-ключ',
+  breezeApiKeyHint:
+    'Ключ разработчика Breeze Blue (передаётся в заголовке xi-api-key). Ключ записывается только в локальный пользовательский конфиг; GET /config открытым текстом его не возвращает. Чтобы сохранить существующий ключ, оставьте поле пустым при сохранении.',
+  breezeCustomVoiceLabel: 'Своя Voice ID',
+  breezeCustomVoiceHint:
+    'Скопируйте Voice ID из библиотеки голосов Breeze Blue (только буквы, цифры, _ и -); два встроенных голоса «Толстая рыба» удалить нельзя.',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: 'Отображаемое имя (необязательно)',
   fishCustomVoiceAdd: 'Добавить',

@@ -370,12 +370,16 @@ Object.assign(PetSprite.prototype, {
   onClick(e) {
     const d = this.dragState;
     if (d.active || d.dragging || this.justDragged) return;
-    // Ctrl（macOS 为 Cmd）+ 左键 = 呼出 DSH：与菜单首项同一动作，只是快捷键——
+    // Ctrl（macOS 为 Cmd）+ 左键 = 菜单首项那个入口的快捷键：独立模式指向「桌宠控制台」，
+    // desktop / web 形态没有本机控制台路由，仍按原语义打开软件 / 网站。
     // 不播点击动画、也不参与积分，避免「摸一下宠物」变成「开窗口」。
     if (isOpenShortcut(e)) {
       this.stopThrow();
       this.stopMove();
-      if (window.petBridge) window.petBridge.openDshSite(ORIGIN);
+      if (window.petBridge) {
+        if (OPEN_TARGET === 'standalone') window.petBridge.openConsole();
+        else window.petBridge.openDshSite(ORIGIN);
+      }
       return;
     }
     // 积分判定已在 onPointerDown（按下即触发）完成：已触发过就只收手停住，不再播普通点击动画

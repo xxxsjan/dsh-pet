@@ -10,7 +10,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { resolveOpenTarget } from './plugin/desktop/spawn.ts';
+import { resolveOpenTarget, resolveDevMode } from './plugin/desktop/spawn.ts';
 
 /** 包内文件源码（守卫用；相对 src/host/ 解析） */
 const readSource = (rel: string): string => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
@@ -115,8 +115,51 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
       '三种形态必须有三种文案，web 不得再显示「打开 AI 设置」',
     );
     assert.ok(
-      /label: OPEN_LABEL\[OPEN_TARGET\],\s*action: 'open-site'/.test(sprite),
-      '文案由查表决定，但 action 仍是 open-site（另一端只认这个动作名；hint 只是视觉提示，允许夹在中间换行）',
+      /label:\s*OPEN_TARGET === 'standalone' \? OPEN_LABEL\.standalone \+ OPEN_DEV_SUFFIX : OPEN_LABEL\[OPEN_TARGET\]/.test(
+        sprite,
+      ),
+      '独立模式的旧入口要带「（开发）」后缀，其余形态仍按表原样',
+    );
+    assert.ok(
+      /const OPEN_DEV_SUFFIX = '（开发）'/.test(sprite),
+      '开发标记后缀必须是「（开发）」',
+    );
+    assert.ok(
+      /OPEN_TARGET === 'standalone' && !DEV_MODE[\s\S]*?\? \[\]/.test(sprite),
+      '正式环境（DEV_MODE 为假）下这一项必须整项不出现，不能只是改文案',
+    );
+  });
+
+  test('开发环境判定：显式开关优先，其次 NODE_ENV，两侧口径一致', () => {
+    assert.equal(resolveDevMode({ BLUE_FISH_DEV: '1', NODE_ENV: 'production' } as NodeJS.ProcessEnv), true);
+    assert.equal(resolveDevMode({ BLUE_FISH_DEV: '0' } as NodeJS.ProcessEnv), false);
+    assert.equal(resolveDevMode({ NODE_ENV: 'production' } as NodeJS.ProcessEnv), false);
+    assert.equal(resolveDevMode({ NODE_ENV: 'development' } as NodeJS.ProcessEnv), true);
+    assert.equal(resolveDevMode({} as NodeJS.ProcessEnv), true, '本机开发默认可见');
+    assert.ok(
+      /BLUE_FISH_DEV: resolveDevMode\(\)\s*\?\s*'1'\s*:\s*'0'/.test(host),
+      '宿主必须把判定结果注入 helper，别让子进程自己猜',
+    );
+    assert.ok(/const DEV_MODE = params\.get\('dev'\) === '1'/.test(constants), '渲染端要从 query 读开发标记');
+    assert.ok(/dev: devMode \? '1' : '0'/.test(main), '主进程要把开发标记传进窗口 query');
+  });
+
+  test('快捷键（Ctrl/Cmd+左键）改绑到桌宠控制台，其它形态仍走原入口', () => {
+    assert.ok(
+      /if \(OPEN_TARGET === 'standalone'\) window\.petBridge\.openConsole\(\)/.test(sprite),
+      '独立模式下快捷键必须打开控制台',
+    );
+    assert.ok(
+      /else window\.petBridge\.openDshSite\(ORIGIN\)/.test(sprite),
+      '桌面 / web 形态没有本机控制台路由，快捷键仍按原语义打开软件 / 网站',
+    );
+    assert.ok(
+      /\{ label: '桌宠控制台', action: 'open-console', hint: OPEN_SHORTCUT_HINT \}/.test(sprite),
+      '快捷键提示要挂在控制台项上',
+    );
+    assert.ok(
+      /hint: OPEN_TARGET === 'standalone' \? undefined : OPEN_SHORTCUT_HINT/.test(sprite),
+      '独立模式下旧「打开 AI 设置」项不再显示快捷键提示（提示只挂一处）',
     );
   });
 

@@ -31,7 +31,7 @@ export interface MainConfigPatch {
   /** 语音播报总开关；缺省表示这次响应里没有可信值。 */
   voiceEnabled?: boolean;
   /** 语音引擎；缺省表示这次响应里没有可信值。 */
-  voiceProvider?: 'edge' | 'fish';
+  voiceProvider?: 'edge' | 'fish' | 'breeze';
   /** 语音音色 id（宿主已按白名单校验，客户端原样展示）。 */
   voiceName?: string;
   /** 播放音量系数（0–2）；缺省表示这次响应里没有可信值。 */
@@ -47,6 +47,10 @@ export interface MainConfigPatch {
   fishVoices?: { id: string; label: string }[];
   /** 磁盘上是否已有 Fish API Key（响应脱敏后的布尔）。 */
   hasFishApiKey?: boolean;
+  /** 用户追加的 Breeze 音色；缺省表示这次响应里没有可信值。 */
+  breezeVoices?: { id: string; label: string }[];
+  /** 磁盘上是否已有 Breeze API Key（响应脱敏后的布尔）。 */
+  hasBreezeApiKey?: boolean;
   /** 物理参数：成品已按「内置默认 ← 用户层」填满，缺子键再用内置默认兜底一次。 */
   physics?: PhysicsParams;
   /** 字体：同物理参数。 */
@@ -68,6 +72,24 @@ const readModel = (value: unknown): ModelSelection | undefined => {
   const model = value as Partial<ModelSelection> | undefined;
   if (!model || typeof model.provider !== 'string' || typeof model.model !== 'string') return undefined;
   return { provider: model.provider, model: model.model };
+};
+
+/**
+ * 读一份自定义音色目录（Fish / Breeze 共用形状）：只保留 id 非空的行，缺标签时用 id 顶上。
+ * @param raw - 成品里的 `fishVoices` / `breezeVoices`。
+ * @returns 规范化的自定义音色；不是数组时返回 undefined（调用方跳过，不覆盖手里已有的值）。
+ */
+const readCustomVoices = (raw: unknown): { id: string; label: string }[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const voices: { id: string; label: string }[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== 'string' || !row.id.trim()) continue;
+    const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : row.id.trim();
+    voices.push({ id: row.id.trim(), label });
+  }
+  return voices;
 };
 
 /**
@@ -94,23 +116,18 @@ export function readMainConfig(merged: MergedConfig): MainConfigPatch | null {
   if (typeof main.trayEnabled === 'boolean') patch.trayEnabled = main.trayEnabled;
   if (typeof main.obsCaptureEnabled === 'boolean') patch.obsCaptureEnabled = main.obsCaptureEnabled;
   if (typeof main.voiceEnabled === 'boolean') patch.voiceEnabled = main.voiceEnabled;
-  if (main.voiceProvider === 'edge' || main.voiceProvider === 'fish') patch.voiceProvider = main.voiceProvider;
+  if (main.voiceProvider === 'edge' || main.voiceProvider === 'fish' || main.voiceProvider === 'breeze')
+    patch.voiceProvider = main.voiceProvider;
   if (typeof main.voiceName === 'string') patch.voiceName = main.voiceName;
   if (typeof main.voiceWhisperEnabled === 'boolean') patch.voiceWhisperEnabled = main.voiceWhisperEnabled;
   if (typeof main.voiceTodoEnabled === 'boolean') patch.voiceTodoEnabled = main.voiceTodoEnabled;
   if (typeof main.fishTtsModel === 'string') patch.fishTtsModel = main.fishTtsModel;
-  if (Array.isArray(main.fishVoices)) {
-    const voices: { id: string; label: string }[] = [];
-    for (const item of main.fishVoices) {
-      if (!item || typeof item !== 'object') continue;
-      const row = item as Record<string, unknown>;
-      if (typeof row.id !== 'string' || !row.id.trim()) continue;
-      const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : row.id.trim();
-      voices.push({ id: row.id.trim(), label });
-    }
-    patch.fishVoices = voices;
-  }
+  const fishVoices = readCustomVoices(main.fishVoices);
+  if (fishVoices) patch.fishVoices = fishVoices;
   if (typeof main.hasFishApiKey === 'boolean') patch.hasFishApiKey = main.hasFishApiKey;
+  const breezeVoices = readCustomVoices(main.breezeVoices);
+  if (breezeVoices) patch.breezeVoices = breezeVoices;
+  if (typeof main.hasBreezeApiKey === 'boolean') patch.hasBreezeApiKey = main.hasBreezeApiKey;
   if (main.physics && typeof main.physics === 'object') {
     patch.physics = { ...DEFAULT_PHYSICS, ...(main.physics as PhysicsParams) };
   }

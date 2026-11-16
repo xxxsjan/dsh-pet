@@ -58,13 +58,8 @@ function mountBalanceSelect() {
   host.append(balanceSelect.root);
 }
 
-// 顶栏只放桌宠配置保存（/config）；模型保存按钮在模型卡片内部，随卡片显隐。
-// 模型子标签下顶栏不显示宠物保存，避免在模型表单里误提交桌宠配置。
-function updateSaveButtons() {
-  const inConfig = activeTab === 'config';
-  const petSave = byId('pet-save');
-  if (petSave) petSave.hidden = !(inConfig && configTab !== 'model');
-}
+// 保存按钮下沉到各个配置 Tab 内部（宠物 / 全局开关 / 字体 / 物理 / 语音 各一个，
+// 模型页的保存在模型表单里），顶栏只剩标题、结果提示与未保存标记。
 
 function selectTab(name) {
   activeTab = name;
@@ -78,7 +73,6 @@ function selectTab(name) {
       if (title) title.textContent = cell.dataset.title;
     }
   }
-  updateSaveButtons();
   // 弹幕分区切进来就立刻拉一次状态，不用等下一轮轮询。
   if (name === 'danmaku') void dmRefresh().catch(() => {});
 }
@@ -111,7 +105,6 @@ async function loadPets() {
     state.meta = meta;
     initDrafts(config);
     renderPetsPanel();
-    byId('pet-save').disabled = false;
     setStatus(status, '');
   } catch (error) {
     const message = (error && error.message) || String(error);
@@ -214,7 +207,6 @@ function boot() {
   mountBalanceSelect();
   wireAiPanel();
   wireDanmakuPanel();
-  byId('pet-save').addEventListener('click', savePets);
   // 弹幕 Cookie 弹窗：关闭按钮 + 点遮罩 + Esc。
   const dmCookieDialog = byId('dm-cookie-dialog');
   const dmCookieClose = byId('dm-cookie-close');

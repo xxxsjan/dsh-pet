@@ -73,7 +73,7 @@ Windows 常见示例：
 - 桌面：`C:\Users\<你>\.blue-fish\standalone-runtime.json`
 - CLI：`C:\Users\<你>\.dsh\blue-fish6\standalone-runtime.json`（未设置 `DSH_HOME` 时）
 
-设置页仍可通过右键桌宠 →「打开 AI 设置」打开（应用内弹窗窗口，URL 短暂含 `#token=`，页面加载后会清掉地址栏 hash）；对接请优先读对应模式的 runtime 文件。
+设置页的右键入口「打开 AI 设置」只在开发环境露出（菜单文案带「（开发）」后缀）；正式环境（`NODE_ENV=production` 或跑在 asar 打包产物里）整项不出现，需要手动打开时把 `BLUE_FISH_DEV=1` 并在浏览器里使用 runtime 文件中的已鉴权地址。页面本身是应用内弹窗窗口，URL 短暂含 `#token=`，加载后会清掉地址栏 hash；对接请优先读对应模式的 runtime 文件。
 
 ---
 
@@ -643,12 +643,12 @@ console.log(body.text); // 回复
 | `/menu/click`                             | POST            | 渲染端上报点击（内部）                      |
 | `/voice/speak`                            | POST            | 合成音频；成功直接回 `audio/mpeg` 文件      |
 | `/voice/hear`                             | POST            | 语音识别；body `{ audio: <base64>, language? }`，回 `{ok,text}` |
-| `/voice/voices`                           | GET             | 音色列表；回 `{ok, voices, edgeVoices, fishVoices, fishModels, voiceProvider}` |
+| `/voice/voices`                           | GET             | 音色列表；回 `{ok, voices, edgeVoices, fishVoices, breezeVoices, fishModels, voiceProvider}` |
 | `/voice/utterance/{id}/report`            | POST            | 朗读回执（内部）；body `{status, reason?}`；未知 id → `unknown-utterance` |
 | `/todos`、`/todos/{id}`                   | GET/POST/PATCH/DELETE | 待办读写（字段见上方「请求体」表）    |
 | `/work-status`                            | POST/DELETE     | 外部写入 / 清空工作状态（`DELETE` 回 `204`） |
 
-**`/voice/speak` body**：`{ "text": "...", "voice": "<音色 id>", "rate": "+0%" }`（`text` 必填，≤500 字；`voice` / `rate` 可选）。失败 `voice-busy` / `bad-request` / `generate-error`，其中 `voice-busy` 表示合成队列已满。
+**`/voice/speak` body**：`{ "text": "...", "voice": "<音色 id>", "rate": "+0%", "apiKey": "<可选>" }`（`text` 必填，≤500 字；`voice` / `rate` 可选）。`apiKey` 是**一次性**凭证：只作用于这一次合成，不写盘、不进缓存键、不进日志（设置页「填了 Key 直接试听」用它；不带或空串则用磁盘上已保存的 Key）。带 `apiKey` 时跳过缓存命中，保证这次确实拿这把 Key 去上游合成。失败 `voice-busy` / `bad-request` / `generate-error`，其中 `voice-busy` 表示合成队列已满。
 
 **`/sleep` / `/wake`**：无 body。`/sleep` 成功回 `{ok, sleeping:true, changed, start, loop, end}`，失败 `locked`（被占用，不能睡）、`no-sleep-animations`（没配睡觉动画）。`/wake` 幂等，成功回 `{ok, sleeping:false, changed}` 并弹一句醒来台词。`GET /pose` 在桌面端还没上报过时回 `pose-unavailable`。
 

@@ -172,6 +172,8 @@ function wireSave(form, save, status) {
     byId('apiKey').value = '';
     try {
       populateAi(await aiRequest('POST', input));
+      // 模型表单自己的保存：销掉「模型」这一笔未保存，别让顶栏一直挂着提示。
+      clearDirtyTab('model');
       setStatus(status, '已保存到本机。', 'ok');
       flashSaveHint('已保存到本机。', 'ok');
     } catch (error) {

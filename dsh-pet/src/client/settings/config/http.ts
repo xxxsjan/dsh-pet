@@ -41,9 +41,9 @@ export interface SaveFields {
   obsCaptureEnabled: boolean;
   /** 语音播报总开关。 */
   voiceEnabled: boolean;
-  /** 语音引擎：edge 或 fish。 */
-  voiceProvider: 'edge' | 'fish';
-  /** 语音音色 id（随引擎变化：Edge 白名单或 Fish Voice ID）。 */
+  /** 语音引擎：edge、fish 或 breeze。 */
+  voiceProvider: 'edge' | 'fish' | 'breeze';
+  /** 语音音色 id（随引擎变化：Edge 白名单或 Fish / Breeze Voice ID）。 */
   voiceName: string;
   /** 播放音量系数：0–2，1 = 100%，2 = 200%；>1 用 Web Audio 增益。 */
   voiceVolume: number;
@@ -63,6 +63,15 @@ export interface SaveFields {
   fishApiKey?: string;
   /** 为 true 时清空已保存的 Fish API Key。 */
   clearFishApiKey?: boolean;
+  /** 用户追加的 Breeze 音色（不含内置）。 */
+  breezeVoices: readonly { id: string; label: string }[];
+  /**
+   * 新的 Breeze Blue API Key（xi-api-key）；空串或缺省 = 保留磁盘旧值。
+   * 响应里永不回传明文，只看 `hasBreezeApiKey`。
+   */
+  breezeApiKey?: string;
+  /** 为 true 时清空已保存的 Breeze API Key。 */
+  clearBreezeApiKey?: boolean;
   physics: PhysicsParams;
   whisperModel: ModelSelection;
   chatModel: ModelSelection;
@@ -108,6 +117,12 @@ export function buildSaveBody(fields: SaveFields): Record<string, unknown> {
       ? { clearFishApiKey: true }
       : fields.fishApiKey !== undefined && fields.fishApiKey.trim() !== ''
         ? { fishApiKey: fields.fishApiKey.trim() }
+        : {}),
+    breezeVoices: fields.breezeVoices,
+    ...(fields.clearBreezeApiKey === true
+      ? { clearBreezeApiKey: true }
+      : fields.breezeApiKey !== undefined && fields.breezeApiKey.trim() !== ''
+        ? { breezeApiKey: fields.breezeApiKey.trim() }
         : {}),
     physics: fields.physics,
     whisperModel: fields.whisperModel,

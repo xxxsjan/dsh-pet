@@ -339,12 +339,30 @@ test('settings shell is accessible, self contained, and never saves browser secr
   assert.match(settingsStyle, /\.grid3\{[^}]*repeat\(3,1fr\)/);
   assert.match(settingsScript, /host\.append\(voiceCard\(\)\)/);
   assert.match(settingsScript, /function renderVoicePanel/);
-  assert.match(settingsScript, /petSave\.hidden = !\(inConfig && configTab !== 'model'\)/);
+  // 每个配置 Tab 自带保存：按钮 id 按 Tab 生成，顶栏不再有共用的 pet-save。
+  assert.doesNotMatch(settingsPage, /id="pet-save"/);
+  assert.match(settingsScript, /id: 'save-' \+ tab/, '保存按钮按 Tab 生成');
+  assert.match(settingsScript, /id: 'status-' \+ tab/, '状态行也按 Tab 分开，结果就近显示');
+  assert.match(settingsScript, /function tabBody\(tab\)/, '每个 Tab 只提交自己那一段');
+  assert.match(settingsScript, /function saveConfigTab\(tab\)/);
+  assert.match(settingsScript, /host\.append\(tabFooter\('pet'\)\)/);
+  assert.match(settingsScript, /host\.append\(tabFooter\(configTab\)\)/);
+  assert.match(settingsScript, /host\.append\(tabFooter\('voice'\)\)/);
+  // 按钮点下去就是这一页的保存，保存后只回写这一页。
+  assert.match(settingsScript, /addEventListener\('click', \(\) => \{ void saveConfigTab\(tab\); \}\)/);
+  assert.match(settingsScript, /function applySavedTab\(tab, merged\)/);
+  assert.match(settingsScript, /applySavedTab\(tab, merged\)/);
+  // 分 Tab 记账未保存：一处保存不把别的 Tab 的改动当已保存。
+  assert.match(settingsScript, /function clearDirtyTab\(tab\)/);
+  assert.match(settingsScript, /有未保存的改动：/);
   assert.match(settingsPage, /id="save"[^>]*form="settings"/);
   assert.match(settingsScript, /history\.replaceState/);
   assert.match(settingsScript, /X-Blue-Fish-Token/);
   assert.match(settingsScript, /voice\/speak/);
   assert.match(settingsScript, /试听/);
+  // 试听可以直接带上输入框里的 Key（只在这一次合成里生效，不落盘，所以不必先保存）。
+  assert.match(settingsScript, /apiKey: draftKey/);
+  assert.match(settingsScript, /填了就能直接试听/);
   // 主题偏好以服务端 /ui-theme 为准，localStorage 与 cookie 只做首帧缓存。
   // 只允许 cookie 承载主题这类非敏感偏好；令牌/密钥仍不得进 sessionStorage / cookie / innerHTML。
   assert.match(settingsScript, /blue_fish_ui_theme/);

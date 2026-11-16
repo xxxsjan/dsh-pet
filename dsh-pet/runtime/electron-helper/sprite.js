@@ -8,10 +8,11 @@
  */
 'use strict';
 
-// 左键 + 修饰键 = 「呼出 DSH」的快捷键。Windows / Linux 用 Ctrl；macOS 上 Ctrl+左键是系统右键
-// （先触发 contextmenu、拿不到 click），所以改用 Cmd。快捷键文案按平台取，判定统一走 isOpenShortcut。
+// 左键 + 修饰键 = 菜单首项那个入口的快捷键：独立模式打开「桌宠控制台」，桌面应用唤回主窗口，
+// web 宿主打开站点。Windows / Linux 用 Ctrl；macOS 上 Ctrl+左键是系统右键（先触发 contextmenu、
+// 拿不到 click），所以改用 Cmd。快捷键文案按平台取，判定统一走 isOpenShortcut。
 const OPEN_SHORTCUT_HINT = /Mac/i.test(navigator.platform || navigator.userAgent) ? 'Cmd+左键' : 'Ctrl+左键';
-/** 本次点击是否按住了「呼出 DSH」的修饰键（Ctrl / Cmd） */
+/** 本次点击是否按住了菜单首项快捷键的修饰键（Ctrl / Cmd） */
 const isOpenShortcut = (e) => !!(e && (e.ctrlKey || e.metaKey));
 
 // 点击音效：与浏览器端同一套参数（单例 audio、音量走配置 clickSoundVolume、100ms 节流、失败静默）。

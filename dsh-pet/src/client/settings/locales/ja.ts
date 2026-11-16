@@ -174,6 +174,7 @@ export const ja: Record<Key, string> = {
     'Edge は無料のオンライン音声で、中国語ボイスが 5 種類。Fish Audio は API キーが必要ですが音質が良く、Voice ID でカスタムボイスを追加できます。エンジンを切り替えたら、選択中のボイスが対応するリストに残っているか確認してください。',
   voiceProviderEdge: 'Edge（無料）',
   voiceProviderFish: 'Fish Audio',
+  voiceProviderBreeze: 'Breeze Blue（大肥魚）',
   fishApiKeyLabel: 'Fish Audio API キー',
   fishApiKeyHint:
     'Fish Audio のコンソールで取得します。キーはローカルのユーザー設定にのみ書き込まれ、GET /config が平文を返すことはありません。空のまま保存すると既存のキーが保持されます。',
@@ -186,6 +187,13 @@ export const ja: Record<Key, string> = {
   fishCustomVoiceLabel: 'カスタム Voice ID',
   fishCustomVoiceHint:
     'Fish Audio のボイスページで Voice ID をコピーします（半角英数字と _ - のみ）。内蔵ボイスは削除できません。',
+  breezeApiKeyLabel: 'Breeze Blue API キー',
+  breezeKeyLink: 'API キーを取得',
+  breezeApiKeyHint:
+    'Breeze Blue の開発者 API キー（xi-api-key ヘッダーで送信）。キーはローカルのユーザー設定にのみ書き込まれ、GET /config が平文を返すことはありません。空のまま保存すると既存のキーが保持されます。',
+  breezeCustomVoiceLabel: 'カスタム Voice ID',
+  breezeCustomVoiceHint:
+    'Breeze Blue のボイスライブラリで Voice ID をコピーします（半角英数字と _ - のみ）。内蔵の大肥魚 2 音色は削除できません。',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: '表示名（任意）',
   fishCustomVoiceAdd: '追加',

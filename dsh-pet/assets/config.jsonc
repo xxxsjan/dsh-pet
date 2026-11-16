@@ -84,16 +84,20 @@
   // 碎碎念与对话回复是否用语音念出来。默认关闭——不是所有人都希望桌宠出声。
   // 只影响「说不说」：气泡、记忆与通知都不受影响。
   "voiceEnabled": false,
-  // 语音引擎：edge（免费在线，五个中文音色）或 fish（Fish Audio，需 API Key）。
-  // 非法值 → 告警并回落 edge。切到 fish 后 voiceName 应是 Fish Voice ID。
+  // 语音引擎：edge（免费在线，五个中文音色）/ fish（Fish Audio，需 API Key）/ breeze（Breeze Blue，需 API Key）。
+  // 非法值 → 告警并回落 edge。切到 fish / breeze 后 voiceName 应是对应的 Voice ID。
   "voiceProvider": "edge",
-  // 用哪个音色念：edge 时必须是五个中文音色之一；fish 时为内置 / 用户追加的 Voice ID。
+  // 用哪个音色念：edge 时必须是五个中文音色之一；fish / breeze 时为内置 / 用户追加的 Voice ID。
   // 写错或留空即配置错误 → 告警并回落到默认 zh-CN-XiaoyiNeural（晓伊，女声·活泼）。
   "voiceName": "zh-CN-XiaoyiNeural",
   // 播放音量（全局）：0–3，1 = 100%，3 = 300%（超过 1 用 Web Audio 增益）。与上面 voiceEnabled 是两件事——
   // 总开关决定念不念，本项决定念多大声；总开关关着时它不起作用。
   // 只改播放响度，不重新合成音频，所以调它不会多花一次 TTS 请求。
   "voiceVolume": 1,
+  // 绝对语速（全局）：0.5–2，1 = 原速。三家引擎共用这一份值——
+  // fish 直接当 speed 倍率、breeze 直接当 voice_settings.speed、edge 换算成 ±N% 后再合成。
+  // 改它会重新合成，与上面的音量不同。
+  "voiceRate": 1,
   // 周期碎碎念要不要念出来（全局默认）。受上面的 voiceEnabled 总开关约束：总开关关掉时一律不念，
   // 本项写了也不生效。只影响「说不说」，气泡与碎碎念动画照常。默认关闭——背景旁白不该默认出声。
   "voiceWhisperEnabled": false,
@@ -106,6 +110,11 @@
   "fishTtsModel": "s2.1-pro-free",
   // 用户按 Voice ID 追加的 Fish 音色（不含内置）；形如 [{ "id": "...", "label": "我的音色" }]。
   "fishVoices": [],
+  // Breeze Blue 开发者 API Key（请求头 xi-api-key）。明文只写用户层配置文件；GET /config 只回 hasBreezeApiKey。
+  // 这一项必须留在默认配置里：读取侧按本文件的键逐字段合并用户层，键不在本文件就会被静默丢弃。
+  "breezeApiKey": "",
+  // 用户按 Voice ID 追加的 Breeze 音色（不含内置的两条大肥鱼）；形如 [{ "id": "...", "label": "我的音色" }]。
+  "breezeVoices": [],
   // ===================== 表情包：图片映射（名称 → 描述，模型据此选图） =====================
   // 键 = assets/memes/<键>.png 的文件名（不含扩展名）；值 = 该图内容的简要描述。
   // 用途：碎碎念随机抽到某张图后，把该图描述注入提示词让模型配合画面说话；

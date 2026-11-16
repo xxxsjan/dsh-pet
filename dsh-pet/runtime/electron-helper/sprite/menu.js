@@ -9,6 +9,8 @@
 
 // 菜单首项文案随宿主形态变：桌面应用唤起主窗口，独立模式打开本机 AI 设置页，web 宿主打开站点。
 const OPEN_LABEL = { desktop: '打开软件', standalone: '打开 AI 设置', web: '打开网站' };
+/** 旧「打开 AI 设置」项的开发标记后缀：只在开发环境露出时加，正式环境整项不出现。 */
+const OPEN_DEV_SUFFIX = '（开发）';
 
 /** 睡觉拒绝台词的气泡时长（ms）：比默认 10s 略短，它只是「被打扰了」的一句回绝。 */
 const SLEEP_REFUSE_BUBBLE_MS = 8000;
@@ -25,11 +27,24 @@ Object.assign(PetSprite.prototype, {
     // 顺序：打开软件 / 余额 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
     // 待办走 D 快捷键，不进右键菜单。
     const tools = [
-      {
-        label: OPEN_LABEL[OPEN_TARGET],
-        action: 'open-site',
-        hint: OPEN_SHORTCUT_HINT,
-      },
+      // 「打开 AI 设置」：只在独立模式 + 开发环境露出，露出时文案带「（开发）」后缀。
+      // desktop / web 形态仍按表原样（打开软件 / 打开网站），不受开发标记影响。
+      // 快捷键（Ctrl/Cmd+左键）已改绑到「桌宠控制台」：独立模式下提示挂在那里，其它形态仍挂首项。
+      ...(OPEN_TARGET === 'standalone' && !DEV_MODE
+        ? []
+        : [
+            {
+              label:
+                OPEN_TARGET === 'standalone' ? OPEN_LABEL.standalone + OPEN_DEV_SUFFIX : OPEN_LABEL[OPEN_TARGET],
+              action: 'open-site',
+              hint: OPEN_TARGET === 'standalone' ? undefined : OPEN_SHORTCUT_HINT,
+            },
+          ]),
+      // 「桌宠控制台」：新独立入口，只在独立模式出现（desktop/web 没有本机控制台路由）；
+      // 与旧「打开 AI 设置」并列，旧入口、旧路由与旧窗口链路一行不动。Ctrl/Cmd+左键 直接开它。
+      ...(OPEN_TARGET === 'standalone'
+        ? [{ label: '桌宠控制台', action: 'open-console', hint: OPEN_SHORTCUT_HINT }]
+        : []),
       // 「查看余额」无条件显示：关了 balanceEnabled 的宠物也能点，手动请求不受开关限制，点了一定给答复。
       { label: '查看余额', action: 'show-balance' },
       { label: '碎碎念', action: 'whisper' },
@@ -112,6 +127,11 @@ Object.assign(PetSprite.prototype, {
     if (leaf.action === 'open-site') {
       // 独立模式打开应用内设置窗口；桌面应用唤起主窗口；web 交给系统默认浏览器。去向由主进程按形态决定。
       if (window.petBridge) window.petBridge.openDshSite(ORIGIN);
+      return;
+    }
+    if (leaf.action === 'open-console') {
+      // 打开独立控制台窗口：地址与去向都由主进程按环境变量决定，渲染端只发动作。
+      if (window.petBridge) window.petBridge.openConsole();
       return;
     }
     if (leaf.action === 'show-balance') {

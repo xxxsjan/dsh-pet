@@ -239,6 +239,61 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
     settingsWindow = win;
   };
 
+  // 「桌宠控制台」独立窗口：与旧「打开 AI 设置」设置窗互相独立，互不接管。窗口构造口径与设置窗一致
+  // （同一份独立会话分区、同 DPI 缩放），只是地址指向新的 /standalone-console/ 路由。
+  let consoleWindow = null;
+  const openConsoleWindow = () => {
+    if (consoleWindow && !consoleWindow.isDestroyed()) {
+      if (consoleWindow.isMinimized()) consoleWindow.restore();
+      consoleWindow.show();
+      consoleWindow.focus();
+      return;
+    }
+    const target = process.env.BLUE_FISH_CONSOLE_URL || '';
+    if (!/^https?:[/][/]/.test(target)) {
+      console.warn('[blue-fish-desktop-helper] console url missing, skip opening console');
+      return;
+    }
+    const scale = uiScale();
+    const win = new BrowserWindow({
+      width: Math.round(1040 * scale),
+      height: Math.round(780 * scale),
+      minWidth: Math.round(720 * scale),
+      minHeight: Math.round(520 * scale),
+      autoHideMenuBar: true,
+      backgroundColor: '#0f1115',
+      title: '桌宠控制台',
+      icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
+      webPreferences: {
+        // 与设置窗同一份独立会话：复用首访换来的令牌 cookie，避免控制台页 403。
+        partition: 'blue-fish-settings',
+        zoomFactor: scale,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+      },
+    });
+    win.on('closed', () => {
+      if (consoleWindow === win) consoleWindow = null;
+    });
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed()) win.webContents.setZoomFactor(scale);
+    });
+    win.webContents.setWindowOpenHandler(({ url: next }) => {
+      if (/^https?:[/][/]/.test(next)) {
+        shell.openExternal(next).catch((error) => {
+          console.error('[blue-fish-desktop-helper] openExternal failed:', error);
+        });
+      }
+      return { action: 'deny' };
+    });
+    win.loadURL(target).catch((error) => {
+      console.error('[blue-fish-desktop-helper] console load failed:', error);
+      win.destroy();
+    });
+    consoleWindow = win;
+  };
+
   // 应用自注册的 dsh:// 协议：已运行时把主窗口提到前台，未运行则直接把应用拉起来。
   // 只有 desktop 形态能发——协议是系统级注册的，dsh web 形态下发它会把桌面版 DSH 拉起来。
   const focusDesktopApp = () => shell.openExternal('dsh://open');
@@ -262,6 +317,13 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi }) 
       return;
     }
     openSite(url);
+  });
+
+  // 右键「桌宠控制台」：新独立入口，与旧「打开 AI 设置」互不影响。只在独立模式开窗——
+  // desktop/web 形态没有本机 /standalone-console/ 服务，菜单项本身也只在 standalone 下出现。
+  ipcMain.on('pet:open-console', () => {
+    if (openTarget !== 'standalone') return;
+    openConsoleWindow();
   });
 
   // 只叫窗口、不改去向：被别的窗口挡住时把主窗口提到前台。

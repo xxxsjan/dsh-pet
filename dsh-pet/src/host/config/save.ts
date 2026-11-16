@@ -12,6 +12,7 @@ import { CORNER_SET, isValidPetId, PET_DISPLAY_SET } from './constants.ts';
 import { isValidSizePercent } from '../../shared/pet-size.ts';
 import type { ConfigPaths } from './constants.ts';
 import { normalizeFishCustomVoices, normalizeFishTtsModel } from '../voice/fish-voices.ts';
+import { normalizeBreezeCustomVoices } from '../voice/breeze-voices.ts';
 import { fontValid, modelSelectionValid, physicsValid, topFieldValid } from './validate.ts';
 
 /**
@@ -117,6 +118,10 @@ export function saveUserConfig(
   // 播放音量（全局系数，0–1）：与上面同一套语义——传了必须合法，没传走透传保留。
   const vv = o.voiceVolume;
   if (vv !== undefined && !topFieldValid('voiceVolume', vv)) return null;
+  // 绝对语速（全局 0.5–2，1 = 原速；edge / fish / breeze 三家共用这一份值）：
+  // 与音量同语义——传了必须合法，没传走透传保留。少了这一段，设置页提交的语速会被静默丢弃。
+  const vr = o.voiceRate;
+  if (vr !== undefined && !topFieldValid('voiceRate', vr)) return null;
   // 语音播报的两个细分开关（周期碎碎念 / 待办提醒）：与上面两个布尔同语义——传了必须是布尔，
   // 没传走透传保留；校验直接复用读取侧的 topFieldValid，读写同一份规则。
   const vwe = o.voiceWhisperEnabled;
@@ -134,6 +139,14 @@ export function saveUserConfig(
   const fishKeyRaw = o.fishApiKey;
   if (fishKeyRaw !== undefined && typeof fishKeyRaw !== 'string') return null;
   if (clearFishKey && typeof fishKeyRaw === 'string' && fishKeyRaw.trim() !== '') return null;
+  // Breeze 自定义音色目录与 API Key：与 Fish 同一套语义——目录传了就整段校验后进白名单，
+  // Key 的 clearBreezeApiKey=true 清空、非空字符串写入、空串 / 未传保留磁盘旧值。
+  const bv = o.breezeVoices;
+  if (bv !== undefined && !topFieldValid('breezeVoices', bv)) return null;
+  const clearBreezeKey = o.clearBreezeApiKey === true;
+  const breezeKeyRaw = o.breezeApiKey;
+  if (breezeKeyRaw !== undefined && typeof breezeKeyRaw !== 'string') return null;
+  if (clearBreezeKey && typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '') return null;
   // 系统托盘开关（全局，仅桌面模式）：与上面几个全局布尔同语义——传了必须是布尔，没传走透传保留。
   const te = o.trayEnabled;
   if (te !== undefined && typeof te !== 'boolean') return null;
@@ -184,12 +197,17 @@ export function saveUserConfig(
   if (vp !== undefined) outConfig.voiceProvider = vp;
   if (vn !== undefined) outConfig.voiceName = vn;
   if (vv !== undefined) outConfig.voiceVolume = vv;
+  if (vr !== undefined) outConfig.voiceRate = Number(vr);
   if (vwe !== undefined) outConfig.voiceWhisperEnabled = vwe;
   if (vte !== undefined) outConfig.voiceTodoEnabled = vte;
   if (ftm !== undefined) outConfig.fishTtsModel = normalizeFishTtsModel(ftm);
   if (fv !== undefined) outConfig.fishVoices = normalizeFishCustomVoices(fv);
   if (clearFishKey) outConfig.fishApiKey = '';
   else if (typeof fishKeyRaw === 'string' && fishKeyRaw.trim() !== '') outConfig.fishApiKey = fishKeyRaw.trim();
+  if (bv !== undefined) outConfig.breezeVoices = normalizeBreezeCustomVoices(bv);
+  if (clearBreezeKey) outConfig.breezeApiKey = '';
+  else if (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '')
+    outConfig.breezeApiKey = breezeKeyRaw.trim();
   if (te !== undefined) outConfig.trayEnabled = te;
   if (oce !== undefined) outConfig.obsCaptureEnabled = oce;
   if (ph !== undefined) outConfig.physics = ph;
@@ -215,11 +233,15 @@ export function saveUserConfig(
   if (vp !== undefined) bodyOwned.add('voiceProvider');
   if (vn !== undefined) bodyOwned.add('voiceName');
   if (vv !== undefined) bodyOwned.add('voiceVolume');
+  if (vr !== undefined) bodyOwned.add('voiceRate');
   if (vwe !== undefined) bodyOwned.add('voiceWhisperEnabled');
   if (vte !== undefined) bodyOwned.add('voiceTodoEnabled');
   if (ftm !== undefined) bodyOwned.add('fishTtsModel');
   if (fv !== undefined) bodyOwned.add('fishVoices');
   if (clearFishKey || (typeof fishKeyRaw === 'string' && fishKeyRaw.trim() !== '')) bodyOwned.add('fishApiKey');
+  if (bv !== undefined) bodyOwned.add('breezeVoices');
+  if (clearBreezeKey || (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== ''))
+    bodyOwned.add('breezeApiKey');
   if (te !== undefined) bodyOwned.add('trayEnabled');
   if (oce !== undefined) bodyOwned.add('obsCaptureEnabled');
   if (ph !== undefined) bodyOwned.add('physics');

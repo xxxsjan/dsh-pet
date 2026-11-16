@@ -128,6 +128,7 @@ export function makePetConfigSection(
             body: {
               edgeVoices?: VoiceOption[];
               fishVoices?: VoiceOption[];
+              breezeVoices?: VoiceOption[];
               fishModels?: { id: string; label: string }[];
               voices?: VoiceOption[];
             } | null,
@@ -138,6 +139,10 @@ export function makePetConfigSection(
             if (Array.isArray(body.fishVoices)) {
               // 宿主可能已把自定义并进列表；内置用 tag 不含「自定义」区分，设置页另以 fishCustomVoices 为准
               setFishBuiltinVoices(body.fishVoices.filter((voice) => !String(voice.tag).includes('自定义')));
+            }
+            if (Array.isArray(body.breezeVoices)) {
+              // 与 Fish 同一套：内置与自定义分列，设置页另以 breezeCustomVoices 为准
+              setBreezeBuiltinVoices(body.breezeVoices.filter((voice) => !String(voice.tag).includes('自定义')));
             }
             if (Array.isArray(body.fishModels) && body.fishModels.length > 0) setFishModels(body.fishModels);
           },
@@ -167,7 +172,7 @@ export function makePetConfigSection(
     const [obsCaptureEnabled, setObsCaptureEnabled] = useState(true);
     // 语音播报开关与音色（全局默认）：随「保存」整包写入；初值即内置默认，加载后用成品值覆盖。
     const [voiceEnabled, setVoiceEnabled] = useState(false);
-    const [voiceProvider, setVoiceProvider] = useState<'edge' | 'fish'>('edge');
+    const [voiceProvider, setVoiceProvider] = useState<'edge' | 'fish' | 'breeze'>('edge');
     const [voiceName, setVoiceName] = useState('zh-CN-XiaoyiNeural');
     // 播放音量（全局系数 0–2）：初值 1 = 100%，加载后由成品值覆盖。
     const [voiceVolume, setVoiceVolume] = useState(1);
@@ -180,9 +185,15 @@ export function makePetConfigSection(
     const [hasFishApiKey, setHasFishApiKey] = useState(false);
     const [fishApiKeyDraft, setFishApiKeyDraft] = useState('');
     const [clearFishApiKey, setClearFishApiKey] = useState(false);
+    // Breeze Blue（大肥鱼原生音色）：与 Fish 同一套形状——自定义 Voice ID 目录 + 脱敏的 Key。
+    const [breezeCustomVoices, setBreezeCustomVoices] = useState<{ id: string; label: string }[]>([]);
+    const [hasBreezeApiKey, setHasBreezeApiKey] = useState(false);
+    const [breezeApiKeyDraft, setBreezeApiKeyDraft] = useState('');
+    const [clearBreezeApiKey, setClearBreezeApiKey] = useState(false);
     // 可选音色：来自宿主 /voice/voices，拉不到就留空——下拉只显示当前值，绝不硬编码音色 id。
     const [edgeVoices, setEdgeVoices] = useState<VoiceOption[]>([]);
     const [fishBuiltinVoices, setFishBuiltinVoices] = useState<VoiceOption[]>([]);
+    const [breezeBuiltinVoices, setBreezeBuiltinVoices] = useState<VoiceOption[]>([]);
     const [fishModels, setFishModels] = useState<{ id: string; label: string }[]>([
       { id: 's2.1-pro-free', label: 'S2.1 Pro Free' },
       { id: 's2.1-pro', label: 'S2.1 Pro' },
@@ -190,6 +201,7 @@ export function makePetConfigSection(
       { id: 'drama-3', label: 'Drama 3' },
     ]);
     const DEFAULT_FISH_VOICE_ID = '55b28b196e1c4fff9a55cd32a46eff25';
+    const DEFAULT_BREEZE_VOICE_ID = 'voc_u3nxkd5578wc';
     const voiceOptions: VoiceOption[] =
       voiceProvider === 'fish'
         ? [
@@ -200,7 +212,16 @@ export function makePetConfigSection(
               tag: 'Fish · 自定义',
             })),
           ]
-        : edgeVoices;
+        : voiceProvider === 'breeze'
+          ? [
+              ...breezeBuiltinVoices,
+              ...breezeCustomVoices.map((voice) => ({
+                id: voice.id,
+                name: voice.label,
+                tag: 'Breeze · 自定义',
+              })),
+            ]
+          : edgeVoices;
     // 物理参数（全局）：只改本地状态，随「保存」整包写入；初值仅占位，成品加载成功后才允许编辑与保存。
     const [physics, setPhysics] = useState<PhysicsParams>({ ...DEFAULT_PHYSICS });
     // 字体（全局默认）：与 physics 同一套语义；初值仅占位，成品加载成功后才允许编辑与保存。
@@ -243,9 +264,13 @@ export function makePetConfigSection(
         if (patch.fishTtsModel !== undefined) setFishTtsModel(patch.fishTtsModel);
         if (patch.fishVoices !== undefined) setFishCustomVoices(patch.fishVoices);
         if (patch.hasFishApiKey !== undefined) setHasFishApiKey(patch.hasFishApiKey);
+        if (patch.breezeVoices !== undefined) setBreezeCustomVoices(patch.breezeVoices);
+        if (patch.hasBreezeApiKey !== undefined) setHasBreezeApiKey(patch.hasBreezeApiKey);
         // 读回配置后丢掉未提交的 Key 草稿与清空标记，避免「保存成功后又带上旧草稿」
         setFishApiKeyDraft('');
         setClearFishApiKey(false);
+        setBreezeApiKeyDraft('');
+        setClearBreezeApiKey(false);
         if (patch.physics !== undefined) setPhysics(patch.physics);
         if (patch.font !== undefined) setFont(patch.font);
         if (patch.whisperModel !== undefined) setWhisperModel(patch.whisperModel);
@@ -366,6 +391,9 @@ export function makePetConfigSection(
         fishVoices: fishCustomVoices,
         fishApiKey: fishApiKeyDraft,
         clearFishApiKey,
+        breezeVoices: breezeCustomVoices,
+        breezeApiKey: breezeApiKeyDraft,
+        clearBreezeApiKey,
         physics,
         whisperModel,
         chatModel,
@@ -458,16 +486,25 @@ export function makePetConfigSection(
               fishApiKeyDraft,
               clearFishApiKey,
               fishCustomVoices,
+              hasBreezeApiKey,
+              breezeApiKeyDraft,
+              clearBreezeApiKey,
+              breezeCustomVoices,
               whisperEnabled: voiceWhisperEnabled,
               todoEnabled: voiceTodoEnabled,
               onToggle: setVoiceEnabled,
-              onProviderChange: (next: 'edge' | 'fish') => {
+              onProviderChange: (next: 'edge' | 'fish' | 'breeze') => {
                 setVoiceProvider(next);
                 if (next === 'fish') {
                   const stillValid =
                     fishBuiltinVoices.some((voice) => voice.id === voiceName) ||
                     fishCustomVoices.some((voice) => voice.id === voiceName);
                   if (!stillValid) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+                } else if (next === 'breeze') {
+                  const stillValid =
+                    breezeBuiltinVoices.some((voice) => voice.id === voiceName) ||
+                    breezeCustomVoices.some((voice) => voice.id === voiceName);
+                  if (!stillValid) setVoiceName(breezeBuiltinVoices[0]?.id ?? DEFAULT_BREEZE_VOICE_ID);
                 } else {
                   const stillValid = edgeVoices.some((voice) => voice.id === voiceName);
                   if (!stillValid) {
@@ -500,6 +537,22 @@ export function makePetConfigSection(
               onRemoveFishVoice: (id: string) => {
                 setFishCustomVoices((current) => current.filter((voice) => voice.id !== id));
                 if (voiceName === id) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
+              },
+              onBreezeApiKeyDraftChange: setBreezeApiKeyDraft,
+              onClearBreezeApiKeyChange: setClearBreezeApiKey,
+              onAddBreezeVoice: (id: string, label: string) => {
+                const cleaned = id.trim().replace(/\s+/g, '');
+                if (!cleaned) return;
+                setBreezeCustomVoices((current) => {
+                  if (current.some((voice) => voice.id === cleaned)) return current;
+                  if (breezeBuiltinVoices.some((voice) => voice.id === cleaned)) return current;
+                  return [...current, { id: cleaned, label: label.trim() || cleaned }];
+                });
+                setVoiceName(cleaned);
+              },
+              onRemoveBreezeVoice: (id: string) => {
+                setBreezeCustomVoices((current) => current.filter((voice) => voice.id !== id));
+                if (voiceName === id) setVoiceName(breezeBuiltinVoices[0]?.id ?? DEFAULT_BREEZE_VOICE_ID);
               },
             }),
             h(FontCard, { busy, font, onChange: patchFont }),

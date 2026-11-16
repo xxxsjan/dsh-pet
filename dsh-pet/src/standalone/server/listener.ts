@@ -11,6 +11,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { readSettingsAssets } from '../settings-assets.ts';
 import { readChatPanelScript } from '../chat-panel-asset.ts';
 import { readSettingsIcon } from '../icon.ts';
+import { consolePage, consoleScript, consoleStyle } from '../console-page.ts';
 import { MAX_REQUEST_BYTES, MAX_SETTINGS_BYTES, boundedRequest } from '../request-body.ts';
 import { type StandaloneLogger } from '../context.ts';
 import { DEFAULT_STANDALONE_PORT, PORT_SCAN_LIMIT } from './options.ts';
@@ -75,12 +76,13 @@ function dispatch(
       sendIcon(res, icon);
       return;
     }
-    if (pathname === '/standalone-ai/chat-panel.js') {
+    if (pathname === '/standalone-ai/chat-panel.js' || pathname === '/standalone-console/chat-panel.js') {
       if (method !== 'GET' && method !== 'HEAD') {
         rejectRequest(res, 405, '仅支持 GET');
         return;
       }
       // 构建产物随包发布；缺失只可能是没跑 bundle，明确回 404 而不是给空脚本。
+      // 旧设置页与控制台的对话弹窗引用同一份产物，两条路径行为一致。
       const chatPanel = readChatPanelScript();
       if (chatPanel === undefined) {
         rejectRequest(res, 404, '对话面板脚本缺失，请重新构建（npm run bundle）');
@@ -104,6 +106,23 @@ function dispatch(
       void readSettingsAssets()
         .then((assets) => sendAsset(res, assets[shellKey], types[shellKey]))
         .catch((error: unknown) => fail(res, error, options.logger));
+      return;
+    }
+    // 「桌宠控制台」独立页面：本轮进程内打包，不读 lib 热读产物，与旧设置页完全并行。
+    const consolePaths: Record<string, 'page' | 'script' | 'style'> = {
+      '/standalone-console/': 'page',
+      '/standalone-console/console.js': 'script',
+      '/standalone-console/console.css': 'style',
+    };
+    const consoleKey = consolePaths[pathname];
+    if (consoleKey) {
+      if (method !== 'GET' && method !== 'HEAD') {
+        rejectRequest(res, 405, '仅支持 GET');
+        return;
+      }
+      const consoleAssets = { page: consolePage(), script: consoleScript, style: consoleStyle };
+      const types = { page: 'text/html', script: 'text/javascript', style: 'text/css' } as const;
+      sendAsset(res, consoleAssets[consoleKey], types[consoleKey]);
       return;
     }
     if (pathname === '/standalone-ai/settings') {

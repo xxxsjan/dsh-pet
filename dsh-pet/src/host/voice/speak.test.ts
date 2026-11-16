@@ -203,6 +203,8 @@ test('Fish 引擎：走 synthesizeFish，缓存键含模型', async () => {
         fishApiKey: 'sk-fish',
         fishTtsModel: 's2.1-pro-free',
         fishVoices: [],
+        breezeApiKey: '',
+        breezeVoices: [],
         voiceRate: 1,
       }),
     });
@@ -218,8 +220,130 @@ test('Fish 引擎：走 synthesizeFish，缓存键含模型', async () => {
   }
 });
 
-test('注册了第三方实现：合成走它，内置一次都不调', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-provider-'));
+test('Breeze 引擎：走 synthesizeBreeze、默认大肥鱼、语音白名单拒绝野 id', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-breeze-'));
+  let breezeCalls = 0;
+  let edgeCalls = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesize: async (input) => {
+        edgeCalls += 1;
+        await writeFile(input.target, fakeMp3(0x22));
+      },
+      synthesizeBreeze: async (input) => {
+        breezeCalls += 1;
+        assert.equal(input.apiKey, 'bz-breeze');
+        assert.ok(input.voice === 'voc_u3nxkd5578wc' || input.voice === 'voc_mine123');
+        assert.equal(input.speed, 1);
+        await writeFile(input.target, fakeMp3(0x44));
+      },
+      readRuntime: () => ({
+        provider: 'breeze',
+        fishApiKey: '',
+        fishTtsModel: 's2.1-pro-free',
+        fishVoices: [],
+        breezeApiKey: 'bz-breeze',
+        breezeVoices: [{ id: 'voc_mine123', label: '我的鱼' }],
+        voiceRate: 1,
+      }),
+    });
+    // 不带 voice：回落第一条大肥鱼
+    const ok = await voice.speak({ text: 'Breeze 你好' });
+    assert.equal(ok.ok, true);
+    assert.equal(breezeCalls, 1);
+    assert.equal(edgeCalls, 0);
+    // 自定义音色在白名单内
+    const custom = await voice.speak({ text: '自定义音色', voice: 'voc_mine123' });
+    assert.equal(custom.ok, true);
+    // 野 id 直接 bad-request，不合成
+    const rejected = await voice.speak({ text: '野音色', voice: 'voc_not_al_lowed' });
+    assert.equal(rejected.ok === false ? rejected.reason : '', 'bad-request');
+    assert.equal(breezeCalls, 2);
+    const catalog = voice.listVoices();
+    assert.equal(catalog.voiceProvider, 'breeze');
+    assert.equal(catalog.voices.length, 3, '两条内置 + 一条自定义');
+    assert.ok(catalog.breezeVoices.some((item) => item.id === 'voc_mine123'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('试听一次性 Key：这一条用它合成，磁盘上的 Key 原样不动', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-oneshot-'));
+  const seen: string[] = [];
+  let runtimeReads = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesizeBreeze: async (input) => {
+        seen.push(input.apiKey);
+        await writeFile(input.target, fakeMp3(0x45));
+      },
+      readRuntime: () => {
+        runtimeReads += 1;
+        return {
+          provider: 'breeze',
+          fishApiKey: '',
+          fishTtsModel: 's2.1-pro-free',
+          fishVoices: [],
+          breezeApiKey: 'bz-saved',
+          breezeVoices: [],
+          voiceRate: 1,
+        };
+      },
+    });
+    // ① 不带 apiKey：用磁盘上的已保存 Key
+    const saved = await voice.speak({ text: '试听一下' });
+    assert.equal(saved.ok, true);
+    assert.deepEqual(seen, ['bz-saved']);
+    // ② 同一句话带 apiKey：即使已经存在同样的缓存，也必须真的用这把 Key 合成一次
+    //   （命中旧缓存会让「Key 无效」看起来像成功）
+    const draft = await voice.speak({ text: '试听一下', apiKey: '  bz-draft  ' });
+    assert.equal(draft.ok, true);
+    assert.deepEqual(seen, ['bz-saved', 'bz-draft'], '请求体里的 Key 要去空白后生效，且跳过缓存命中');
+    assert.equal(runtimeReads >= 2, true, '运行时配置每次现读，没有被请求体改写');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('试听一次性 Key：空串回落已保存 Key，非字符串 / 带空白 / 超长一律 bad-request', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-oneshot-bad-'));
+  const seen: string[] = [];
+  let synthCalls = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesizeFish: async (input) => {
+        synthCalls += 1;
+        seen.push(input.apiKey);
+        await writeFile(input.target, fakeMp3(0x46));
+      },
+      readRuntime: () => ({
+        provider: 'fish',
+        fishApiKey: 'sk-saved',
+        fishTtsModel: 's2.1-pro-free',
+        fishVoices: [],
+        breezeApiKey: '',
+        breezeVoices: [],
+        voiceRate: 1,
+      }),
+    });
+    const ok = await voice.speak({ text: '空串', apiKey: '   ' });
+    assert.equal(ok.ok, true);
+    assert.deepEqual(seen, ['sk-saved'], '空串等于没传，回落磁盘 Key');
+    for (const bad of [123, { key: 'x' }, ['a'], 'has space', 'k'.repeat(600)]) {
+      const result = await voice.speak({ text: '非法 Key', apiKey: bad });
+      assert.equal(result.ok === false ? result.reason : '', 'bad-request', `应拒绝：${JSON.stringify(bad)}`);
+    }
+    assert.equal(synthCalls, 1, '非法 Key 一次都不该触发合成');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('注册了第三方实现：合成走它，内置一次都不调', async () => {  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-provider-'));
   let edgeCalls = 0;
   let providerCalls = 0;
   const dispose = registerVoiceProvider({

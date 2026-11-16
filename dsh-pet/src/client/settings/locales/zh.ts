@@ -162,7 +162,7 @@ export const zh = {
   voiceNameLabel: '音色',
   voiceProviderLabel: '语音引擎',
   voiceProviderHint:
-    'Edge 免费在线、五个中文音色；Fish Audio 需 API Key，音质更好，可按 Voice ID 追加自定义音色。切换引擎后请确认音色仍在对应列表里。',
+    'Edge 免费在线、五个中文音色；Fish Audio 需 API Key，音质更好，可按 Voice ID 追加自定义音色；Breeze Blue 自带大肥鱼原声（机灵版 / 迷糊版），同样需 API Key 且可追加 Voice ID。切换引擎后请确认音色仍在对应列表里。',
   voiceProviderEdge: 'Edge（免费）',
   voiceProviderFish: 'Fish Audio',
   fishApiKeyLabel: 'Fish Audio API Key',
@@ -174,6 +174,13 @@ export const zh = {
   fishTtsModelHint: '请求头 model；默认免费档，避免无额度时 402。',
   fishCustomVoiceLabel: '自定义 Voice ID',
   fishCustomVoiceHint: '在 Fish Audio 音色页复制 Voice ID（仅字母数字与 _-）；内置音色不可删。',
+  voiceProviderBreeze: 'Breeze Blue（大肥鱼）',
+  breezeApiKeyLabel: 'Breeze Blue API Key',
+  breezeKeyLink: '获取 API Key',
+  breezeApiKeyHint:
+    'Breeze Blue 开发者 API Key（请求头 xi-api-key）。密钥只写入本机用户配置，GET /config 不回传明文；留空保存会保留已有密钥。',
+  breezeCustomVoiceLabel: '自定义 Voice ID',
+  breezeCustomVoiceHint: '在 Breeze Blue 音色库复制 Voice ID（仅字母数字与 _-）；内置的两条大肥鱼不可删。',
   fishCustomVoiceIdPlaceholder: 'Voice ID',
   fishCustomVoiceLabelPlaceholder: '显示名（可选）',
   fishCustomVoiceAdd: '添加',

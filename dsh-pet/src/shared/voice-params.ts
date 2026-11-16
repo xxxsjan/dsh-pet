@@ -40,3 +40,16 @@ export function absoluteRateToEdge(rate: number): string {
   const percent = Math.round((clamped - 1) * 100);
   return `${percent >= 0 ? '+' : ''}${percent}%`;
 }
+
+/**
+ * `+N%` / `-N%` → 上游用的绝对倍率（Fish Audio `prosody.speed` 与 Breeze `voice_settings.speed` 同量纲）。
+ *
+ * `+0%` → 1，`+50%` → 1.5，`-50%` → 0.5；结果夹到 0.5–2.0，与 {@link clampVoiceRate} 同一区间。
+ * @param rate - 已通过 speak 校验的语速表达式。
+ */
+export function percentRateToSpeed(rate: string): number {
+  const sign = rate.startsWith('-') ? -1 : 1;
+  const percent = Number(rate.slice(1, -1));
+  if (!Number.isFinite(percent)) return DEFAULT_VOICE_RATE;
+  return clampVoiceRate(1 + (sign * percent) / 100);
+}

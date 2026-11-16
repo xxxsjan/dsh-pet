@@ -62,6 +62,8 @@ export const GLOBAL_DEFAULT_KEYS = [
   'fishTtsModel',
   'fishVoices',
   // fishApiKey 故意不进白名单：密钥只认 main 条目，不通过 packBase 摊到种类层
+  'breezeVoices',
+  // breezeApiKey 同上：密钥只认 main 条目
   'whisperImageEnabled',
   'chatImageEnabled',
   'chatAnimationEnabled',

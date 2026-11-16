@@ -187,6 +187,23 @@ test('设置页对话面板脚本：有产物时由 app 路由提供 → 200 且
   }
 });
 
+test('控制台的对话面板脚本：同一份产物经 /standalone-console/chat-panel.js 提供', async () => {
+  const script = 'window.__CHAT_PANEL__ = 2;';
+  const server = await start(
+    [],
+    () => {},
+    () => script,
+  );
+  try {
+    const response = await fetch(server.base + '/standalone-console/chat-panel.js');
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') ?? '', /^text\/javascript/);
+    assert.equal(await response.text(), script);
+  } finally {
+    await server.close();
+  }
+});
+
 test('设置页对话面板脚本：产物缺失时 → 404 并提示重新构建，而不是静默回空脚本', async () => {
   const server = await start(
     [],

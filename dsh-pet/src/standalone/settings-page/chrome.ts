@@ -3,7 +3,7 @@
  * 分区为对话 / 配置；模型与语音集成在配置面板的横向 Tab 中。
  * 抖音弹幕分区已从侧栏隐藏（直播入口只保留 HTTP API），面板仍留在 DOM 中供脚本绑定。
  * 配置面板包含宠物、全局开关、字体、物理、模型、语音、高级等 Tab；
- * 模型「保存」在顶栏（form=settings → `/standalone-ai/settings`）；语音与桌宠共用顶栏「保存」（/config）。
+ * 每个配置 Tab 自带「保存」，各自只提交自己的字段（模型页的保存仍在模型表单内部，写 `/standalone-ai/settings`）。
  *
  * 页面只在本机回环上由 ./server 提供；CSP 是 `style-src 'self'`，所以这里不许出现内联样式，
  * 也不许内联脚本。桌宠配置面板的内容依赖 GET /config，初始只有一句占位文案。
@@ -31,7 +31,7 @@ export function settingsPage(): string {
 <div class="sideFoot">独立模式</div>
 </aside>
 <div class="main">
-<div class="topbar"><div class="topbarLead"><h1 class="pageTitle" id="page-title">对话</h1><button class="btn primary" id="pet-save" type="button" disabled hidden>保存</button><span class="saveHint" id="save-hint" role="status" aria-live="polite" hidden></span></div><div class="topbarTrail"><span class="dirty" id="dirty" hidden>有未保存的改动</span><button class="btn ghost themeBtn" id="theme-toggle" type="button" aria-label="切换到暗色"><svg class="themeIcon themeIcon--moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.1 2.1a1 1 0 0 1 1.1 1.3A8 8 0 1 0 20.6 14a1 1 0 0 1 1.3-1.1A10 10 0 1 1 12.1 2.1Z"/></svg><svg class="themeIcon themeIcon--sun" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0-5a1 1 0 0 1 1 1V5a1 1 0 1 1-2 0V3.5a1 1 0 0 1 1-1Zm0 15a1 1 0 0 1 1 1V20.5a1 1 0 1 1-2 0V18.5a1 1 0 0 1 1-1ZM3.5 11a1 1 0 1 0 0 2H5a1 1 0 1 0 0-2H3.5Zm15 0a1 1 0 1 0 0 2H20.5a1 1 0 1 0 0-2H18.5ZM5.64 5.64a1 1 0 0 1 1.42 0L8.12 6.7A1 1 0 1 1 6.7 8.12L5.64 7.06a1 1 0 0 1 0-1.42Zm10.24 10.24a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 0 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 0-1.42ZM18.36 5.64a1 1 0 0 1 0 1.42L17.3 8.12A1 1 0 1 1 15.88 6.7l1.06-1.06a1 1 0 0 1 1.42 0ZM8.12 15.88a1 1 0 0 1 0 1.42L7.06 18.36a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0Z"/></svg></button></div></div>
+<div class="topbar"><div class="topbarLead"><h1 class="pageTitle" id="page-title">对话</h1><span class="saveHint" id="save-hint" role="status" aria-live="polite" hidden></span></div><div class="topbarTrail"><span class="dirty" id="dirty" hidden>有未保存的改动</span><button class="btn ghost themeBtn" id="theme-toggle" type="button" aria-label="切换到暗色"><svg class="themeIcon themeIcon--moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.1 2.1a1 1 0 0 1 1.1 1.3A8 8 0 1 0 20.6 14a1 1 0 0 1 1.3-1.1A10 10 0 1 1 12.1 2.1Z"/></svg><svg class="themeIcon themeIcon--sun" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0-5a1 1 0 0 1 1 1V5a1 1 0 1 1-2 0V3.5a1 1 0 0 1 1-1Zm0 15a1 1 0 0 1 1 1V20.5a1 1 0 1 1-2 0V18.5a1 1 0 0 1 1-1ZM3.5 11a1 1 0 1 0 0 2H5a1 1 0 1 0 0-2H3.5Zm15 0a1 1 0 1 0 0 2H20.5a1 1 0 1 0 0-2H18.5ZM5.64 5.64a1 1 0 0 1 1.42 0L8.12 6.7A1 1 0 1 1 6.7 8.12L5.64 7.06a1 1 0 0 1 0-1.42Zm10.24 10.24a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 0 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 0-1.42ZM18.36 5.64a1 1 0 0 1 0 1.42L17.3 8.12A1 1 0 1 1 15.88 6.7l1.06-1.06a1 1 0 0 1 1.42 0ZM8.12 15.88a1 1 0 0 1 0 1.42L7.06 18.36a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0Z"/></svg></button></div></div>
 <div class="options">
 <section class="panel" id="panel-config" role="tabpanel" aria-labelledby="tab-config" hidden>
 <div class="scroll">

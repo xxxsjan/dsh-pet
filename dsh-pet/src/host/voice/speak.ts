@@ -9,6 +9,14 @@
 import { open, rm, stat, writeFile } from 'node:fs/promises';
 import { cacheKey, cachePath, ensureCacheDir, looksLikeMpegAudio, pruneCache } from './cache.ts';
 import { VoiceSynthError, synthesize, type SynthInput } from './edge.ts';
+import { breezeRateToSpeed, synthesizeBreeze, BREEZE_SYNTHESIS_TIMEOUT_MS } from './breeze.ts';
+import {
+  DEFAULT_BREEZE_VOICE,
+  isKnownBreezeVoice,
+  listBreezeVoices,
+  normalizeBreezeCustomVoices,
+  type BreezeCustomVoice,
+} from './breeze-voices.ts';
 import { edgeRateToFishSpeed, synthesizeFish, FISH_SYNTHESIS_TIMEOUT_MS } from './fish.ts';
 import {
   DEFAULT_FISH_TTS_MODEL,
@@ -55,7 +63,15 @@ interface SpeakInput {
   readonly text: string;
   readonly voice: string;
   readonly rate: string;
+  /**
+   * 只在这一次合成里生效的 API Key（请求体 `apiKey`）——设置页「填了 Key 直接试听」用。
+   * 不写盘、不进缓存键、不进日志；空串等于没传（回落磁盘上的已保存 Key）。
+   */
+  readonly oneShotApiKey: string;
 }
+
+/** 一次性 API Key 的长度上限：真 Key 只有几十字符，超出按非法拦掉（防止拿请求体当存储使）。 */
+const MAX_ONESHOT_KEY_CHARS = 512;
 
 /** 失败原因；路由层原样映射成 `result.ts` 的 reason。 */
 export type SpeakFailure = 'bad-request' | 'voice-busy' | 'generate-error';
@@ -63,21 +79,24 @@ export type SpeakFailure = 'bad-request' | 'voice-busy' | 'generate-error';
 /** 合成结果：成功时给出最终 mp3 的绝对路径。 */
 export type SpeakResult = { ok: true; file: string } | { ok: false; reason: SpeakFailure; message: string };
 
-/** speak 运行时读取的 Fish / 引擎配置（每次请求现查，保存后立刻生效）。 */
+/** speak 运行时读取的 Fish / Breeze / 引擎配置（每次请求现查，保存后立刻生效）。 */
 export interface VoiceRuntimeConfig {
   readonly provider: VoiceProvider;
   readonly fishApiKey: string;
   readonly fishTtsModel: string;
   readonly fishVoices: readonly FishCustomVoice[];
+  readonly breezeApiKey: string;
+  readonly breezeVoices: readonly BreezeCustomVoice[];
   /** 绝对语速 0.5–2；请求体未带 rate 时换成 Edge 的 `+N%`。 */
   readonly voiceRate: number;
 }
 
-/** 音色目录响应：Edge / Fish 分列，外加当前引擎下的合并列表（兼容旧客户端只读 `voices`）。 */
+/** 音色目录响应：Edge / Fish / Breeze 分列，外加当前引擎下的合并列表（兼容旧客户端只读 `voices`）。 */
 export interface VoiceCatalog {
   readonly voices: readonly VoiceInfo[];
   readonly edgeVoices: readonly VoiceInfo[];
   readonly fishVoices: readonly VoiceInfo[];
+  readonly breezeVoices: readonly VoiceInfo[];
   readonly fishModels: readonly { id: string; label: string }[];
   readonly voiceProvider: VoiceProvider;
 }
@@ -99,16 +118,19 @@ const DEFAULT_RUNTIME: VoiceRuntimeConfig = {
   fishApiKey: '',
   fishTtsModel: DEFAULT_FISH_TTS_MODEL,
   fishVoices: [],
+  breezeApiKey: '',
+  breezeVoices: [],
   voiceRate: DEFAULT_VOICE_RATE,
 };
 
-/** 校验请求体；只认 `text` / `voice` / `rate` 三个字段，其余忽略。 */
+/** 校验请求体；只认 `text` / `voice` / `rate` / `apiKey` 四个字段，其余忽略。 */
 function parseSpeakInput(raw: unknown, runtime: VoiceRuntimeConfig): ParseResult {
   const body = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text) return { ok: false, message: 'text is required' };
   if (text.length > MAX_TEXT_CHARS) return { ok: false, message: `text too long (max ${MAX_TEXT_CHARS} chars)` };
-  const defaultVoice = runtime.provider === 'fish' ? DEFAULT_FISH_VOICE : DEFAULT_VOICE;
+  const defaultVoice =
+    runtime.provider === 'fish' ? DEFAULT_FISH_VOICE : runtime.provider === 'breeze' ? DEFAULT_BREEZE_VOICE : DEFAULT_VOICE;
   const voice = body.voice === undefined ? defaultVoice : body.voice;
   if (typeof voice !== 'string') {
     return { ok: false, message: 'voice must be a string' };
@@ -119,6 +141,13 @@ function parseSpeakInput(raw: unknown, runtime: VoiceRuntimeConfig): ParseResult
         .map((item) => item.id)
         .join(', ');
       return { ok: false, message: `unknown fish voice; allowed: ${allowed}` };
+    }
+  } else if (runtime.provider === 'breeze') {
+    if (!isKnownBreezeVoice(voice, runtime.breezeVoices)) {
+      const allowed = listBreezeVoices(runtime.breezeVoices)
+        .map((item) => item.id)
+        .join(', ');
+      return { ok: false, message: `unknown breeze voice; allowed: ${allowed}` };
     }
   } else if (!isEdgeVoice(voice)) {
     return { ok: false, message: `unknown voice; allowed: ${VOICES.map((item) => item.id).join(', ')}` };
@@ -131,7 +160,20 @@ function parseSpeakInput(raw: unknown, runtime: VoiceRuntimeConfig): ParseResult
   if (!Number.isFinite(percent) || percent < RATE_MIN_PERCENT || percent > RATE_MAX_PERCENT) {
     return { ok: false, message: `rate out of range (${RATE_MIN_PERCENT}%..+${RATE_MAX_PERCENT}%)` };
   }
-  return { ok: true, value: { text, voice, rate } };
+  // 一次性 Key（设置页试听用）：字符串、去空白后长度受限；空串 = 没传，回落磁盘上的已保存 Key。
+  // 非字符串一律拒绝，免得把对象/数字塞进请求头。
+  const rawKey = body.apiKey;
+  if (rawKey !== undefined && rawKey !== null && typeof rawKey !== 'string') {
+    return { ok: false, message: 'apiKey must be a string' };
+  }
+  const oneShotApiKey = typeof rawKey === 'string' ? rawKey.trim() : '';
+  if (oneShotApiKey.length > MAX_ONESHOT_KEY_CHARS) {
+    return { ok: false, message: `apiKey too long (max ${MAX_ONESHOT_KEY_CHARS} chars)` };
+  }
+  if (/\s/.test(oneShotApiKey)) {
+    return { ok: false, message: 'apiKey must not contain whitespace' };
+  }
+  return { ok: true, value: { text, voice, rate, oneShotApiKey } };
 }
 
 /** 断言用：`SpeakResult` 的构造点都经过这里，避免各处手写同一句文案。 */
@@ -165,6 +207,8 @@ export function createVoiceService(options: {
   synthesize?: (input: SynthInput) => Promise<void>;
   /** Fish 合成实现；测试注入替身。 */
   synthesizeFish?: typeof synthesizeFish;
+  /** Breeze 合成实现；测试注入替身。 */
+  synthesizeBreeze?: typeof synthesizeBreeze;
   /** 每次合成前读取的引擎配置；缺省当 Edge。 */
   readRuntime?: () => VoiceRuntimeConfig;
   /** 容许的最长排队时间（ms）；缺省 {@link STALE_WAIT_MS}，测试用它把丢弃分支逼出来。 */
@@ -173,6 +217,7 @@ export function createVoiceService(options: {
   const { userRoot, log } = options;
   const synthesizeImpl = options.synthesize ?? synthesize;
   const synthesizeFishImpl = options.synthesizeFish ?? synthesizeFish;
+  const synthesizeBreezeImpl = options.synthesizeBreeze ?? synthesizeBreeze;
   const readRuntime = options.readRuntime ?? (() => DEFAULT_RUNTIME);
   const staleWaitMs = options.staleWaitMs ?? STALE_WAIT_MS;
   /** 已占用的队列名额（含正在跑的那个）。 */
@@ -220,12 +265,14 @@ export function createVoiceService(options: {
     const runtime = readRuntime();
     const provider = normalizeVoiceProvider(runtime.provider);
     const fish = listFishVoices(runtime.fishVoices);
+    const breeze = listBreezeVoices(runtime.breezeVoices);
     return {
       voiceProvider: provider,
       edgeVoices: VOICES,
       fishVoices: fish,
+      breezeVoices: breeze,
       fishModels: FISH_TTS_MODELS.map((item) => ({ id: item.id, label: item.label })),
-      voices: provider === 'fish' ? fish : VOICES,
+      voices: provider === 'fish' ? fish : provider === 'breeze' ? breeze : VOICES,
     };
   }
 
@@ -233,18 +280,26 @@ export function createVoiceService(options: {
     const runtime = readRuntime();
     const parsed = parseSpeakInput(raw, runtime);
     if (!parsed.ok) return { ok: false, reason: 'bad-request', message: parsed.message };
-    const { text, voice, rate } = parsed.value;
+    const { text, voice, rate, oneShotApiKey } = parsed.value;
     // 每次请求现查一次：第三方可能运行中才注册、也可能被卸载，启动快照会漏掉这两种
     const registered = activeVoiceProvider();
     // 第三方注册优先于内置引擎（与旧行为一致：单槽覆盖）
     const provider = registered;
     const engine = normalizeVoiceProvider(runtime.provider);
     const model = normalizeFishTtsModel(runtime.fishTtsModel);
-    const source = provider ? provider.id : engine === 'fish' ? `fish:${model}` : BUILTIN_VOICE_ID;
+    const source = provider
+      ? provider.id
+      : engine === 'fish'
+        ? `fish:${model}`
+        : engine === 'breeze'
+          ? 'breeze'
+          : BUILTIN_VOICE_ID;
     // 第三方没有音色概念，缓存键里把 voice 置空；来源进键，换实现 / 换模型不会命中旧音频
     const target = cachePath(userRoot, cacheKey(source, provider ? '' : voice, rate, text));
     const startedMs = Date.now();
-    const cached = await findCached(target);
+    // 带一次性 Key 时不读缓存：设置页试听要回答的是「这把 Key 现在能不能合成」，
+    // 命中旧缓存（哪怕上次是用别的 Key 合成的）会掩盖「Key 无效」。
+    const cached = oneShotApiKey ? undefined : await findCached(target);
     if (cached) {
       log?.info?.(`[blue-fish] voice speak: cache=hit chars=${text.length} voice=${source}`);
       return { ok: true, file: cached };
@@ -272,7 +327,16 @@ export function createVoiceService(options: {
             voice,
             speed: edgeRateToFishSpeed(rate),
             model,
-            apiKey: runtime.fishApiKey,
+            apiKey: oneShotApiKey || runtime.fishApiKey,
+          });
+        } else if (engine === 'breeze') {
+          await synthesizeBreezeImpl({
+            signal: AbortSignal.timeout(BREEZE_SYNTHESIS_TIMEOUT_MS),
+            target,
+            text,
+            voice,
+            speed: breezeRateToSpeed(rate),
+            apiKey: oneShotApiKey || runtime.breezeApiKey,
           });
         } else {
           await synthesizeImpl({ signal: AbortSignal.timeout(BUILTIN_TIMEOUT_MS), target, text, voice, rate });
@@ -347,6 +411,8 @@ export function voiceRuntimeFromMain(main: Record<string, unknown> | undefined):
     fishApiKey: typeof main.fishApiKey === 'string' ? main.fishApiKey : '',
     fishTtsModel: normalizeFishTtsModel(main.fishTtsModel),
     fishVoices: normalizeFishCustomVoices(main.fishVoices),
+    breezeApiKey: typeof main.breezeApiKey === 'string' ? main.breezeApiKey : '',
+    breezeVoices: normalizeBreezeCustomVoices(main.breezeVoices),
     voiceRate: clampVoiceRate(main.voiceRate),
   };
 }

@@ -25,6 +25,7 @@ import { sendIcon } from '../standalone/server/respond.ts';
 import { readChatPanelScript } from '../standalone/chat-panel-asset.ts';
 import { readSettingsIcon } from '../standalone/icon.ts';
 import { readSettingsAssets } from '../standalone/settings-assets.ts';
+import { consolePage, consoleScript, consoleStyle } from '../standalone/console-page.ts';
 
 /** 桌面应用本机 HTTP 的固定端口（与 CLI 默认一致）；占用即启动失败，不顺延。 */
 export const APP_HTTP_PORT = DEFAULT_STANDALONE_PORT;
@@ -105,12 +106,12 @@ export function startRouter(
         sendIcon(res, icon);
         return;
       }
-      if (url.pathname === '/standalone-ai/chat-panel.js') {
+      if (url.pathname === '/standalone-ai/chat-panel.js' || url.pathname === '/standalone-console/chat-panel.js') {
         if (method !== 'GET' && method !== 'HEAD') {
           rejectRequest(res, 405, '仅支持 GET');
           return;
         }
-        // 与 CLI 侧共用同一份产物：设置页固定引用它，打包应用里缺这条路由会让对话区空白。
+        // 与 CLI 侧共用同一份产物：旧设置页与控制台的对话弹窗都引用它，缺这条路由会让对话区空白。
         const chatPanel = chatPanelScript();
         if (chatPanel === undefined) {
           rejectRequest(res, 404, '对话面板脚本缺失，请重新构建（npm run bundle）');
@@ -124,8 +125,15 @@ export function startRouter(
         '/standalone-ai/settings.js': 'script',
         '/standalone-ai/settings.css': 'style',
       };
+      // 「桌宠控制台」独立页面：与旧 AI 设置页并行，进程内打包。
+      const consolePaths: Record<string, 'page' | 'script' | 'style'> = {
+        '/standalone-console/': 'page',
+        '/standalone-console/console.js': 'script',
+        '/standalone-console/console.css': 'style',
+      };
       const shellKey = shellPaths[url.pathname];
-      if (shellKey || url.pathname === '/health' || url.pathname === '/') {
+      const consoleKey = consolePaths[url.pathname];
+      if (shellKey || consoleKey || url.pathname === '/health' || url.pathname === '/') {
         if (method !== 'GET' && method !== 'HEAD') {
           rejectRequest(res, 405, '仅支持 GET');
           return;
@@ -134,6 +142,10 @@ export function startRouter(
           const assets = await readSettingsAssets();
           const types = { page: 'text/html', script: 'text/javascript', style: 'text/css' } as const;
           sendText(res, 200, types[shellKey], assets[shellKey]);
+        } else if (consoleKey) {
+          const consoleAssets = { page: consolePage(), script: consoleScript, style: consoleStyle };
+          const types = { page: 'text/html', script: 'text/javascript', style: 'text/css' } as const;
+          sendText(res, 200, types[consoleKey], consoleAssets[consoleKey]);
         } else if (url.pathname === '/health')
           sendText(res, 200, 'application/json', JSON.stringify(deps.status(boundPort)));
         else sendText(res, 200, 'text/html', deps.landingPage(boundPort));

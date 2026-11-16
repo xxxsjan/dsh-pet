@@ -19,3 +19,13 @@ test('redactConfigSecrets：去掉 fishApiKey，改成 hasFishApiKey', () => {
   assert.equal(redacted.pack!.hasFishApiKey, false);
   assert.equal('fishApiKey' in redacted.pack!, false);
 });
+
+test('redactConfigSecrets：breezeApiKey 同样脱敏为 hasBreezeApiKey', () => {
+  const redacted = redactConfigSecrets({
+    main: { voiceProvider: 'breeze', breezeApiKey: 'bz-secret' },
+    pack: { breezeApiKey: '' },
+  });
+  assert.equal('breezeApiKey' in redacted.main!, false);
+  assert.equal(redacted.main!.hasBreezeApiKey, true);
+  assert.equal(redacted.pack!.hasBreezeApiKey, false);
+});

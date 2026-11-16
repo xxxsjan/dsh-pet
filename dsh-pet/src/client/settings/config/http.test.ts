@@ -248,6 +248,7 @@ describe('buildSaveBody —— 请求体字段', () => {
       font: {},
     } as unknown as SaveFields;
     assert.deepEqual(Object.keys(buildSaveBody(fields)).sort(), [
+      'breezeVoices',
       'chatAnimationEnabled',
       'chatImageEnabled',
       'chatImageLimit',

@@ -94,7 +94,8 @@ function card(title, hint, kids) {
 }
 
 function button(text, onClick, opts) {
-  const node = make('button', { type: 'button', class: opts && opts.danger ? 'btn ghost' : 'btn', text: text });
+  const cls = opts && opts.danger ? 'btn ghost' : opts && opts.ghost ? 'btn ghost' : 'btn';
+  const node = make('button', { type: 'button', class: cls, text: text });
   node.addEventListener('click', onClick);
   return node;
 }

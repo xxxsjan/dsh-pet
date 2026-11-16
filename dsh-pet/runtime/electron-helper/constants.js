@@ -34,6 +34,9 @@ const BRIDGE = params.get('bridge') === '1';
 // 菜单首项去向（主进程按宿主形态注入）：desktop 唤起桌面应用，standalone 打开本机 AI 设置页，web 打开站点。
 const OPEN_TARGET_RAW = params.get('openTarget');
 const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' || OPEN_TARGET_RAW === 'standalone' ? OPEN_TARGET_RAW : 'web';
+// 开发环境标记（主进程按 BLUE_FISH_DEV / 打包痕迹算出，见 main.js）：只决定旧「打开 AI 设置」菜单项
+// 是否露出，不参与任何请求、权限或路由判定。
+const DEV_MODE = params.get('dev') === '1';
 // 视口 = 全部显示器工作区的外接矩形，只是坐标系原点与比例换算基准；边界判定一律走 AREAS 的并集
 // （不规则布局下外接矩形含大片不属于任何屏的空洞）。主进程下发的是物理像素，VIEW 是 ÷scale 后的 CSS 系。
 const VIEW_SCREEN = {

@@ -64,7 +64,7 @@ function stubBrowser(sink?: { volumes: number[] }): () => void {
     play(): Promise<void> {
       sink?.volumes.push(this.volume);
       // speak() 现在要等 onended 才返回；测试桩在下一拍模拟播完，否则用例会挂死。
-      queue.microtask(() => this.onended?.());
+      queueMicrotask(() => this.onended?.());
       return Promise.resolve();
     }
   };

@@ -11,6 +11,7 @@ import { fetchViaOutboundProxy } from '../net/proxy-fetch.ts';
 import { looksLikeMpegAudio } from './cache.ts';
 import { VoiceSynthError } from './edge.ts';
 import { isFishVoiceIdFormat } from './fish-voices.ts';
+import { percentRateToSpeed } from '../../shared/voice-params.ts';
 
 /** Fish TTS HTTP 总时限（ms）：上游偶发较慢，与 danmu-ji 90s 同口径。 */
 export const FISH_SYNTHESIS_TIMEOUT_MS = 90_000;
@@ -45,14 +46,11 @@ export interface FishSynthInput {
  * 把 Edge 风格的 `+N%` / `-N%` 映射成 Fish 的绝对语速。
  *
  * `+0%` → 1.0，`+50%` → 1.5，`-50%` → 0.5；结果夹到 0.5–2.0。
+ * 与 Breeze 的 `voice_settings.speed` 同一份换算，实现收敛在 shared/voice-params。
  * @param rate - 已通过 speak 校验的语速表达式。
  */
 export function edgeRateToFishSpeed(rate: string): number {
-  const sign = rate.startsWith('-') ? -1 : 1;
-  const percent = Number(rate.slice(1, -1));
-  if (!Number.isFinite(percent)) return 1;
-  const speed = 1 + (sign * percent) / 100;
-  return Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed));
+  return percentRateToSpeed(rate);
 }
 
 /**

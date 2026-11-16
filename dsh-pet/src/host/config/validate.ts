@@ -8,6 +8,7 @@
 import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '../../shared/fonts.ts';
 import { VOICE_VOLUME_MAX } from '../../shared/voice-params.ts';
 import { isFishVoiceIdFormat, normalizeFishTtsModel } from '../voice/fish-voices.ts';
+import { isBreezeVoiceIdFormat } from '../voice/breeze-voices.ts';
 import { isKnownVoice } from '../voice/voices.ts';
 import { FONT_FAMILY_SET } from './constants.ts';
 
@@ -177,8 +178,8 @@ export function topFieldValid(key: string, value: unknown): boolean {
       // 语音播报开关（全局布尔）：只决定念不念，不影响气泡与记忆
       return typeof value === 'boolean';
     case 'voiceProvider':
-      // 语音引擎：edge（默认）或 fish；其它值非法，读取侧回落 edge
-      return value === 'edge' || value === 'fish';
+      // 语音引擎：edge（默认）/ fish / breeze；其它值非法，读取侧回落 edge
+      return value === 'edge' || value === 'fish' || value === 'breeze';
     case 'voiceName':
       // 音色：Edge 白名单，或 Fish 内置 / 合法 Voice ID 格式（自定义是否入目录由 speak 再判）
       return typeof value === 'string' && isKnownVoice(value);
@@ -203,6 +204,12 @@ export function topFieldValid(key: string, value: unknown): boolean {
     case 'fishVoices':
       // 用户追加的 Fish 音色目录：数组，每项 id 合法且非内置重复；标签为字符串
       return fishVoicesValid(value);
+    case 'breezeApiKey':
+      // Breeze Blue Developer API Key（xi-api-key）：任意字符串（含空 = 未配置）；明文只落盘，HTTP 响应脱敏
+      return typeof value === 'string';
+    case 'breezeVoices':
+      // 用户追加的 Breeze 音色目录：数组，每项 id 合法且非内置重复；标签为字符串
+      return breezeVoicesValid(value);
     case 'chatImageEnabled':
       return typeof value === 'boolean';
     case 'chatAnimationEnabled':
@@ -265,6 +272,21 @@ function fishVoicesValid(value: unknown): boolean {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
     const row = item as Record<string, unknown>;
     if (typeof row.id !== 'string' || !isFishVoiceIdFormat(row.id.trim().replace(/\s+/g, ''))) return false;
+    if (row.label !== undefined && typeof row.label !== 'string') return false;
+  }
+  return true;
+}
+
+/**
+ * breezeVoices 段校验：数组，每项必须有合法 Voice ID（`voc_…` 同口径）；标签可选字符串。
+ * 内置 id / 重复项在规范化时会被丢掉，不在这里判整段非法（避免旧配置里混了内置就被打回默认空数组）。
+ */
+function breezeVoicesValid(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== 'string' || !isBreezeVoiceIdFormat(row.id.trim().replace(/\s+/g, ''))) return false;
     if (row.label !== undefined && typeof row.label !== 'string') return false;
   }
   return true;

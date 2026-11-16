@@ -144,6 +144,8 @@ async function boot(): Promise<void> {
   process.env.BLUE_FISH_CONFIG_URL = `${origin}${ROUTE_SEGMENT}/config`;
   // 右键「打开 AI 设置」用它：带令牌的配置页（与 CLI 行为一致）。裸 origin 在应用里没有页面可看。
   process.env.BLUE_FISH_SITE_URL = security.authenticatedUrl(origin);
+  // 右键「桌宠控制台」用它：新独立路由，与旧 AI 设置页并行；旧入口与 /standalone-ai/ 路由保持不动。
+  process.env.BLUE_FISH_CONSOLE_URL = security.authenticatedUrl(origin, '/standalone-console/');
   if (!process.env.BLUE_FISH_SCALE) process.env.BLUE_FISH_SCALE = '1';
 
   apply(context.ctx);

@@ -14,6 +14,10 @@ export interface ScriptConsts {
   readonly voices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
   /** Fish Audio 内置音色（来自 host/voice/fish-voices.ts）。 */
   readonly fishVoices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
+  /** Breeze Blue 内置音色（来自 host/voice/breeze-voices.ts）。 */
+  readonly breezeVoices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
+  /** Breeze Blue 控制台 API Key 页地址（来自 shared/voice-links.ts）。 */
+  readonly breezeApiKeyUrl: string;
   /** 字体预设 id（来自 shared/fonts.ts）。 */
   readonly fonts: readonly string[];
   /** 显示档（来自 shared/config.ts）。 */
@@ -40,6 +44,8 @@ history.replaceState(null, '', location.pathname);
 const API = ${JSON.stringify(routePath)};
 const VOICES = ${JSON.stringify(consts.voices)};
 const FISH_VOICES = ${JSON.stringify(consts.fishVoices)};
+const BREEZE_VOICES = ${JSON.stringify(consts.breezeVoices)};
+const BREEZE_API_KEY_URL = ${JSON.stringify(consts.breezeApiKeyUrl)};
 const FONT_IDS = ${JSON.stringify(consts.fonts)};
 const DISPLAYS = ${JSON.stringify(consts.displays)};
 const CORNERS = ${JSON.stringify(consts.corners)};
@@ -107,10 +113,36 @@ function flashSaveHint(text, kind) {
   }, 2800);
 }
 
-function markDirty(value) {
-  state.dirty = value;
+// 每个配置 Tab 各记一份「未保存」：共用保存时改了一个 Tab、存了另一个，提示就跟着消失，
+// 看不出哪个分区还没写盘。分 Tab 记账后顶栏能如实列出还没保存的分区。
+const CONFIG_TAB_LABELS = { pet: '宠物', global: '全局开关', font: '字体', physics: '物理', model: '模型', voice: '语音', advanced: '高级' };
+const dirtyTabs = {};
+
+function refreshDirtyBadge() {
   const badge = byId('dirty');
-  if (badge) badge.hidden = !value;
+  if (!badge) return;
+  const names = Object.keys(dirtyTabs).map((key) => CONFIG_TAB_LABELS[key] || key);
+  badge.hidden = names.length === 0;
+  badge.textContent = names.length ? '有未保存的改动：' + names.join('、') : '';
+}
+
+function markDirty(value) {
+  if (value) {
+    // configTab 由 ./pets 片段声明；这里只读不改，调用都发生在启动之后。
+    const scope = typeof configTab === 'string' ? configTab : 'pet';
+    dirtyTabs[scope] = true;
+  } else {
+    for (const key of Object.keys(dirtyTabs)) delete dirtyTabs[key];
+  }
+  state.dirty = Object.keys(dirtyTabs).length > 0;
+  refreshDirtyBadge();
+}
+
+/** 某个 Tab 保存成功后单独销账，别把其它 Tab 的未保存改动一起清掉。 */
+function clearDirtyTab(tab) {
+  delete dirtyTabs[tab];
+  state.dirty = Object.keys(dirtyTabs).length > 0;
+  refreshDirtyBadge();
 }
 
 async function callApi(method, path, body) {

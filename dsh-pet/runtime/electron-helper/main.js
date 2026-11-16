@@ -181,6 +181,17 @@ const BRIDGE = process.env.BLUE_FISH_BRIDGE === '1';
  *  'web'        = dsh web / 手写 start-desktop（无该变量）→ 默认浏览器打开站点。 */
 const OPEN_TARGET_RAW = process.env.BLUE_FISH_OPEN_TARGET;
 const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' || OPEN_TARGET_RAW === 'standalone' ? OPEN_TARGET_RAW : 'web';
+/** 开发环境：决定右键菜单里旧「打开 AI 设置」项是否露出（露出时文案带「（开发）」）。
+ *  口径依次是：宿主显式注入 BLUE_FISH_DEV（'1' 开发 / '0' 正式）→ NODE_ENV=production 视为正式 →
+ *  跑在 asar 里的打包产物视为正式 → 其余（仓库内散文件 + 本地 Electron）算开发。
+ *  只看展示，不影响路由、权限与任何请求。 */
+const DEV_MODE = (() => {
+  const raw = process.env.BLUE_FISH_DEV;
+  if (raw === '1') return true;
+  if (raw === '0') return false;
+  if (process.env.NODE_ENV === 'production') return false;
+  return __dirname.indexOf('app.asar') < 0;
+})();
 /** 协议行前缀（与 helper-process.ts 的 BRIDGE_PREFIX 一致） */
 const BRIDGE_PREFIX = 'blue-fish-bridge:';
 
@@ -230,6 +241,7 @@ const petWindows = createWindows({
   helperDir: __dirname,
   isBridge: BRIDGE,
   openTarget: OPEN_TARGET,
+  devMode: DEV_MODE,
   platform: TRAY_PLATFORM,
   shouldReassertTopmost,
   topmostLevel,

@@ -9,9 +9,10 @@
  * @module dsh-pet/src/host/voice/voices
  */
 import { isFishVoiceIdFormat, FISH_BUILTIN_VOICES } from './fish-voices.ts';
+import { BREEZE_BUILTIN_VOICES } from './breeze-voices.ts';
 
-/** 语音引擎：内置 Edge，或 Fish Audio。 */
-export type VoiceProvider = 'edge' | 'fish';
+/** 语音引擎：内置 Edge，或 Fish Audio / Breeze Blue（都是自带音色的第三方引擎）。 */
+export type VoiceProvider = 'edge' | 'fish' | 'breeze';
 
 /** 一个可选音色；`id` 是上游 short name / reference_id，其余字段只用于展示。 */
 export interface VoiceInfo {
@@ -45,9 +46,9 @@ export function isEdgeVoice(id: string): boolean {
 }
 
 /**
- * 判断音色是否可被配置层接受：Edge 白名单，或 Fish 内置 / 合法自定义 Voice ID。
+ * 判断音色是否可被配置层接受：Edge 白名单，或 Fish / Breeze 内置 / 合法 Voice ID。
  *
- * 自定义 Fish id 的「是否已入目录」在 speak / save 再判；这里放行格式合法的 id，
+ * 自定义 Fish / Breeze id 的「是否已入目录」在 speak / save 再判；这里放行格式合法的 id，
  * 避免用户层写了自定义音色后合并阶段被整段打回默认。
  * 看起来像 Edge short name（`zh-CN-…` / `…Neural`）但不在白名单的一律拒绝——
  * 不能因为 Fish 格式宽松就把伪造的 Edge 音色放进来。
@@ -56,6 +57,7 @@ export function isEdgeVoice(id: string): boolean {
 export function isKnownVoice(id: string): boolean {
   if (isEdgeVoice(id)) return true;
   if (FISH_BUILTIN_VOICES.some((voice) => voice.id === id)) return true;
+  if (BREEZE_BUILTIN_VOICES.some((voice) => voice.id === id)) return true;
   if (/^zh-CN-/i.test(id) || /Neural$/i.test(id)) return false;
   return isFishVoiceIdFormat(id);
 }
@@ -65,5 +67,6 @@ export function isKnownVoice(id: string): boolean {
  * @param raw - 配置值。
  */
 export function normalizeVoiceProvider(raw: unknown): VoiceProvider {
-  return raw === 'fish' ? 'fish' : 'edge';
+  if (raw === 'fish' || raw === 'breeze') return raw;
+  return 'edge';
 }

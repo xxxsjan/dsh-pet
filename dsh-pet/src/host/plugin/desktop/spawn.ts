@@ -48,6 +48,21 @@ export function resolveOpenTarget(siteUrl: string, desktopHost: boolean): OpenTa
 }
 
 /**
+ * 是否开发环境：只决定右键菜单里旧「打开 AI 设置」项露不露出（露出时文案带「（开发）」）。
+ *
+ * 口径依次是：显式 `BLUE_FISH_DEV`（'1' 开发 / '0' 正式）→ `NODE_ENV=production` 视为正式 →
+ * 其余算开发。与路由、权限、读写链路无关，判错只会少一个菜单项，不会影响任何请求。
+ * @param env - 进程环境（测试可注入）。
+ * @returns true 表示按开发环境展示。
+ */
+export function resolveDevMode(env: NodeJS.ProcessEnv = process.env): boolean {
+  const raw = env.BLUE_FISH_DEV;
+  if (raw === '1') return true;
+  if (raw === '0') return false;
+  return env.NODE_ENV !== 'production';
+}
+
+/**
  * 创建 Helper 进程的拉起与停止句柄：进程内宿主直接跳过，其余按需下载 Electron 后 spawn 并退避重试。
  */
 export function createDesktopSpawn(deps: DesktopSpawnInput) {
@@ -123,6 +138,8 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
     // 的签名 Cookie，其余请求一律 401，故传 origin 而不是另拼地址。令牌等价登录态：只经子进程环境变量
     // 递到 helper 内存，不落盘、不进日志。
     const siteUrl = ctx.connection.authenticatedUrl(origin);
+    // 控制台独立路由的已鉴权地址；旧 AI 设置页地址（siteUrl）与入口保持不动。
+    const consoleUrl = ctx.connection.authenticatedUrl(origin, '/standalone-console/');
     // 桌面渲染端也从同一份 handlePetRoute 拿成品配置（每只宠物一个局部小窗口；经管道，不走 HTTP——
     // DSH Desktop 2.0.3+ 会拦插件自拉进程的裸 HTTP 请求，浏览器访问闸门只放行带令牌的请求）
     const configUrl = `${origin}${ROUTE_SEGMENT}/config`;
@@ -133,11 +150,16 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
           BLUE_FISH_CONFIG_URL: configUrl,
           // 已鉴权站点 URL（含本进程启动令牌）：只供 helper 的「打开」首项使用，任何日志都不许出现它
           BLUE_FISH_SITE_URL: siteUrl,
+          // 已鉴权控制台 URL（含本进程启动令牌）：只供 helper 的「桌宠控制台」菜单使用
+          BLUE_FISH_CONSOLE_URL: consoleUrl,
           // 宿主形态决定菜单首项的去向与文案（同名「打开」项，三种形态三种语义）：
           //   desktop    = DSH 桌面应用 → 唤起应用主窗口（helper 走 dsh://open）
           //   standalone = 独立模式 → 本机 AI 设置页
           //   web        = dsh web → DSH 站点
           BLUE_FISH_OPEN_TARGET: resolveOpenTarget(siteUrl, isDesktopHost()),
+          // 开发环境标记：旧「打开 AI 设置」菜单项只在开发环境露出（文案带「（开发）」），
+          // 正式环境整项不出现；与本机路由、权限、读写链路无关。
+          BLUE_FISH_DEV: resolveDevMode() ? '1' : '0',
           BLUE_FISH_SCALE: '1',
           // 打开 bridge 协议：main.js 注册 blue-fish-bridge scheme，把渲染端请求经管道转给宿主
           BLUE_FISH_BRIDGE: '1',

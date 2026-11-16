@@ -41,8 +41,8 @@ export interface StandaloneContextOptions {
   routes?: RegisteredRoute[];
   /** 可选的 AI 服务，缺失时模型能力明确不可用。 */
   ai?: StandaloneModelService;
-  /** 给地址附加访问凭据的包装。 */
-  authenticatedUrl?: (baseUrl: string) => string;
+  /** 给地址附加访问凭据的包装；page 可指定独立页面段，缺省走旧设置页。 */
+  authenticatedUrl?: (baseUrl: string, page?: string) => string;
   /**
    * 关掉整个独立模式进程的能力（桌面 Helper 托盘的「退出」）。
    *
@@ -154,6 +154,7 @@ export function createStandaloneContext(options: StandaloneContextOptions): Stan
     logger,
     webServer,
     connection: { authenticatedUrl: options.authenticatedUrl ?? ((baseUrl: string): string => baseUrl) },
+    // 注：回落实现忽略 page（伪 ctx 无令牌包装能力）；真实安全实现见 request-security.ts。
     ...(ai
       ? {
           standaloneAi: {

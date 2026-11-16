@@ -44,11 +44,23 @@ function voiceOptionsForProvider(provider) {
       }));
     return FISH_VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag })).concat(customOpts);
   }
+  if (provider === 'breeze') {
+    const custom = Array.isArray(state.globals.breezeVoices) ? state.globals.breezeVoices : [];
+    const builtinIds = new Set(BREEZE_VOICES.map((voice) => voice.id));
+    const customOpts = custom
+      .filter((voice) => voice && voice.id && !builtinIds.has(voice.id))
+      .map((voice) => ({
+        value: voice.id,
+        label: (voice.label || voice.id) + ' · Breeze · 自定义',
+      }));
+    return BREEZE_VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag })).concat(customOpts);
+  }
   return VOICES.map((voice) => ({ value: voice.id, label: voice.name + ' · ' + voice.tag }));
 }
 
 function defaultVoiceForProvider(provider) {
   if (provider === 'fish') return (FISH_VOICES[0] && FISH_VOICES[0].id) || '';
+  if (provider === 'breeze') return (BREEZE_VOICES[0] && BREEZE_VOICES[0].id) || '';
   const edgeDefault = VOICES.find((voice) => voice.id === 'zh-CN-XiaoyiNeural');
   return (edgeDefault && edgeDefault.id) || (VOICES[0] && VOICES[0].id) || '';
 }
@@ -60,7 +72,18 @@ const VOICE_PREVIEW_TEXT = '你好，这是音色试听。';
 
 function savedVoiceProvider() {
   const main = state.config && state.config.main;
-  return main && main.voiceProvider === 'fish' ? 'fish' : 'edge';
+  if (!main) return 'edge';
+  if (main.voiceProvider === 'fish') return 'fish';
+  if (main.voiceProvider === 'breeze') return 'breeze';
+  return 'edge';
+}
+
+/** 草稿里的引擎名：非法值一律回落 edge（与宿主 normalizeVoiceProvider 同口径）。 */
+function draftVoiceProvider() {
+  const value = state.globals && state.globals.voiceProvider;
+  if (value === 'fish') return 'fish';
+  if (value === 'breeze') return 'breeze';
+  return 'edge';
 }
 
 function voicePreviewRow() {
@@ -121,13 +144,24 @@ async function previewVoice() {
     setStatus(status, '请先选择音色。', 'error');
     return;
   }
-  const draftProvider = g.voiceProvider === 'fish' ? 'fish' : 'edge';
+  const draftProvider = draftVoiceProvider();
   if (draftProvider !== savedVoiceProvider()) {
     setStatus(status, '请先保存语音引擎，再试听。', 'error');
     return;
   }
-  if (draftProvider === 'fish' && !g.hasFishApiKey) {
-    setStatus(status, '请先保存 Fish API Key，再试听。', 'error');
+  // Key 不必先保存：输入框里填了就直接把这一把带进这次合成（只在这一次请求里生效，不落盘）。
+  const draftKey =
+    draftProvider === 'fish'
+      ? (g.fishApiKeyDraft || '').trim()
+      : draftProvider === 'breeze'
+        ? (g.breezeApiKeyDraft || '').trim()
+        : '';
+  if (draftProvider === 'fish' && !g.hasFishApiKey && !draftKey) {
+    setStatus(status, '请先在「Fish Audio API Key」里填 Key，填了就能直接试听。', 'error');
+    return;
+  }
+  if (draftProvider === 'breeze' && !g.hasBreezeApiKey && !draftKey) {
+    setStatus(status, '请先在「Breeze Blue API Key」里填 Key，填了就能直接试听。', 'error');
     return;
   }
   const token = ++previewSeq;
@@ -147,13 +181,25 @@ async function previewVoice() {
       credentials: 'same-origin',
       cache: 'no-store',
       headers: { 'X-Blue-Fish-Token': TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: VOICE_PREVIEW_TEXT, voice: g.voiceName, rate: rate }),
+      body: JSON.stringify({
+        text: VOICE_PREVIEW_TEXT,
+        voice: g.voiceName,
+        rate: rate,
+        // 只在这一条试听里用：宿主拿它合成完就丢，不写盘。
+        ...(draftKey ? { apiKey: draftKey } : {}),
+      }),
     });
     if (token !== previewSeq) return;
     const ctype = response.headers.get('content-type') || '';
     if (!response.ok || !ctype.includes('audio')) {
       const data = await response.json().catch(() => null);
-      throw new Error((data && data.message) || '试听合成失败');
+      // 宿主对外只给一句通用失败文案（不泄露上游 URL / 状态码），这里换成用户能动手的中文提示。
+      const serverMessage = data && typeof data.message === 'string' ? data.message : '';
+      throw new Error(
+        serverMessage && !/voice synthesis failed/i.test(serverMessage)
+          ? serverMessage
+          : '试听合成失败：Key 无效 / 额度不足 / 网络不通都可能，详见插件日志。',
+      );
     }
     const objectUrl = URL.createObjectURL(await response.blob());
     if (token !== previewSeq) {
@@ -161,10 +207,12 @@ async function previewVoice() {
       return;
     }
     const audio = new Audio(objectUrl);
+    // 用的是输入框里那把还没保存的 Key：播完提醒一句，免得以为已经存好了。
+    const doneNote = draftKey ? '试听结束（这个 Key 还没保存）。' : '试听结束。';
     audio.onended = () => {
       URL.revokeObjectURL(objectUrl);
       if (previewAudio === audio) previewAudio = null;
-      if (token === previewSeq) setStatus(status, '试听结束。', 'ok');
+      if (token === previewSeq) setStatus(status, doneNote, 'ok');
     };
     audio.onerror = () => {
       URL.revokeObjectURL(objectUrl);
@@ -184,10 +232,67 @@ async function previewVoice() {
   }
 }
 
+/** Breeze 自定义音色草稿：输入框随面板重渲染，草稿要留在函数外才不丢字。 */
+let breezeVoiceDraft = { id: '', label: '' };
+
+function updateBreezeDraft(key, value) {
+  breezeVoiceDraft[key] = value;
+}
+
+/** 把草稿里的 Voice ID 加入音色池，并切到它。 */
+function addBreezeVoiceFromDraft() {
+  const id = String(breezeVoiceDraft.id || '').trim().replace(/\\s+/g, '');
+  if (!id) return;
+  const builtinIds = BREEZE_VOICES.map((voice) => voice.id);
+  const list = Array.isArray(state.globals.breezeVoices) ? state.globals.breezeVoices : [];
+  if (builtinIds.indexOf(id) >= 0 || list.some((voice) => voice.id === id)) return;
+  state.globals.breezeVoices = list.concat([{ id: id, label: String(breezeVoiceDraft.label || '').trim() || id }]);
+  state.globals.voiceName = id;
+  breezeVoiceDraft = { id: '', label: '' };
+  markDirty(true);
+  renderVoicePanel();
+}
+
+/** 删掉一条自定义音色；当前音色被删就回落到内置默认。 */
+function removeBreezeVoice(id) {
+  const list = Array.isArray(state.globals.breezeVoices) ? state.globals.breezeVoices : [];
+  state.globals.breezeVoices = list.filter((voice) => voice.id !== id);
+  const opts = voiceOptionsForProvider('breeze');
+  if (!opts.some((opt) => opt.value === state.globals.voiceName)) {
+    state.globals.voiceName = defaultVoiceForProvider('breeze');
+  }
+  markDirty(true);
+  renderVoicePanel();
+}
+
+/** Breeze 的自定义音色区：两行输入 + 添加按钮 + 已追加项（可删）。 */
+function breezeCustomVoiceRows() {
+  const list = Array.isArray(state.globals.breezeVoices) ? state.globals.breezeVoices : [];
+  const rows = [
+    textField('g-breeze-voice-id', '自定义 Voice ID', breezeVoiceDraft.id, (value) => updateBreezeDraft('id', value), {
+      placeholder: 'Breeze 音色库里的 Voice ID（字母数字与 _-）',
+      hint: '输入后点「添加音色」加入音色池，并自动切到它。',
+    }),
+    textField('g-breeze-voice-label', '显示名（可选）', breezeVoiceDraft.label, (value) => updateBreezeDraft('label', value), {
+      placeholder: '大肥鱼（自定义）',
+    }),
+    make('div', { class: 'testRow' }, [button('添加音色', () => addBreezeVoiceFromDraft())]),
+  ];
+  for (const voice of list) {
+    rows.push(make('div', { class: 'testRow' }, [
+      make('span', { text: (voice.label || voice.id) + '（' + voice.id + '）' }),
+      button('删除', () => removeBreezeVoice(voice.id), { danger: true }),
+    ]));
+  }
+  return rows;
+}
+
 function voiceCard() {
   const g = state.globals;
-  const isFish = g.voiceProvider === 'fish';
-  const voiceOpts = voiceOptionsForProvider(isFish ? 'fish' : 'edge');
+  const provider = draftVoiceProvider();
+  const isFish = provider === 'fish';
+  const isBreeze = provider === 'breeze';
+  const voiceOpts = voiceOptionsForProvider(provider);
   const fishRows = isFish ? [
     passwordField('g-fish-key', 'Fish Audio API Key', g.fishApiKeyDraft || '', (value) => setGlobal('fishApiKeyDraft', value), g.hasFishApiKey ? '已保存密钥，留空保留；勾选下方可清除' : '在 Fish Audio 控制台获取'),
     g.hasFishApiKey ? toggleRow('g-fish-clear', '清除已保存的 Fish API Key', '下次保存时删除磁盘上的密钥。', g.clearFishApiKey === true, (value) => setGlobal('clearFishApiKey', value)) : null,
@@ -198,22 +303,33 @@ function voiceCard() {
       { value: 'drama-3', label: 'Drama 3' },
     ], (value) => setGlobal('fishTtsModel', value)),
   ].filter(Boolean) : [];
+  const breezeRows = isBreeze ? [
+    make('div', { class: 'testRow' }, [
+      button('获取 API Key', () => {
+        window.open(BREEZE_API_KEY_URL, '_blank', 'noopener,noreferrer');
+      }, { ghost: true }),
+    ]),
+    passwordField('g-breeze-key', 'Breeze Blue API Key', g.breezeApiKeyDraft || '', (value) => setGlobal('breezeApiKeyDraft', value), g.hasBreezeApiKey ? '已保存密钥，留空保留；勾选下方可清除' : '在 Breeze Blue 开发者控制台获取（请求头 xi-api-key）'),
+    g.hasBreezeApiKey ? toggleRow('g-breeze-clear', '清除已保存的 Breeze API Key', '下次保存时删除磁盘上的密钥。', g.clearBreezeApiKey === true, (value) => setGlobal('clearBreezeApiKey', value)) : null,
+  ].concat(breezeCustomVoiceRows()).filter(Boolean) : [];
   return card('语音播报', '桌宠开口说话用的引擎、音色与音量；保存后立即写盘。', [
     toggleRow('g-voice', '语音播报', '关闭后所有语音都静音，文字气泡不受影响。', g.voiceEnabled, (value) => setGlobal('voiceEnabled', value)),
-    selectField('g-voice-provider', '语音引擎', g.voiceProvider || 'edge', [
+    selectField('g-voice-provider', '语音引擎', provider, [
       { value: 'edge', label: 'Edge（免费）' },
       { value: 'fish', label: 'Fish Audio' },
+      { value: 'breeze', label: 'Breeze Blue（大肥鱼）' },
     ], (value) => {
-      const next = value === 'fish' ? 'fish' : 'edge';
+      const next = value === 'fish' || value === 'breeze' ? value : 'edge';
       setGlobal('voiceProvider', next);
       const opts = voiceOptionsForProvider(next);
       if (!opts.some((opt) => opt.value === g.voiceName)) setGlobal('voiceName', defaultVoiceForProvider(next));
       renderVoicePanel();
     }),
     ...fishRows,
-    selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '切换引擎、模型或 Key 后请先保存再试听；只换音色可直接试。'),
+    ...breezeRows,
+    selectField('g-voice-name', '音色', g.voiceName, voiceOpts, (value) => setGlobal('voiceName', value), '换音色可直接试听；引擎 / 模型的改动要先保存；Key 填了就能直接试听，不必保存。'),
     voicePreviewRow(),
-    numberField('g-voice-rate', '语速（0.5–2）', g.voiceRate == null ? 1 : g.voiceRate, (value) => setGlobal('voiceRate', clampNumber(value, 0.5, 2, 1)), { min: 0.5, max: 2, step: 0.05, hint: '1 为原速；会重新合成，试听前建议先保存。' }),
+    numberField('g-voice-rate', '语速（0.5–2）', g.voiceRate == null ? 1 : g.voiceRate, (value) => setGlobal('voiceRate', clampNumber(value, 0.5, 2, 1)), { min: 0.5, max: 2, step: 0.05, hint: '1 为原速；试听按当前值直接合成，保存后对正式播报生效。' }),
     numberField('g-voice-volume', '音量（0–3，最高 300%）', g.voiceVolume, (value) => setGlobal('voiceVolume', clampNumber(value, 0, 3, 1)), { min: 0, max: 3, step: 0.05, hint: '1 = 100%；超过 1 用增益放大，只影响播放不重新合成。' }),
     toggleRow('g-voice-whisper', '周期碎碎念也念出来', '关掉只影响周期碎碎念，手动对话照常发声。', g.voiceWhisperEnabled, (value) => setGlobal('voiceWhisperEnabled', value)),
     toggleRow('g-voice-todo', '待办提醒也念出来', '关掉只影响待办提醒的朗读。', g.voiceTodoEnabled, (value) => setGlobal('voiceTodoEnabled', value)),

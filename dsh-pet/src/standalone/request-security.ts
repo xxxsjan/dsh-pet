@@ -14,8 +14,8 @@ import { ROUTE_SEGMENT } from '../shared/constants.ts';
 export interface RequestSecurity {
   /** 进程能力令牌，只写入本机启动清单，绝不进 HTTP 响应或日志。 */
   readonly token: string;
-  /** 生成带令牌的设置页地址。 */
-  authenticatedUrl(baseUrl: string): string;
+  /** 生成带令牌的页面地址；缺省落到旧 AI 设置页，可传独立控制台路径。 */
+  authenticatedUrl(baseUrl: string, page?: string): string;
   /** 判定请求是否放行；拒绝时已经写好响应。 */
   authorize(req: IncomingMessage, res: ServerResponse, allowFileOrigin?: boolean): boolean;
 }
@@ -51,6 +51,10 @@ function publicRead(req: IncomingMessage): boolean {
       '/standalone-ai/settings.css',
       '/standalone-ai/chat-panel.js',
       '/standalone-ai/icon.png',
+      '/standalone-console/',
+      '/standalone-console/console.js',
+      '/standalone-console/console.css',
+      '/standalone-console/chat-panel.js',
     ].includes(path) || path === ROUTE_SEGMENT || path.startsWith(`${ROUTE_SEGMENT}/`)
   );
 }
@@ -79,7 +83,7 @@ export function createRequestSecurity(): RequestSecurity {
   const token = randomBytes(32).toString('base64url');
   return {
     token,
-    authenticatedUrl(baseUrl) {
+    authenticatedUrl(baseUrl, page = '/standalone-ai/') {
       const base = new URL(baseUrl);
       if (
         base.protocol !== 'http:' ||
@@ -89,7 +93,7 @@ export function createRequestSecurity(): RequestSecurity {
       ) {
         throw new Error('设置地址必须是本机 HTTP 地址');
       }
-      return `${base.origin}/standalone-ai/#token=${token}`;
+      return `${base.origin}${page}#token=${token}`;
     },
     authorize(req, res, allowFileOrigin = false) {
       const host = req.headers.host;
