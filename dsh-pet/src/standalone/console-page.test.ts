@@ -79,6 +79,7 @@ test('其余分区全部接真控件：宠物、全局、物理、字体、模�
   for (const corner of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
     assert.match(html, new RegExp(`data-corner="${corner}"`), `角落按钮 ${corner} 应存在`);
   }
+  assert.match(html, /class="fields petFields"/, '宠物字段区应带紧凑作用域类，不影响其他卡片');
   // 全局开关 / 物理 / 外观字体（对话上下文卡已按旧页删除）
   for (const id of ['g-click-volume', 'global-save', 'ph-gravity', 'ph-restitution', 'ph-friction', 'ph-power', 'physics-save', 'font-family', 'font-size', 'font-save']) {
     assert.match(html, new RegExp(`id="${id}"`), `分区控件 ${id} 应存在于静态壳`);
@@ -396,6 +397,9 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.match(styles, /\.liveFeedPanel\.is-active\{display:flex/, '只有当前选中平台的弹幕面板显示');
   assert.match(styles, /\.dmFeedItem\.gift\{/, '礼物弹幕应有单独配色');
   assert.match(styles, /\.btn\.danger\{background:color-mix/, '停止监听需要红色按钮');
+  assert.match(styles, /\.petFields\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:10px 16px\}/, '宠物字段区应为可收缩的三列网格');
+  assert.match(styles, /\.petFields \.fieldInput\{height:32px\}/, '宠物区输入框应收窄高度');
+  assert.match(styles, /\.petFields \.corner\{height:30px\}/, '宠物区角落按钮应收窄高度');
 
   // 缓存 key 与四组接口沿用旧页，四个平台各自的接线函数保留
   assert.match(script, /blue_fish_douyin_danmaku_form_v1/, '抖音表单缓存 key 应与旧页一致');

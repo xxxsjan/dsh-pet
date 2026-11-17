@@ -49,7 +49,7 @@ export function consolePage(): string {
 <button type="button" class="btn ghost" id="pet-avatar-upload" hidden>上传头像</button>
 <input type="file" id="pet-avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
 </div>
-<div class="fields">
+<div class="fields petFields">
 <div class="fieldRow"><label class="fieldLabel" for="pet-name">名字</label><input class="fieldInput" id="pet-name" type="text" autocomplete="off"></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-id">标识（id）</label><input class="fieldInput" id="pet-id" type="text" disabled></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-size">大小（宽度 px）</label><input class="fieldInput" id="pet-size" type="number" min="1" step="1"></div>
@@ -62,14 +62,10 @@ export function consolePage(): string {
 </div></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-margin-x">水平偏移（px）</label><input class="fieldInput" id="pet-margin-x" type="number" step="1"></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-margin-y">垂直偏移（px）</label><input class="fieldInput" id="pet-margin-y" type="number" step="1"></div>
-<div class="fieldRow switchPair">
-<div class="switchLine"><span>余额功能</span><button type="button" class="switch" data-switch="pet-balance" aria-checked="false"></button></div>
-<div class="switchLine"><span>碎碎念</span><button type="button" class="switch" data-switch="pet-whisper" aria-checked="false"></button></div>
-</div>
-<div class="fieldRow switchPair">
-<div class="switchLine"><span>工作状态联动</span><button type="button" class="switch" data-switch="pet-work" aria-checked="false"></button></div>
-<div class="switchLine"><span>固定不动</span><button type="button" class="switch" data-switch="pet-fixed" aria-checked="false"></button></div>
-</div>
+<div class="fieldRow"><div class="switchLine"><span>余额功能</span><button type="button" class="switch" data-switch="pet-balance" aria-checked="false"></button></div></div>
+<div class="fieldRow"><div class="switchLine"><span>碎碎念</span><button type="button" class="switch" data-switch="pet-whisper" aria-checked="false"></button></div></div>
+<div class="fieldRow"><div class="switchLine"><span>工作状态联动</span><button type="button" class="switch" data-switch="pet-work" aria-checked="false"></button></div></div>
+<div class="fieldRow"><div class="switchLine"><span>固定不动</span><button type="button" class="switch" data-switch="pet-fixed" aria-checked="false"></button></div></div>
 <div class="fieldRow wide">
 <label class="fieldLabel" for="pet-persona">这只的人设（可选）</label>
 <textarea class="fieldInput area" id="pet-persona" rows="3" maxlength="4000"></textarea>
@@ -3074,15 +3070,23 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 @media (max-width:880px){.grid{column-count:1}}
 .petConfig{column-span:all}
 .petConfigBody{display:grid;grid-template-columns:240px 1fr;gap:22px}
+.petConfigBody>.fields{min-width:0}
 @media (max-width:880px){.petConfigBody{grid-template-columns:1fr}}
 .avatarBox{position:relative;min-height:180px;border-radius:18px;background:var(--bg-base);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden;padding:14px;text-align:center}
 .avatarBox img{width:140px;height:140px;max-width:100%;object-fit:contain;border-radius:16px}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
 .fieldRow{display:flex;flex-direction:column;gap:6px;min-width:0}
+/* 宠物字段区：三列网格，行距、控件高度、角落按钮整体收紧，仅作用于本区，不影响其他卡片 */
+.petFields{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px}
+.petFields .fieldRow{gap:4px}
+.petFields .fieldInput{height:32px}
+.petFields .cornerRow{gap:6px}
+.petFields .corner{height:30px}
+.petFields .switchLine{font-size:13px}
 .fieldRow.wide{grid-column:1/-1}
 .fieldGap{margin-top:14px}
 .switchGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media (max-width:880px){.fields{grid-template-columns:1fr}.fieldRow.wide,.switchPair{grid-column:auto}}
+@media (max-width:880px){.fields,.petFields{grid-template-columns:1fr}.fieldRow.wide,.switchPair{grid-column:auto}}
 .fieldLabel{font-size:13px;color:var(--label-secondary)}
 .fieldHint{grid-column:1/-1;margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--label-tertiary)}
 .fieldInput{width:100%;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-base);color:var(--label-primary);font:inherit}
