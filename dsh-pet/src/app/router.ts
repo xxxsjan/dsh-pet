@@ -24,6 +24,7 @@ import {
 import { sendIcon } from '../standalone/server/respond.ts';
 import { readChatPanelScript } from '../standalone/chat-panel-asset.ts';
 import { readSettingsIcon } from '../standalone/icon.ts';
+import { readConsoleBackground } from '../standalone/console-bg.ts';
 import { readSettingsAssets } from '../standalone/settings-assets.ts';
 import { consolePage, consoleScript, consoleStyle } from '../standalone/console-page.ts';
 
@@ -104,6 +105,19 @@ export function startRouter(
           return;
         }
         sendIcon(res, icon);
+        return;
+      }
+      if (url.pathname === '/standalone-console/console-bg.webp') {
+        if (method !== 'GET' && method !== 'HEAD') {
+          rejectRequest(res, 405, '仅支持 GET');
+          return;
+        }
+        const background = readConsoleBackground();
+        if (!background) {
+          rejectRequest(res, 404, '背景图缺失');
+          return;
+        }
+        sendIcon(res, background, 'image/webp');
         return;
       }
       if (url.pathname === '/standalone-ai/chat-panel.js' || url.pathname === '/standalone-console/chat-panel.js') {

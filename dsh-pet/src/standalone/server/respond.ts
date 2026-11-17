@@ -44,15 +44,15 @@ export function sendAsset(res: ServerResponse, body: string, type: string): void
   res.end(body);
 }
 
-/** 回设置页标签图标：二进制 PNG，不参与 CSP 与嗅探。 */
-export function sendIcon(res: ServerResponse, icon: Buffer): void {
+/** 回本机图片二进制（图标 PNG / 控制台背景 WebP），不参与 CSP 与嗅探。 */
+export function sendIcon(res: ServerResponse, body: Buffer, contentType = 'image/png'): void {
   res.writeHead(200, {
-    'content-type': 'image/png',
-    'content-length': icon.length,
+    'content-type': contentType,
+    'content-length': body.length,
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
   });
-  res.end(icon);
+  res.end(body);
 }
 
 /** 记录并回一个不含细节的 500。 */

@@ -31,6 +31,7 @@ files:
   - assets/sound/**
   - assets/config.jsonc
   - assets/logo.png
+  - assets/console-bg.webp
   - package.json
   - '!node_modules/**'
 

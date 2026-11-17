@@ -138,6 +138,15 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     petWindows.state.inputRegions.set(win.id, { dragging: input.dragging === true, rects });
   });
 
+  // 鼠标按键位掩码：渲染端在 mousemove 里幂等上报（变化才发）。只存标记，由兜底泵统一决策——
+  // 非 busy 按住键且窗口未聚焦 = 用户在拖别的窗口，抑制几何翻转（防分层窗闪烁）。
+  ipcMain.on('pet:pointer-buttons', (event, buttons) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return;
+    const mask = Number(buttons) >>> 0;
+    petWindows.state.pointerButtons.set(win.id, mask);
+  });
+
   // 文本输入框拿到 DOM 焦点不等于窗口拿到键盘焦点：窗口是 showInactive 显示的，从不主动请求焦点，
   // 于是光标在闪、按键却落到上一个窗口（Linux/X11 上必现）。这里补一次激活请求；
   // 已聚焦或已销毁时跳过，避免把焦点从别的应用抢过来。
@@ -367,6 +376,93 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     liveWindow = win;
   };
 
+  // 弹幕小窗（直播伴侣式浮窗）：控制台同一份页面，走 ?live=1&mini=1&p=<平台> 的紧凑模式；
+  // 无边框、始终置顶、可拖动可缩放；窗内只显示弹幕、不提供切平台；关掉小窗不影响后台监听。
+  const LIVE_MINI_PLATFORMS = ['dm', 'xs', 'ks', 'bl'];
+  const liveMiniUrlFromConsole = (platform) => {
+    const base = process.env.BLUE_FISH_CONSOLE_URL || '';
+    if (!/^https?:[/][/]/.test(base)) return '';
+    try {
+      const u = new URL(base);
+      u.searchParams.set('live', '1');
+      u.searchParams.set('mini', '1');
+      if (LIVE_MINI_PLATFORMS.includes(platform)) u.searchParams.set('p', platform);
+      return u.toString();
+    } catch {
+      return base;
+    }
+  };
+  let liveMiniWindow = null;
+  let liveMiniPlatform = '';
+  const openLiveMiniWindow = (platform) => {
+    const wanted = LIVE_MINI_PLATFORMS.includes(platform) ? platform : 'dm';
+    const target = liveMiniUrlFromConsole(wanted);
+    if (!/^https?:[/][/]/.test(target)) {
+      console.warn('[blue-fish-desktop-helper] live mini url missing, skip opening live mini window');
+      return;
+    }
+    // 已经开着：换了平台就重新加载同一扇窗，否则只把它提到前台。
+    if (liveMiniWindow && !liveMiniWindow.isDestroyed()) {
+      if (liveMiniPlatform !== wanted) {
+        liveMiniPlatform = wanted;
+        liveMiniWindow.loadURL(target).catch((error) => {
+          console.error('[blue-fish-desktop-helper] live mini load failed:', error);
+        });
+      }
+      if (liveMiniWindow.isMinimized()) liveMiniWindow.restore();
+      liveMiniWindow.show();
+      liveMiniWindow.focus();
+      return;
+    }
+    const scale = uiScale();
+    const win = new BrowserWindow({
+      width: Math.round(380 * scale),
+      height: Math.round(560 * scale),
+      minWidth: Math.round(300 * scale),
+      minHeight: Math.round(320 * scale),
+      autoHideMenuBar: true,
+      backgroundColor: '#070d18',
+      title: '弹幕小窗',
+      icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
+      // 无边框 + 置顶：头部由页面自绘并当拖动区，关闭按钮走页内 pet:close-live。
+      frame: false,
+      alwaysOnTop: true,
+      maximizable: false,
+      fullscreenable: false,
+      webPreferences: {
+        partition: SETTINGS_PARTITION,
+        zoomFactor: scale,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+        preload: path.join(helperDir, 'preload.js'),
+      },
+    });
+    liveMiniPlatform = wanted;
+    win.on('closed', () => {
+      if (liveMiniWindow === win) {
+        liveMiniWindow = null;
+        liveMiniPlatform = '';
+      }
+    });
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed()) win.webContents.setZoomFactor(scale);
+    });
+    win.webContents.setWindowOpenHandler(({ url: next }) => {
+      if (/^https?:[/][/]/.test(next)) {
+        shell.openExternal(next).catch((error) => {
+          console.error('[blue-fish-desktop-helper] openExternal failed:', error);
+        });
+      }
+      return { action: 'deny' };
+    });
+    win.loadURL(target).catch((error) => {
+      console.error('[blue-fish-desktop-helper] live mini load failed:', error);
+      win.destroy();
+    });
+    liveMiniWindow = win;
+  };
+
   // 应用自注册的 dsh:// 协议：已运行时把主窗口提到前台，未运行则直接把应用拉起来。
   // 只有 desktop 形态能发——协议是系统级注册的，dsh web 形态下发它会把桌面版 DSH 拉起来。
   const focusDesktopApp = () => shell.openExternal('dsh://open');
@@ -403,6 +499,22 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
   ipcMain.on('pet:open-live', () => {
     if (openTarget !== 'standalone') return;
     openLiveWindow();
+  });
+
+  // 控制台「开始监听」成功后开的弹幕小窗：同一个 standalone 门控，payload 里的 platform 决定小窗看哪个平台。
+  ipcMain.on('pet:open-live-mini', (event, payload) => {
+    if (openTarget !== 'standalone') return;
+    const platform = payload && typeof payload === 'object' ? String(payload.platform || '') : '';
+    openLiveMiniWindow(platform);
+  });
+
+  // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址，只接受 http(s) 链接。
+  ipcMain.on('pet:open-external', (event, payload) => {
+    const url = payload && typeof payload === 'object' ? String(payload.url || '') : '';
+    if (!/^https?:[/][/]/.test(url)) return;
+    shell.openExternal(url).catch((error) => {
+      console.error('[blue-fish-desktop-helper] openExternal failed:', error);
+    });
   });
 
   // 直播间独立窗口的页内关闭按钮：关掉发消息所在的那个窗口（不影响后台监听）。

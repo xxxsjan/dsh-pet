@@ -46,6 +46,43 @@ const POINTER_POLL_MS = 60;
 const OFF_BODY_RELEASE_MS = 400;
 
 /**
+ * body 迟滞确认拍数：穿透 → 可交互方向必须连续这么多拍落在 body 才放行。
+ * 拖别的窗口经过宠物时光标快速划过，凑不满连续拍数；真实悬停时光标静止，轻松满足。
+ */
+const BODY_CONFIRM_TICKS = 3;
+
+/**
+ * 外部拖拽抑制：非 busy 期间，渲染端上报鼠标按键处于按住状态（buttons 位掩码非 0）
+ * 且本窗口没有焦点——用户正在拖别的窗口（或框选）经过，几何位置翻转必须闭嘴，
+ * 否则分层窗口会被反复改 WS_EX_TRANSPARENT 而闪烁。busy 永远不抑制（拖拽租约优先）。
+ *
+ * @param state.busy - 渲染端是否正在使用本窗口的鼠标输入。
+ * @param state.buttons - 渲染端上报的鼠标按键位掩码（0 = 无按键）。
+ * @param state.focused - 本窗口当前是否持有焦点。
+ * @returns 是否抑制本拍翻转。
+ */
+function shouldSuppressFlip(state) {
+  const s = state || {};
+  if (s.busy) return false;
+  return Number(s.buttons) > 0 && s.focused !== true;
+}
+
+/**
+ * body 迟滞闸门：只拦「穿透 → 可交互」这一个方向，且只拦 body 分区。
+ * 可交互 → 穿透（离开/超时）立即放行，避免窗口粘在可交互状态。
+ *
+ * @param ignoring - 当前是否穿透。
+ * @param zone - 当前光标分区（outside/body/margin）。
+ * @param consecutiveBodyTicks - 光标连续落在 body 的拍数。
+ * @returns 本拍是否允许翻转。
+ */
+function bodyFlipConfirmed(ignoring, zone, consecutiveBodyTicks) {
+  if (!ignoring) return true;
+  if (zone !== 'body') return true;
+  return Number(consecutiveBodyTicks) >= BODY_CONFIRM_TICKS;
+}
+
+/**
  * 光标相对窗口的分区：'outside' | 'body' | 'margin'。
  *
  * 主进程除判定外还要按分区累计余量区停留时长；分区规则只在此处维护，避免两条通道漂移。
@@ -104,7 +141,10 @@ module.exports = {
   FEET_Y,
   POINTER_POLL_MS,
   OFF_BODY_RELEASE_MS,
+  BODY_CONFIRM_TICKS,
   spriteHitRect,
   pointerZone,
   decideWindowIgnore,
+  shouldSuppressFlip,
+  bodyFlipConfirmed,
 };

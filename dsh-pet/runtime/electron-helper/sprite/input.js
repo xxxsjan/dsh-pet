@@ -142,6 +142,7 @@ Object.assign(PetSprite.prototype, {
     this.stopDragFollow(); // 弹簧跟随立即停（位置定格在实时 this.pos）
     this.stage.style.transform = 'translateY(' + this.bottomPad + 'px)';
     this.syncInputBusy(); // 拖拽结束：交还给常规判定（幂等，非拖拽时多调一次不发 IPC）
+    this.syncPointerButtons(0); // 按键位掩码归零：主进程下一拍恢复几何判定
     // 提示复位：点击/拖拽期间收起，指针仍在命中区内就恢复。用 hitRect 而不是 getBoundingClientRect
     // ——命中区是窗口坐标里的权威几何，与 onMouseMove 同源。必须留在 syncInputBusy() 之后：
     // 源码守卫只扫本函数开头 400 字符找上报调用，插到前面会把上报挤出窗口。
@@ -314,6 +315,16 @@ Object.assign(PetSprite.prototype, {
     window.petBridge.setInputRegions(input);
   },
 
+  /**
+   * 幂等上报鼠标按键位掩码：值没变不发 IPC。主进程兜底泵据此识别外部拖拽并抑制翻转。
+   */
+  syncPointerButtons(buttons) {
+    const mask = Number(buttons) >>> 0;
+    if (mask === this._pointerButtons) return;
+    this._pointerButtons = mask;
+    if (window.petBridge && window.petBridge.setPointerButtons) window.petBridge.setPointerButtons(mask);
+  },
+
   setInteractive(flag) {
     const next = !!flag;
     if (next === this._interactive) return; // 只在状态变化时发 IPC，避免逐帧刷屏
@@ -347,6 +358,11 @@ Object.assign(PetSprite.prototype, {
       this.setTip(false); // 菜单/弹窗期间提示让位，不跟浮层抢注意力
       return;
     }
+    // 上报鼠标按键位掩码（幂等）：非 busy 按住键移动 = 用户在拖别的窗口/框选经过，
+    // 保持当前穿透状态、不做几何翻转，否则分层窗口会被反复改样式而闪烁。
+    const buttons = Number(e.buttons) >>> 0;
+    this.syncPointerButtons(buttons);
+    if (buttons !== 0) return;
     const r = this.hitRect;
     // forwarded 事件坐标以窗口为原点；转换到 sprite 坐标要扣减窗口余量。异常时退回屏幕坐标推导：
     // ÷scale 后减去窗口屏幕原点即窗口内坐标（hitRect/pos 均为 CSS 系）。

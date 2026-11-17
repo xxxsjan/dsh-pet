@@ -28,9 +28,12 @@ const {
   FEET_Y,
   POINTER_POLL_MS,
   OFF_BODY_RELEASE_MS,
+  BODY_CONFIRM_TICKS,
   spriteHitRect,
   pointerZone,
   decideWindowIgnore,
+  shouldSuppressFlip,
+  bodyFlipConfirmed,
 } = require(helper + 'pointer-target.js');
 
 /** 包内文件源码（守卫用；相对 src/host/ 解析） */
@@ -373,5 +376,87 @@ describe('守卫：渲染端的输入租约必须在位（helper 随包发行，
     const preload = readSource(helper + 'preload.js');
     assert.ok(/setInputBusy\(busy\)/.test(preload), 'preload 必须有 setInputBusy');
     assert.ok(/'pet:input-busy'/.test(preload), 'IPC 频道名必须与 main.js 一致');
+  });
+});
+
+describe('外部拖拽抑制 —— 拖控制台靠近宠物时窗口闪烁的修复', () => {
+  describe('shouldSuppressFlip 纯判定', () => {
+    test('非 busy + 按住键 + 窗口未聚焦 → 抑制', () => {
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 1, focused: false }), true);
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 2, focused: false }), true);
+    });
+    test('busy 永远不抑制（拖拽租约是否决权）', () => {
+      assert.equal(shouldSuppressFlip({ busy: true, buttons: 1, focused: false }), false);
+      assert.equal(shouldSuppressFlip({ busy: true, buttons: 1, focused: true }), false);
+    });
+    test('无按键或窗口已聚焦不抑制（正常悬停/本窗操作）', () => {
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 0, focused: false }), false);
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 1, focused: true }), false);
+    });
+    test('缺参数按不抑制处理，不抛异常', () => {
+      assert.equal(shouldSuppressFlip(), false);
+      assert.equal(shouldSuppressFlip({}), false);
+    });
+  });
+
+  describe('bodyFlipConfirmed 迟滞闸门', () => {
+    test('只拦穿透态的 body 方向：未连续确认不翻转，到拍数放行', () => {
+      assert.equal(bodyFlipConfirmed(true, 'body', BODY_CONFIRM_TICKS - 1), false);
+      assert.equal(bodyFlipConfirmed(true, 'body', BODY_CONFIRM_TICKS), true);
+    });
+    test('非 body 分区与可交互态立即放行（离开/超时不粘住）', () => {
+      assert.equal(bodyFlipConfirmed(true, 'outside', 0), true);
+      assert.equal(bodyFlipConfirmed(true, 'margin', 0), true);
+      assert.equal(bodyFlipConfirmed(false, 'body', 0), true);
+    });
+    test('确认拍数是命名常量且为正整数', () => {
+      assert.ok(Number.isInteger(BODY_CONFIRM_TICKS) && BODY_CONFIRM_TICKS > 0);
+    });
+  });
+
+  describe('源码守卫 —— 抑制链路必须在 helper 内接线', () => {
+    const mainSource = (): string =>
+      [
+        readSource(helper + 'main.js'),
+        ...readdirSync(fileURLToPath(new URL(helper + 'main/', import.meta.url)))
+          .filter((name) => name.endsWith('.js'))
+          .map((name) => readSource(helper + 'main/' + name)),
+      ].join('\n');
+    const main = mainSource();
+
+    test('主进程有按键位掩码与迟滞计数两张状态表，且关窗时清理', () => {
+      assert.ok(/const pointerButtons = new Map\(\)/.test(main), '必须有 pointerButtons 表');
+      assert.ok(/const bodyDwellTicks = new Map\(\)/.test(main), '必须有 bodyDwellTicks 表');
+      assert.ok(/pointerButtons\.delete\(win\.id\)/.test(main), '关窗必须清理 pointerButtons');
+      assert.ok(/bodyDwellTicks\.delete\(win\.id\)/.test(main), '关窗必须清理 bodyDwellTicks');
+    });
+
+    test('兜底泵调用两个纯判定，且抑制拍不翻转', () => {
+      const poll = /setInterval\(\(\) => \{([\s\S]*?)\}, POINTER_POLL_MS\);/.exec(main);
+      assert.ok(poll, '找不到兜底轮询体');
+      assert.ok(/shouldSuppressFlip\(/.test(poll[1]), '泵必须调用 shouldSuppressFlip');
+      assert.ok(/bodyFlipConfirmed\(/.test(poll[1]), '泵必须调用 bodyFlipConfirmed');
+    });
+
+    test('pet:pointer-buttons 频道只存标记、不直接翻窗口', () => {
+      assert.ok(/ipcMain\.on\('pet:pointer-buttons'/.test(main), '必须注册 pointer-buttons 频道');
+      assert.ok(
+        !/ipcMain\.on\('pet:pointer-buttons'[\s\S]{0,300}?setWindowIgnore\(/.test(main),
+        '按键处理器不得直接翻转（唯一出口在泵里）',
+      );
+    });
+
+    test('preload 暴露 setPointerButtons 且频道名一致', () => {
+      const preload = readSource(helper + 'preload.js');
+      assert.ok(/setPointerButtons\(buttons\)/.test(preload), 'preload 必须有 setPointerButtons');
+      assert.ok(/'pet:pointer-buttons'/.test(preload), 'IPC 频道名必须与主进程一致');
+    });
+
+    test('渲染端幂等上报按键，非 busy 按住键移动时不翻转', () => {
+      const sprite = spriteSource();
+      assert.ok(/syncPointerButtons\(buttons\)/.test(sprite), '渲染端必须有 syncPointerButtons');
+      assert.ok(/if \(buttons !== 0\) return;/.test(sprite), '按住键移动必须提前返回、不做几何翻转');
+      assert.ok(/this\.syncPointerButtons\(0\)/.test(sprite), '松手时必须归零上报');
+    });
   });
 });

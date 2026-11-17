@@ -44,6 +44,10 @@ contextBridge.exposeInMainWorld('petBridge', {
   setInputRegions(input) {
     ipcRenderer.send('pet:input-regions', input);
   },
+  // 鼠标按键位掩码：mousemove 时幂等上报（变化才发）。主进程据此识别外部拖拽并抑制穿透翻转。
+  setPointerButtons(buttons) {
+    ipcRenderer.send('pet:pointer-buttons', Number(buttons) >>> 0);
+  },
   // 文本输入拿到 DOM 焦点时向主进程要一次系统键盘焦点：X11 上 DOM 焦点不等于 X 键盘焦点，
   // 窗口又是 showInactive 显示的，不要就一直打不了字（处理在 main/ipc.js）。
   requestKeyboardFocus() {
@@ -64,6 +68,14 @@ contextBridge.exposeInMainWorld('petBridge', {
   // 直播间独立窗口内的关闭按钮：通知主进程关闭自己所在的窗口。
   closeLive() {
     ipcRenderer.send('pet:close-live');
+  },
+  // 控制台「开始监听」成功后开的弹幕小窗：platform 决定小窗里显示哪个平台的弹幕，窗内不再切平台。
+  openLiveMini(platform) {
+    ipcRenderer.send('pet:open-live-mini', platform ? { platform: String(platform) } : null);
+  },
+  // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址（只接受 http(s) 链接）。
+  openExternal(url) {
+    ipcRenderer.send('pet:open-external', url ? { url: String(url) } : null);
   },
   // 只把 DSH 主窗口提到前台：走应用自注册的 dsh:// 协议（单实例锁会让它聚焦），被别的窗口挡住也有效。
   // 主进程按宿主形态门控：只有桌面应用宿主才真发，web 形态下发它会把桌面版拉起来。

@@ -7,7 +7,7 @@
  * @module dsh-pet/runtime/electron-helper/main/windows
  */
 const path = require('node:path');
-const { pointerZone, decideWindowIgnore } = require('../pointer-target.js');
+const { pointerZone, decideWindowIgnore, shouldSuppressFlip, bodyFlipConfirmed } = require('../pointer-target.js');
 const { TOPMOST_WATCHDOG_ENABLED, TOPMOST_WATCHDOG_TICK_MS } = require('../topmost-watchdog.js');
 const { TASKBAR_WATCHDOG_TICK_MS, shouldRunTaskbarWatchdog } = require('../taskbar-watchdog.js');
 const { applyLiveCaptureExStyle } = require('./win32-exstyle.js');
@@ -55,6 +55,10 @@ function createWindows({
   const windowIgnore = new Map();
   /** 每窗口「渲染端正拿着鼠标输入」标记，由渲染端经 pet:input-busy 上报 */
   const inputBusy = new Map();
+  /** 每窗口渲染端上报的鼠标按键位掩码（0=无按键）：非 busy 按住键经过 = 外部拖拽，抑制翻转 */
+  const pointerButtons = new Map();
+  /** 每窗口光标连续落在 body 区的拍数：穿透→可交互方向的迟滞确认（防外部拖窗快速划过） */
+  const bodyDwellTicks = new Map();
   /** 新渲染端把菜单/聊天框局部矩形单独上报，避免忙碌态下整窗透明余量吞点击 */
   const inputRegions = new Map();
   /** 每窗口「光标停在余量区且非 busy」的连续时长（ms）：到点由兜底通道强制恢复穿透 */
@@ -192,10 +196,24 @@ function createWindows({
       const point = dpi.currentPointer();
       const margin = winMargins.get(win.id);
       const zone = pointerZone(bounds, point, margin);
+      // 外部拖拽抑制：用户正按住鼠标键在别的窗口操作（如拖控制台经过宠物），本拍不翻转，
+      // 避免分层窗口被反复改 WS_EX_TRANSPARENT 触发 DWM 重绘闪烁。迟滞计数同时清零。
+      const suppressed = shouldSuppressFlip({
+        busy,
+        buttons: pointerButtons.get(win.id) ?? 0,
+        focused: win.isFocused(),
+      });
+      if (suppressed) {
+        bodyDwellTicks.set(win.id, 0);
+        return;
+      }
+      // body 迟滞：连续落在 body 才累计，换区清零；仅用于穿透→可交互方向的确认闸门。
+      const dwell = zone === 'body' ? (bodyDwellTicks.get(win.id) ?? 0) + 1 : 0;
+      bodyDwellTicks.set(win.id, dwell);
       const nextMs = !busy && zone === 'margin' ? (offBodyMs.get(win.id) ?? 0) + POINTER_POLL_MS : 0;
       offBodyMs.set(win.id, nextMs);
       const next = decideWindowIgnore(bounds, point, ignoring, busy, nextMs, inputRegions.get(win.id), margin);
-      if (next !== ignoring) setWindowIgnore(win, next);
+      if (next !== ignoring && bodyFlipConfirmed(ignoring, zone, dwell)) setWindowIgnore(win, next);
     }, POINTER_POLL_MS);
     return () => clearInterval(pointerTimer);
   }
@@ -309,6 +327,8 @@ function createWindows({
       inputBusy.delete(win.id);
       inputRegions.delete(win.id);
       offBodyMs.delete(win.id);
+      pointerButtons.delete(win.id);
+      bodyDwellTicks.delete(win.id);
     });
     win.loadFile(path.join(helperDir, 'index.html'), { query: windowQuery(pet, geo, scale) }).catch((error) => {
       console.error(`[blue-fish-desktop-helper] page load failed (${pet.id}):`, error);
@@ -375,7 +395,18 @@ function createWindows({
   }
 
   return {
-    state: { windows, lastRequestedBounds, winMargins, windowIgnore, inputBusy, inputRegions, offBodyMs, petStates },
+    state: {
+      windows,
+      lastRequestedBounds,
+      winMargins,
+      windowIgnore,
+      inputBusy,
+      inputRegions,
+      offBodyMs,
+      pointerButtons,
+      bodyDwellTicks,
+      petStates,
+    },
     create: createPetWindows,
     closeAll: closeAllPetWindows,
     geometry: deskGeometry,

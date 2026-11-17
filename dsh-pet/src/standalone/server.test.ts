@@ -372,6 +372,13 @@ describe('HTTP boundary protects every route and settings', () => {
         icon.status === 404 || icon.headers.get('content-type') === 'image/png',
         '图标要么缺失 404，要么是 PNG',
       );
+      // 控制台背景图与图标同口径：公开只读，源码形态素材不可达时回 404。
+      const background = await fetch(base + '/standalone-console/console-bg.webp');
+      assert.notEqual(background.status, 403, '背景图不得要求令牌');
+      assert.ok(
+        background.status === 404 || background.headers.get('content-type') === 'image/webp',
+        '背景图要么缺失 404，要么是 WebP',
+      );
       assert.equal((await fetch(base + '/standalone-ai/settings')).status, 403);
       const read = await fetch(base + '/standalone-ai/settings', { headers });
       assert.deepEqual(await read.json(), { protocol: 'anthropic', model: 'x', hasKey: true });
