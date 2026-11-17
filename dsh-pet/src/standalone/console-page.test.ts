@@ -300,13 +300,13 @@ test('控制台三件套经本机服务公开只读可访问；页面不回显�
   }
 });
 
-test('对话入口：头像下的图标按钮 + 弹窗即对话窗口，复用旧页那份面板产物', () => {
+test('对话入口：底部 Dock 里的图标按钮 + 弹窗即对话窗口，复用旧页那份面板产物', () => {
   const html = consolePage();
   const styles = consoleStyles();
-  // 入口挂在宠物卡的头像区里（头像下方），不是别处
-  const avatarBox = html.slice(html.indexOf('<div class="avatarBox">'), html.indexOf('</div>', html.indexOf('id="pet-avatar-file"')));
-  assert.match(avatarBox, /id="chat-open"/, '对话入口应在头像区');
-  assert.match(avatarBox, /class="chatEntry"/, '对话入口应是圆形图标按钮');
+  // 入口挂在页面底部 Dock 功能区里，不是头像区
+  const dockBar = html.slice(html.indexOf('<nav class="dockBar"'), html.indexOf('</nav>'));
+  assert.match(dockBar, /id="chat-open"/, '对话入口应在底部 Dock');
+  assert.match(dockBar, /class="chatEntry"/, '对话入口应是圆形图标按钮');
   assert.match(html, /id="chat-dialog"/, '缺少对话弹窗遮罩');
   assert.match(html, /id="chat-close"/, '弹窗应有关闭按钮');
   // 弹窗里的容器 id 必须与 chat-panel bundle 的挂载点一致，否则面板不会挂上
@@ -333,34 +333,37 @@ test('对话入口：头像下的图标按钮 + 弹窗即对话窗口，复用�
   assert.match(consoleScript, /event\.key === 'Escape'/, 'Esc 应能关闭弹窗');
   assert.match(consoleScript, /event\.target === chatDialog/, '点遮罩空白处应能关闭弹窗');
   assert.match(consoleScript, /\.pet-chat-input/, '打开弹窗应把焦点交给输入框');
+  // Dock 悬浮底部居中；独立直播间窗口里不显示这套入口
+  assert.match(styles, /\.dockBar\{position:fixed/, 'Dock 应固定悬浮在视口底部');
+  assert.match(styles, /body\.live-standalone \.dockBar\{display:none/, '独立直播间模式应隐藏 Dock');
 });
 
-test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 logo、居中配置模态；各平台面板与接口齐备', () => {
+test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 logo、右侧配置抽屉；各平台面板与接口齐备', () => {
   const html = consolePage();
   const styles = consoleStyles();
   const script = consoleScript;
 
-  // 入口：头像区里排在对话 icon 右侧，只有一个直播间入口
-  const entryRow = html.slice(html.indexOf('<div class="entryRow">'), html.indexOf('</div>', html.indexOf('id="live-open"')));
-  assert.match(entryRow, /id="live-open"/, '直播间入口应在头像区');
+  // 入口：底部 Dock 里排在对话 icon 右侧，只有一个直播间入口
+  const dockBar = html.slice(html.indexOf('<nav class="dockBar"'), html.indexOf('</nav>'));
+  assert.match(dockBar, /id="live-open"/, '直播间入口应在底部 Dock');
   assert.ok(
-    entryRow.indexOf('id="chat-open"') < entryRow.indexOf('id="live-open"'),
+    dockBar.indexOf('id="chat-open"') < dockBar.indexOf('id="live-open"'),
     '直播间入口应排在对话 icon 右侧',
   );
 
-  // 弹窗骨架：遮罩、标题、右上角 logo 行、关闭按钮、居中配置模态
+  // 弹窗骨架：遮罩、标题、右上角 logo 行、关闭按钮、右侧配置抽屉
   assert.match(html, /id="live-dialog"/, '缺少直播间弹窗遮罩');
   assert.match(html, /id="live-dialog-title"/, '弹窗应有标题');
   assert.match(html, /id="live-close"/, '弹窗应有关闭按钮');
   assert.match(html, /id="live-logos"/, '右上角应有平台 logo 行');
-  assert.match(html, /id="live-config-mask"/, '配置模态遮罩容器');
-  assert.match(html, /id="live-config-close"/, '配置模态应有关闭按钮');
+  assert.match(html, /id="live-config-mask"/, '配置抽屉遮罩容器');
+  assert.match(html, /id="live-config-close"/, '配置抽屉应有关闭按钮');
 
-  // 右上角四枚平台 logo：可点选、配置面板居中弹出、监听徽标；主区四个弹幕面板铺满
+  // 右上角四枚平台 logo：可点选、配置面板从右侧滑出、监听徽标；主区四个弹幕面板铺满
   for (const p of ['dm', 'xs', 'ks', 'bl']) {
     assert.match(html, new RegExp(`data-platform="${p}"`), `应有平台项 ${p}`);
     assert.match(html, new RegExp(`data-select="${p}"`), `平台 logo 应可点选 ${p}`);
-    assert.match(html, new RegExp(`data-panel="${p}"`), `配置模态内应含设置面板 ${p}`);
+    assert.match(html, new RegExp(`data-panel="${p}"`), `配置抽屉内应含设置面板 ${p}`);
     assert.match(html, new RegExp(`data-pill="${p}"`), `平台 logo 应有监听徽标 ${p}`);
     assert.match(html, new RegExp(`data-feed="${p}"`), `主区应有弹幕面板 ${p}`);
   }
@@ -382,10 +385,13 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
     assert.doesNotMatch(html, new RegExp(`id="${gone}"`), `旧入口 / 遮罩不应再出现：${gone}`);
   }
 
-  // 样式：弹幕铺满主区、配置模态覆盖居中、非当前平台配置面板隐藏、仅当前平台弹幕面板显示、停止监听红色按钮
+  // 样式：弹幕铺满主区、配置抽屉贴右侧滑出、非当前平台配置面板隐藏、仅当前平台弹幕面板显示、停止监听红色按钮
   assert.match(styles, /\.liveMain\{[^}]*display:flex;flex-direction:column/, '弹幕主区应铺满');
-  assert.match(styles, /\.liveConfigMask\{position:absolute;inset:0/, '配置模态应覆盖弹幕主区');
-  assert.match(styles, /\.liveConfig\{width:min\(440px,100%\)/, '配置卡片应居中限宽');
+  assert.match(styles, /\.liveConfigMask\{position:absolute;inset:0/, '配置抽屉应覆盖弹幕主区');
+  assert.match(styles, /justify-content:flex-end/, '抽屉应贴右侧排列');
+  assert.match(styles, /\.liveConfig\{width:min\(380px,100%\);height:100%/, '抽屉应纵向铺满并限宽');
+  assert.match(styles, /\.liveConfig\{[^}]*transform:translateX\(100%\)/, '抽屉关闭态应藏在右侧屏外');
+  assert.match(styles, /\.liveConfigMask\.is-open \.liveConfig\{transform:translateX\(0\)\}/, '打开态抽屉应滑回右侧');
   assert.match(styles, /\.liveConfigPanel\{display:none/, '非当前平台配置面板隐藏');
   assert.match(styles, /\.liveFeedPanel\.is-active\{display:flex/, '只有当前选中平台的弹幕面板显示');
   assert.match(styles, /\.dmFeedItem\.gift\{/, '礼物弹幕应有单独配色');
@@ -438,4 +444,27 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.match(styles, /body\.live-standalone \.console/, '独立模式应隐藏控制台主体');
   assert.match(styles, /body\.live-standalone #live-dialog/, '独立模式直播间应铺满整窗');
   assert.match(styles, /-webkit-app-region:drag/, '独立无边框窗口头部应可拖动');
+});
+
+test('保存结果气泡：保存成功 / 失败都弹出底部气泡，统一收口与 AI 保存都接入', () => {
+  const html = consolePage();
+  const styles = consoleStyles();
+  const script = consoleScript;
+
+  assert.match(html, /id="toast-root"/, '页面应挂气泡浮层容器');
+  assert.match(script, /function showToast\(text, kind\)/, '应有统一气泡函数');
+  assert.match(script, /textContent = text/, '气泡只写文本节点，不拼 HTML');
+  // 统一收口（宠物/全局/物理/字体/语音/全部）成功与失败都弹气泡
+  assert.match(script, /showToast\(doneText, 'ok'\)/, '统一保存成功应弹成功气泡');
+  assert.match(script, /showToast\(errMsg, 'error'\)/, '统一保存失败应弹失败气泡');
+  // AI 保存独立收口同样接入
+  assert.match(script, /showToast\('AI 设置已保存。', 'ok'\)/, 'AI 保存成功应弹气泡');
+  assert.match(script, /showToast\(aiErr, 'error'\)/, 'AI 保存失败应弹气泡');
+  // 前置校验拦截（未发请求）也要弹失败气泡
+  assert.match(script, /showToast\(message, 'error'\)/, '宠物表单校验失败应弹气泡');
+  assert.match(script, /showToast\(petMessage, 'error'\)/, '全部保存校验失败应弹气泡');
+  // 样式：浮层固定居中、成功 / 失败配色点
+  assert.match(styles, /\.toastRoot\{/, '气泡浮层应有定位容器');
+  assert.match(styles, /\.toastOk::before\{background:var\(--primary\)\}/, '成功气泡用主色点');
+  assert.match(styles, /\.toastError::before\{background:var\(--danger\)\}/, '失败气泡用红色点');
 });

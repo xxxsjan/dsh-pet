@@ -48,7 +48,6 @@ export function consolePage(): string {
 <img id="pet-avatar-img" alt="">
 <button type="button" class="btn ghost" id="pet-avatar-upload" hidden>上传头像</button>
 <input type="file" id="pet-avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-<div class="entryRow"><button type="button" class="chatEntry" id="chat-open" aria-label="打开对话窗口" title="对话"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z"/></svg></button><button type="button" class="chatEntry liveEntry" id="live-open" aria-label="打开直播间弹幕窗口" title="直播间弹幕"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3.5" width="12" height="8" rx="1.6"/><path d="M5.5 13.5h5M8 11.5v2"/><circle cx="12" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></button></div>
 </div>
 <div class="fields">
 <div class="fieldRow"><label class="fieldLabel" for="pet-name">名字</label><input class="fieldInput" id="pet-name" type="text" autocomplete="off"></div>
@@ -232,6 +231,7 @@ export function consolePage(): string {
 <div class="actionButtons"><button type="button" class="btn primary" id="console-save">保存全部</button><button type="button" class="btn ghost danger" id="console-sync">用内置默认重置</button></div>
 </footer>
 </main>
+<nav class="dockBar" aria-label="功能入口"><button type="button" class="chatEntry" id="chat-open" aria-label="打开对话窗口" title="对话"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z"/></svg></button><button type="button" class="chatEntry liveEntry" id="live-open" aria-label="打开直播间弹幕窗口" title="直播间弹幕"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3.5" width="12" height="8" rx="1.6"/><path d="M5.5 13.5h5M8 11.5v2"/><circle cx="12" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></button></nav>
 <div class="chatMask" id="chat-dialog" hidden>
 <div class="chatDialog" role="dialog" aria-modal="true" aria-labelledby="chat-dialog-title">
 <div class="chatHead"><h2 class="chatTitle" id="chat-dialog-title">对话</h2><button type="button" class="chatClose" id="chat-close" aria-label="关闭对话窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
@@ -339,6 +339,7 @@ export function consolePage(): string {
 </div>
 </div>
 <noscript>需要启用 JavaScript 才能使用控制台。请从桌宠右键菜单打开本页。</noscript>
+<div id="toast-root" class="toastRoot" aria-live="polite"></div>
 </body></html>`;
 }
 
@@ -455,6 +456,23 @@ export const consoleScript = `
     node.textContent = text || '';
     node.dataset.error = kind === 'error' ? 'true' : 'false';
     node.dataset.ok = kind === 'ok' ? 'true' : 'false';
+  }
+
+  // 保存结果气泡：成功 / 失败浮层提示，自动浮现、定时收起；只写 textContent，不拼 HTML。
+  function showToast(text, kind) {
+    var root = byId('toast-root');
+    if (!root) return;
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + (kind === 'error' ? 'toastError' : 'toastOk');
+    toast.textContent = text || '';
+    root.appendChild(toast);
+    while (root.children.length > 3) root.removeChild(root.firstChild);
+    void toast.offsetWidth;
+    toast.classList.add('toastShow');
+    setTimeout(function () {
+      toast.classList.remove('toastShow');
+      setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+    }, 2400);
   }
   function clamp(value, min, max, fallback) {
     var n = Number(value);
@@ -2139,9 +2157,13 @@ export const consoleScript = `
       renderPhysics();
       renderFont();
       renderVoice();
-      setStatus(statusEl, doneText || '已保存到本机。', 'ok');
+      var doneText = doneText || '已保存到本机。';
+      setStatus(statusEl, doneText, 'ok');
+      showToast(doneText, 'ok');
     } catch (error) {
-      setStatus(statusEl, error && error.message ? error.message : String(error), 'error');
+      var errMsg = error && error.message ? error.message : String(error);
+      setStatus(statusEl, errMsg, 'error');
+      showToast(errMsg, 'error');
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -2149,7 +2171,7 @@ export const consoleScript = `
 
   function savePet() {
     var message = petFieldsInvalid();
-    if (message) { setStatus(byId('pet-status'), message, 'error'); return; }
+    if (message) { setStatus(byId('pet-status'), message, 'error'); showToast(message, 'error'); return; }
     void submitPayload(basePayload(), byId('pet-status'), byId('pet-save'), '宠物配置已保存。', 'pet');
   }
 
@@ -2166,15 +2188,15 @@ export const consoleScript = `
   }
 
   function saveVoice() {
-    if (!state.draft || !state.main) { setStatus(byId('voice-save-status'), '配置尚未读取完成。', 'error'); return; }
-    if (!state.draft.voiceName) { setStatus(byId('voice-save-status'), '请先选择音色，再保存。', 'error'); return; }
+    if (!state.draft || !state.main) { setStatus(byId('voice-save-status'), '配置尚未读取完成。', 'error'); showToast('配置尚未读取完成。', 'error'); return; }
+    if (!state.draft.voiceName) { setStatus(byId('voice-save-status'), '请先选择音色，再保存。', 'error'); showToast('请先选择音色，再保存。', 'error'); return; }
     void submitPayload(Object.assign(basePayload(), voiceFields()), byId('voice-save-status'), byId('voice-save'), '语音设置已保存。', 'voice');
   }
 
   function saveAll() {
     var petMessage = petFieldsInvalid();
-    if (petMessage) { setStatus(byId('console-status'), petMessage, 'error'); return; }
-    if (!state.draft.voiceName) { setStatus(byId('console-status'), '请先选择音色，再保存。', 'error'); return; }
+    if (petMessage) { setStatus(byId('console-status'), petMessage, 'error'); showToast(petMessage, 'error'); return; }
+    if (!state.draft.voiceName) { setStatus(byId('console-status'), '请先选择音色，再保存。', 'error'); showToast('请先选择音色，再保存。', 'error'); return; }
     void submitPayload(allPayload(), byId('console-status'), byId('console-save'), '全部设置已保存。', 'all');
   }
 
@@ -2462,8 +2484,11 @@ export const consoleScript = `
       var after = byId('ai-model-picked');
       if (after) after.hidden = true;
       setStatus(status, '已保存到本机。');
+      showToast('AI 设置已保存。', 'ok');
     } catch (error) {
-      setStatus(status, error && error.message ? error.message : String(error), 'error');
+      var aiErr = error && error.message ? error.message : String(error);
+      setStatus(status, aiErr, 'error');
+      showToast(aiErr, 'error');
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -2813,6 +2838,7 @@ export const consoleScript = `
     var LIVE_PLATFORMS = ['dm', 'xs', 'ks', 'bl'];
     var liveNames = { dm: '抖音', xs: '小红书', ks: '快手', bl: 'B站' };
     var liveConfigOpen = false;
+    var liveConfigCloseTimer = null;
     var liveRefreshers = { dm: dmRefresh, xs: xsRefresh, ks: ksRefresh, bl: blRefresh };
     var liveMsgNodes = { dm: 'dm-msg', xs: 'xs-msg', ks: 'ks-msg', bl: 'bl-msg' };
     var liveSavers = { dm: dmSaveCache, xs: xsSaveCache, ks: ksSaveCache, bl: blSaveCache };
@@ -2843,8 +2869,19 @@ export const consoleScript = `
       liveConfigOpen = open;
       var mask = liveConfigEl();
       if (!mask) return;
-      if (open) mask.removeAttribute('hidden');
-      else mask.setAttribute('hidden', '');
+      var raf = window.requestAnimationFrame || function (cb) { return window.setTimeout(cb, 0); };
+      if (open) {
+        if (liveConfigCloseTimer) { clearTimeout(liveConfigCloseTimer); liveConfigCloseTimer = null; }
+        mask.removeAttribute('hidden');
+        // 两帧后再加打开类，让抽屉从右侧滑入的过渡能播出来
+        raf(function () { raf(function () { mask.classList.add('is-open'); }); });
+      } else {
+        mask.classList.remove('is-open');
+        liveConfigCloseTimer = setTimeout(function () {
+          mask.setAttribute('hidden', '');
+          liveConfigCloseTimer = null;
+        }, 240);
+      }
     }
 
     function liveRefreshCurrent() {
@@ -3001,7 +3038,7 @@ html[data-theme=dark]{
 [hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg-base);color:var(--label-primary);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
-.console{max-width:1080px;margin:0 auto;padding:28px 28px 40px;display:flex;flex-direction:column;gap:18px}
+.console{max-width:1080px;margin:0 auto;padding:28px 28px 104px;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:14px}
 .brandLogo{width:48px;height:48px;border-radius:14px;object-fit:cover;background:var(--bg-card);box-shadow:var(--shadow)}
@@ -3097,9 +3134,9 @@ button.switch{cursor:pointer}
 .btn.ghost{background:var(--bg-card);border-color:var(--border);color:var(--label-secondary)}
 .btn.ghost.danger{color:var(--danger)}
 .btn:disabled{opacity:.55;cursor:default}
-/* 头像下的入口行：对话 icon 在左、抖音 icon 在右 */
-.entryRow{display:flex;align-items:center;justify-content:center;gap:10px}
-/* 头像下的对话入口：圆形图标按钮 */
+/* 底部 Dock 功能区：悬浮居中圆角长条，对话 icon 在左、直播间 icon 在右，毛玻璃底 */
+.dockBar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:24px;background:color-mix(in srgb,var(--bg-card) 84%,transparent);border:1px solid var(--border);box-shadow:var(--shadow);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+/* Dock 内入口：圆形图标按钮 */
 .chatEntry{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);color:var(--primary);cursor:pointer;padding:0;transition:background .15s ease,color .15s ease}
 .chatEntry:hover{background:rgba(0,122,255,.10)}
 .chatEntry:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -3143,8 +3180,9 @@ html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
 .liveLogo .livePill{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;padding:0}
 .livePill.on{background:#34c759;box-shadow:0 0 0 2px var(--bg-card)}
 .livePill.off{background:color-mix(in srgb,var(--label-tertiary) 45%,transparent)}
-.liveConfigMask{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(17,20,26,.42)}
-.liveConfig{width:min(440px,100%);max-height:100%;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:18px;background:var(--bg-card);box-shadow:0 10px 40px rgba(0,0,0,.28);overflow:hidden}
+.liveConfigMask{position:absolute;inset:0;z-index:5;display:flex;justify-content:flex-end;align-items:stretch;background:rgba(17,20,26,.42)}
+.liveConfig{width:min(380px,100%);height:100%;display:flex;flex-direction:column;border:1px solid var(--border);border-right:0;border-radius:18px 0 0 18px;background:var(--bg-card);box-shadow:-10px 0 40px rgba(0,0,0,.28);overflow:hidden;transform:translateX(100%);transition:transform .24s ease}
+.liveConfigMask.is-open .liveConfig{transform:translateX(0)}
 .liveConfigHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex:none}
 .liveConfigTitle{font-size:15px;font-weight:650}
 .liveConfigBody{overflow-y:auto;padding:4px 16px 16px}
@@ -3194,11 +3232,19 @@ html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
 /* 停止监听沿用旧页红色按钮口径 */
 .btn.danger{background:color-mix(in srgb,var(--danger) 14%,transparent);border-color:transparent;color:var(--danger)}
 .btn.danger:hover{background:color-mix(in srgb,var(--danger) 22%,transparent)}
+/* 保存结果气泡：底部居中浮层，成功主色点、失败红点亮，自动浮现与收起，不遮挡页面点击 */
+.toastRoot{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:9px;max-width:min(420px,86vw);padding:11px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--label-primary);font-size:14px;line-height:1.5;opacity:0;transform:translateY(10px);transition:opacity .22s ease,transform .22s ease}
+.toastShow{opacity:1;transform:translateY(0)}
+.toast::before{content:"";width:8px;height:8px;border-radius:50%;flex:none}
+.toastOk::before{background:var(--primary)}
+.toastError::before{background:var(--danger)}
 /* 窄屏（含控制台自己的单列断点）：弹窗吃满遮罩内可用的宽高，避免小屏还要滚动 */
-@media (max-width:880px){.chatMask{padding:12px}.chatDialog{width:100%;height:100%;border-radius:16px}.dmFeed{max-height:44vh}.liveMain{min-height:280px}.liveConfig{max-height:calc(100% - 24px)}}
+@media (max-width:880px){.chatMask{padding:12px}.chatDialog{width:100%;height:100%;border-radius:16px}.dmFeed{max-height:44vh}.liveMain{min-height:280px}.liveConfig{width:min(320px,100%)}}
 /* 独立直播间窗口：无边框卡片铺满整窗；控制台主体与对话弹窗隐藏，头部作为窗口拖动区 */
 body.live-standalone .console,
-body.live-standalone #chat-dialog{display:none!important}
+body.live-standalone #chat-dialog,
+body.live-standalone .dockBar{display:none!important}
 body.live-standalone #live-dialog{position:fixed;inset:0;z-index:40;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:var(--bg-base)}
 body.live-standalone .liveDialog{width:100%;height:100%;border:0;border-radius:0;box-shadow:none}
 body.live-standalone .liveDialog .chatHead{-webkit-app-region:drag}
