@@ -285,56 +285,56 @@ export function consolePage(): string {
 </div>
 <div class="chatMask" id="live-dialog" hidden>
 <div class="chatDialog liveDialog" role="dialog" aria-modal="true" aria-labelledby="live-dialog-title">
-<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间</h2><div class="liveHeadRight"><div class="liveLogoRow" id="live-logos"><button type="button" class="liveLogo is-active" data-select="dm" data-platform="dm" title="抖音" aria-label="抖音配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.2 6.2c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S5.1 16.95 5.1 14.4s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V6.2h2.15z" fill="#25F4EE"/><path d="M13.85 5.85c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.75 16.6 4.75 14.05s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.85h2.15z" fill="#FE2C55"/><path d="M13.5 5.5c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.4 16.25 4.4 13.7s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.5H13.5z" fill="#18191C"/></svg></span><span class="liveLogoName">抖音</span><span class="livePill off" data-pill="dm" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="xs" data-platform="xs" title="小红书" aria-label="小红书配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF2442"/><text x="12" y="12.8" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="6.2" font-weight="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans SC, sans-serif" letter-spacing="-0.35">小红书</text></svg></span><span class="liveLogoName">小红书</span><span class="livePill off" data-pill="xs" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="ks" data-platform="ks" title="快手" aria-label="快手配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF4906"/><path d="M9.2 7.4c0-.55.45-.9.95-.65l7.1 4.1c.5.28.5 1.02 0 1.3l-7.1 4.1c-.5.28-.95-.1-.95-.65V7.4z" fill="#fff"/></svg></span><span class="liveLogoName">快手</span><span class="livePill off" data-pill="ks" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="bl" data-platform="bl" title="B站" aria-label="B站配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FB7299"/><path fill="#fff" d="M7.2 7.1 5.5 5.4l1.1-1.1 2.1 2.1h6.6l2.1-2.1 1.1 1.1-1.7 1.7H18c.7 0 1.2.5 1.2 1.2v8.2c0 .7-.5 1.2-1.2 1.2H6c-.7 0-1.2-.5-1.2-1.2V8.3c0-.7.5-1.2 1.2-1.2h1.2zm1.3 2.4c-.5 0-.9.4-.9.9v4.2c0 .5.4.9.9.9h7c.5 0 .9-.4.9-.9V10.4c0-.5-.4-.9-.9-.9h-7zm1.2 1.5h1.5v2.8H9.7v-2.8zm3.4 0h1.5v2.8h-1.5v-2.8z"/></svg></span><span class="liveLogoName">B站</span><span class="livePill off" data-pill="bl" aria-hidden="true"></span></button></div><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间</h2><div class="liveHeadRight"><div class="liveLogoRow" id="live-logos"><button type="button" class="liveLogo is-active" data-select="dm" data-platform="dm" title="抖音" aria-label="抖音配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.2 6.2c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S5.1 16.95 5.1 14.4s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V6.2h2.15z" fill="#25F4EE"/><path d="M13.85 5.85c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.75 16.6 4.75 14.05s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.85h2.15z" fill="#FE2C55"/><path d="M13.5 5.5c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.4 16.25 4.4 13.7s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.5H13.5z" fill="#18191C"/></svg></span><span class="liveLogoName">抖音</span><span class="livePill off" data-pill="dm" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="ks" data-platform="ks" title="快手" aria-label="快手配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF4906"/><path d="M9.2 7.4c0-.55.45-.9.95-.65l7.1 4.1c.5.28.5 1.02 0 1.3l-7.1 4.1c-.5.28-.95-.1-.95-.65V7.4z" fill="#fff"/></svg></span><span class="liveLogoName">快手</span><span class="livePill off" data-pill="ks" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="xs" data-platform="xs" title="小红书" aria-label="小红书配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF2442"/><text x="12" y="12.8" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="6.2" font-weight="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans SC, sans-serif" letter-spacing="-0.35">小红书</text></svg></span><span class="liveLogoName">小红书</span><span class="livePill off" data-pill="xs" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="bl" data-platform="bl" title="B站" aria-label="B站配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FB7299"/><path fill="#fff" d="M7.2 7.1 5.5 5.4l1.1-1.1 2.1 2.1h6.6l2.1-2.1 1.1 1.1-1.7 1.7H18c.7 0 1.2.5 1.2 1.2v8.2c0 .7-.5 1.2-1.2 1.2H6c-.7 0-1.2-.5-1.2-1.2V8.3c0-.7.5-1.2 1.2-1.2h1.2zm1.3 2.4c-.5 0-.9.4-.9.9v4.2c0 .5.4.9.9.9h7c.5 0 .9-.4.9-.9V10.4c0-.5-.4-.9-.9-.9h-7zm1.2 1.5h1.5v2.8H9.7v-2.8zm3.4 0h1.5v2.8h-1.5v-2.8z"/></svg></span><span class="liveLogoName">B站</span><span class="livePill off" data-pill="bl" aria-hidden="true"></span></button></div><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
 <div class="liveBody">
 <div class="liveConfigPane" id="live-config-pane"><div class="liveConfig" role="region" aria-labelledby="live-config-title"><span class="liveConfigTitle" id="live-config-title">抖音</span><div class="liveConfigBody">
 <div class="livePlatform" data-platform="dm">
 <div class="liveConfigPanel" data-panel="dm">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"><button type="button" class="linkBtn" id="dm-open-live" title="用浏览器打开直播间">打开直播间</button></div></div>
+<div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div></div>
 <div class="dmField"><label class="dmLabel" for="dm-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="dm-cookie" placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里" spellcheck="false"></textarea></div>
-<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div>
 <p class="status" id="dm-msg" role="status" aria-live="polite"></p>
 </div>
-<p class="liveStatus" id="dm-status">加载中…</p>
+<div class="liveStatusRow"><p class="liveStatus" id="dm-status">加载中…</p><button type="button" class="liveStatusRefresh" id="dm-refresh">刷新状态</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveOpenLiveText" id="dm-open-live" title="用浏览器打开直播间">打开直播间</button></div>
 </div>
 </div>
 <div class="livePlatform" data-platform="xs">
 <div class="liveConfigPanel" data-panel="xs">
 <div class="dmCard">
-<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div>
+<p class="liveLoginNote">小红书需要扫码登录后使用。</p>
 <p class="status" id="xs-msg" role="status" aria-live="polite"></p>
 </div>
-<p class="liveStatus" id="xs-status">加载中…</p>
+<div class="liveStatusRow"><p class="liveStatus" id="xs-status">加载中…</p><button type="button" class="liveStatusRefresh" id="xs-refresh">刷新状态</button></div>
 </div>
 </div>
 <div class="livePlatform" data-platform="ks">
 <div class="liveConfigPanel" data-panel="ks">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"><button type="button" class="linkBtn" id="ks-open-live" title="用浏览器打开直播间">打开直播间</button></div></div>
+<div class="dmField"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"></div></div>
 <div class="dmField"><label class="dmLabel" for="ks-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="ks-cookie" placeholder="直连需登录 Cookie（userId + passToken/web_st/webday7_st）；有就粘贴，没有可留空尝试" spellcheck="false"></textarea></div>
-<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div>
 <p class="status" id="ks-msg" role="status" aria-live="polite"></p>
 </div>
-<p class="liveStatus" id="ks-status">加载中…</p>
+<div class="liveStatusRow"><p class="liveStatus" id="ks-status">加载中…</p><button type="button" class="liveStatusRefresh" id="ks-refresh">刷新状态</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveOpenLiveText" id="ks-open-live" title="用浏览器打开直播间">打开直播间</button></div>
 </div>
 </div>
 <div class="livePlatform" data-platform="bl">
 <div class="liveConfigPanel" data-panel="bl">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"><button type="button" class="linkBtn" id="bl-open-live" title="用浏览器打开直播间">打开直播间</button></div></div>
+<div class="dmField"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"></div></div>
 <div class="dmField"><label class="dmLabel" for="bl-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="bl-cookie" placeholder="不填走访客匿名；登录可粘贴 SESSDATA，失效会自动回落访客" spellcheck="false"></textarea></div>
-<div class="dmSwitches"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div>
 <p class="status" id="bl-msg" role="status" aria-live="polite"></p>
 </div>
-<p class="liveStatus" id="bl-status">加载中…</p>
+<div class="liveStatusRow"><p class="liveStatus" id="bl-status">加载中…</p><button type="button" class="liveStatusRefresh" id="bl-refresh">刷新状态</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveOpenLiveText" id="bl-open-live" title="用浏览器打开直播间">打开直播间</button></div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="liveFoot"><button type="button" class="btn primary" id="live-start">开始监听</button><button type="button" class="btn ghost" id="live-refresh">刷新状态</button><button type="button" class="btn ghost" id="live-open-mini">打开弹幕小窗</button></div>
+<div class="liveFoot"><div class="liveFootLeft"><div class="liveFootSwitches is-active" data-foot-switches="dm"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="xs"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="ks"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="bl"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div></div><div class="liveFootRight"><button type="button" class="btn ghost" id="live-open-mini">打开弹幕小窗</button><button type="button" class="btn primary" id="live-start">开始监听</button></div></div>
 <section class="liveMain">
 <div class="liveFeedPanel is-active" data-feed="dm">
 <div class="dmCard dmGiftCard">
@@ -342,7 +342,7 @@ export function consolePage(): string {
 <div class="dmGift" id="dm-gift" aria-live="polite"></div>
 </div>
 <div class="dmCard dmFeedCard">
-<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3><span class="dmFeedMeta" id="dm-feed-meta">0 / 50</span></div>
+<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3></div>
 <div class="dmFeed" id="dm-feed" aria-live="polite"></div>
 </div>
 </div>
@@ -352,7 +352,7 @@ export function consolePage(): string {
 <div class="dmGift" id="xs-gift" aria-live="polite"></div>
 </div>
 <div class="dmCard dmFeedCard">
-<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3><span class="dmFeedMeta" id="xs-feed-meta">0 / 50</span></div>
+<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3></div>
 <div class="dmFeed" id="xs-feed" aria-live="polite"></div>
 </div>
 </div>
@@ -362,7 +362,7 @@ export function consolePage(): string {
 <div class="dmGift" id="ks-gift" aria-live="polite"></div>
 </div>
 <div class="dmCard dmFeedCard">
-<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3><span class="dmFeedMeta" id="ks-feed-meta">0 / 50</span></div>
+<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3></div>
 <div class="dmFeed" id="ks-feed" aria-live="polite"></div>
 </div>
 </div>
@@ -372,7 +372,7 @@ export function consolePage(): string {
 <div class="dmGift" id="bl-gift" aria-live="polite"></div>
 </div>
 <div class="dmCard dmFeedCard">
-<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3><span class="dmFeedMeta" id="bl-feed-meta">0 / 50</span></div>
+<div class="dmCardHead"><h3 class="dmCardTitle">弹幕</h3></div>
 <div class="dmFeed" id="bl-feed" aria-live="polite"></div>
 </div>
 </div>
@@ -746,8 +746,6 @@ export const consoleScript = `
     var prevId = dmLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
-    var meta = byId('dm-feed-meta');
-    if (meta) meta.textContent = chats.length + ' / 50';
     var giftMeta = byId('dm-gift-meta');
     if (giftMeta) giftMeta.textContent = String(gifts.length);
     var feedBox = byId('dm-feed');
@@ -987,8 +985,6 @@ export const consoleScript = `
     var prevId = xsLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
-    var meta = byId('xs-feed-meta');
-    if (meta) meta.textContent = chats.length + ' / 50';
     var giftMeta = byId('xs-gift-meta');
     if (giftMeta) giftMeta.textContent = String(gifts.length);
     var feedBox = byId('xs-feed');
@@ -1217,8 +1213,6 @@ export const consoleScript = `
     var prevId = ksLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
-    var meta = byId('ks-feed-meta');
-    if (meta) meta.textContent = chats.length + ' / 50';
     var giftMeta = byId('ks-gift-meta');
     if (giftMeta) giftMeta.textContent = String(gifts.length);
     var feedBox = byId('ks-feed');
@@ -1463,8 +1457,6 @@ export const consoleScript = `
     var prevId = blLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
-    var meta = byId('bl-feed-meta');
-    if (meta) meta.textContent = chats.length + ' / 50';
     var giftMeta = byId('bl-gift-meta');
     if (giftMeta) giftMeta.textContent = String(gifts.length);
     var feedBox = byId('bl-feed');
@@ -3082,6 +3074,8 @@ export const consoleScript = `
         if (feed) feed.classList.toggle('is-active', active);
         var panel = document.querySelector('[data-panel="' + p + '"]');
         if (panel) panel.classList.toggle('is-active', active);
+        var foot = document.querySelector('[data-foot-switches="' + p + '"]');
+        if (foot) foot.classList.toggle('is-active', active);
       });
       var title = byId('live-config-title');
       if (title) title.textContent = liveNames[liveCurrent];
@@ -3204,10 +3198,16 @@ export const consoleScript = `
       });
       var startBtn = byId('live-start');
       if (startBtn) startBtn.addEventListener('click', liveToggleCurrent);
-      var refreshBtn = byId('live-refresh');
-      if (refreshBtn) refreshBtn.addEventListener('click', function () {
-        setStatus(byId(liveMsgNodes[liveCurrent]), '');
-        liveRefreshCurrent();
+      LIVE_PLATFORMS.forEach(function (p) {
+        var statusRefresh = byId(p + '-refresh');
+        if (statusRefresh) statusRefresh.addEventListener('click', function () {
+          setStatus(byId(liveMsgNodes[p]), '');
+          var refresher = liveRefreshers[p];
+          if (!refresher) return;
+          void refresher().catch(function (error) {
+            setStatus(byId(liveMsgNodes[p]), (error && error.message) || String(error), 'error');
+          });
+        });
       });
       var openMiniBtn = byId('live-open-mini');
       if (openMiniBtn) openMiniBtn.addEventListener('click', function () {
@@ -3505,18 +3505,31 @@ body:not(.live-mini) .liveMain{display:none}
 .liveConfigPanel .fieldInput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 14%,transparent)}
 .liveConfigPanel .dmLabel{font-size:15px;font-weight:600;color:var(--label-primary)}
 .liveConfigPanel .dmLabelOpt{margin-left:6px;font-size:13px;font-weight:400;color:var(--label-tertiary)}
-/* 链接输入框 + 右侧「打开直播间」按钮 */
+/* 链接输入框独占一行 */
 .liveUrlRow{display:flex;gap:12px}
 .liveUrlRow .fieldInput{flex:1;min-width:0}
-.linkBtn{flex:none;height:52px;padding:0 24px;border-radius:14px;border:1px solid var(--primary);background:var(--primary);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s ease,box-shadow .15s ease}
-.linkBtn:hover{background:var(--primary-hover);box-shadow:0 8px 18px color-mix(in srgb,var(--primary) 26%,transparent)}
+/* 状态行左下方的纯文本「打开直播间」 */
+.liveOpenLiveRow{margin:6px 4px 0}
+.liveOpenLiveText{border:0;background:none;padding:0;font:inherit;font-size:13px;line-height:1.6;color:var(--label-tertiary);cursor:pointer;white-space:nowrap}
+.liveOpenLiveText:hover{color:var(--primary);text-decoration:underline}
 /* 监听状态只占一行文字：圆点 + 摘要，必要时补第二行提示 */
 .liveStatus{display:flex;flex-wrap:wrap;align-items:center;column-gap:7px;row-gap:3px;margin:0 4px;font-size:14px;line-height:1.6;color:var(--label-tertiary);word-break:break-word}
+.liveStatusRow{display:flex;align-items:flex-start;gap:10px;margin:0 4px}
+.liveStatusRow .liveStatus{flex:1 1 auto;min-width:0;margin:0}
+.liveStatusRefresh{flex:none;margin-left:auto;border:0;background:none;padding:0;font:inherit;font-size:13px;line-height:1.6;color:var(--label-tertiary);cursor:pointer;white-space:nowrap}
+.liveStatusRefresh:hover{color:var(--primary);text-decoration:underline}
+.liveLoginNote{margin:0;font-size:13.5px;line-height:1.7;color:var(--label-secondary)}
 .liveStatus.on .statusText{color:var(--label-secondary)}
 .liveStatus .statusDot{flex:none;width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--label-tertiary) 55%,transparent)}
 .liveStatus.on .statusDot{background:#34c759}
 .liveStatus .statusNote{flex-basis:100%;color:var(--label-tertiary)}
-.liveFoot{display:flex;align-items:center;gap:12px;flex:none;padding:18px 26px 22px;margin-top:18px;border-top:1px solid var(--border)}
+.liveFoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:18px 26px 22px;margin-top:18px;border-top:1px solid var(--border)}
+.liveFootLeft{display:flex;align-items:center;min-width:0}
+.liveFootSwitches{display:none;align-items:center;gap:20px}
+.liveFootSwitches.is-active{display:flex}
+.liveFootSwitches .dmSwitch{flex:none;border-left:0;padding:6px 2px}
+.liveFootSwitches .dmSwitch:hover{background:transparent}
+.liveFootRight{display:flex;align-items:center;gap:12px;margin-left:auto}
 .liveFoot .btn{height:52px;border-radius:14px;padding:0 26px;font-size:15px}
 .liveFoot .btn.primary{background:var(--primary);box-shadow:0 10px 24px color-mix(in srgb,var(--primary) 30%,transparent)}
 .liveFoot .btn.primary:hover{background:var(--primary-hover)}

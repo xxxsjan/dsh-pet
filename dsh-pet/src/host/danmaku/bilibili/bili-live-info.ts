@@ -171,16 +171,27 @@ async function fetchJson(
   return json;
 }
 
+/**
+ * 拉 WBI 密钥。
+ *
+ * 注意：游客态（无 SESSDATA）请求 nav 必定返回 code=-101「账号未登录」，
+ * 但 data.wbi_img 照常下发，签名密钥可用。所以这里不能套「code!==0 即失败」的通用封装，
+ * 只看 wbi_img 在不在——否则未登录用户会在进房第一步就被 -101 挡死。
+ */
 async function fetchWbiMixin(
   fetchFn: typeof fetchViaOutboundProxy,
   headers: Record<string, string>,
 ): Promise<string> {
-  const json = (await fetchJson(fetchFn, 'https://api.bilibili.com/x/web-interface/nav', headers)) as Record<string, unknown>;
-  const wbi = asRecord(json.data)?.wbi_img;
-  const wbiRec = asRecord(wbi);
+  const init: ProxyFetchInit = { method: 'GET', headers };
+  const resp = await fetchFn('https://api.bilibili.com/x/web-interface/nav', init);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const json = (await resp.json()) as Record<string, unknown>;
+  const wbiRec = asRecord(asRecord(json.data)?.wbi_img);
   const img = String(wbiRec?.img_url || '');
   const sub = String(wbiRec?.sub_url || '');
-  if (!img || !sub) throw new Error('未拿到 wbi_img（可能被风控）');
+  if (!img || !sub) {
+    throw new Error(`未拿到 wbi_img（code=${String(json.code)} ${String(json.message || '')}）`);
+  }
   return mixinKey(filenameFromUrl(img), filenameFromUrl(sub));
 }
 

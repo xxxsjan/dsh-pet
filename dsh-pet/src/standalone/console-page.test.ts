@@ -398,31 +398,64 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
     assert.match(html, new RegExp(`data-pill="${p}"`), `平台 logo 应有监听徽标 ${p}`);
     assert.match(html, new RegExp(`data-feed="${p}"`), `弹幕面板仍需保留给弹幕小窗 ${p}`);
   }
+  // 头部平台 Tab 顺序按用户要求：抖音 → 快手 → 小红书 → B站
+  assert.match(
+    html,
+    /data-select="dm"[\s\S]*?data-select="ks"[\s\S]*?data-select="xs"[\s\S]*?data-select="bl"/,
+    '平台 Tab 顺序应为 抖音/快手/小红书/B站',
+  );
 
   // 各平台原面板字段仍保留在配置区里；启动/停止改由底部统一按钮驱动，卡片里不再各放一套
-  const dmIds = ['dm-url', 'dm-cookie', 'dm-reply-chat', 'dm-thank-gift', 'dm-msg', 'dm-status', 'dm-feed-meta', 'dm-feed'];
-  const xsIds = ['xs-reply-chat', 'xs-thank-gift', 'xs-msg', 'xs-status', 'xs-feed-meta', 'xs-feed'];
-  const ksIds = ['ks-url', 'ks-cookie', 'ks-reply-chat', 'ks-thank-gift', 'ks-msg', 'ks-status', 'ks-feed-meta', 'ks-feed'];
-  const blIds = ['bl-url', 'bl-cookie', 'bl-reply-chat', 'bl-thank-gift', 'bl-msg', 'bl-status', 'bl-feed-meta', 'bl-feed'];
+  const dmIds = ['dm-url', 'dm-cookie', 'dm-reply-chat', 'dm-thank-gift', 'dm-msg', 'dm-status', 'dm-feed'];
+  const xsIds = ['xs-reply-chat', 'xs-thank-gift', 'xs-msg', 'xs-status', 'xs-feed'];
+  const ksIds = ['ks-url', 'ks-cookie', 'ks-reply-chat', 'ks-thank-gift', 'ks-msg', 'ks-status', 'ks-feed'];
+  const blIds = ['bl-url', 'bl-cookie', 'bl-reply-chat', 'bl-thank-gift', 'bl-msg', 'bl-status', 'bl-feed'];
   for (const id of [...dmIds, ...xsIds, ...ksIds, ...blIds]) {
     assert.match(html, new RegExp(`id="${id}"`), `弹窗内缺少原面板控件：${id}`);
   }
   for (const id of ['dm-toggle', 'xs-toggle', 'ks-toggle', 'bl-toggle']) {
     assert.doesNotMatch(html, new RegExp(`id="${id}"`), `平台卡片里不该再各自放一套按钮：${id}`);
   }
-  // 「打开直播间」：抖音/快手/B站有直播间链接，各自在链接输入框旁放一个；小红书只有中控台、无直播间地址，不设。
+  // 「打开直播间」：抖音/快手/B站有直播间地址；按用户要求改为状态行左下方的纯文本动作，不再是输入框旁的蓝色按钮
   for (const id of ['dm-open-live', 'ks-open-live', 'bl-open-live']) {
-    assert.match(html, new RegExp(`id="${id}"`), `应有「打开直播间」按钮：${id}`);
+    assert.match(html, new RegExp(`id="${id}"`), `应有「打开直播间」动作：${id}`);
   }
+  assert.doesNotMatch(html, /class="linkBtn"/, '不应再有蓝色「打开直播间」按钮');
+  for (const p of ['dm', 'ks', 'bl']) {
+    assert.match(
+      html,
+      new RegExp(`id="${p}-refresh">刷新状态</button></div>\\s*<div class="liveOpenLiveRow"><button[^>]*class="liveOpenLiveText"[^>]*id="${p}-open-live"[^>]*>打开直播间</button>`),
+      `「打开直播间」应为状态行下方纯文本：${p}`,
+    );
+  }
+  assert.match(styles, /\.liveOpenLiveText\{[^}]*background:none/, '打开直播间应为纯文本样式');
   assert.doesNotMatch(html, /id="xs-open-live"/, '小红书没有直播间地址，不该有「打开直播间」按钮');
   // 小红书走中控台扫码登录，按用户要求不再提供 Cookie 输入框（后端 cookie 参数仍可选，前端不传）
   assert.doesNotMatch(html, /id="xs-cookie"/, '小红书配置卡不应再有 Cookie 输入框');
+  assert.match(html, /class="liveLoginNote">小红书需要扫码登录后使用。<\/p>/, '小红书面板登录说明应为一句话短提示');
   assert.doesNotMatch(script, /xs-cookie/, '脚本不应再读写小红书 Cookie 输入框');
   // 头部「弹幕监听 · 平台」副标题小字按用户要求移除
   assert.doesNotMatch(html, /live-dialog-sub|liveSub|弹幕监听 ·/, '头部不应再有副标题小字');
   assert.doesNotMatch(styles, /\.liveSub/, '副标题样式应一并移除');
+  // 弹幕区「0 / 50」计数徽章按用户要求移除（礼物计数徽章保留）
+  assert.doesNotMatch(html, /feed-meta/, '弹幕区不应再有计数徽章');
+  assert.doesNotMatch(script, /feed-meta/, '脚本不应再更新弹幕计数徽章');
+  assert.match(html, /id="dm-gift-meta"/, '礼物计数徽章保留');
   assert.match(html, /id="live-open-mini"/, '底部应能重新打开弹幕小窗');
-  assert.match(html, /id="live-refresh"/, '底部应有当前平台的状态刷新');
+  // 「刷新状态」不再是底栏按钮，改为状态行右侧的纯文本动作（四平台各一）
+  assert.doesNotMatch(html, /id="live-refresh"/, '底栏不应再有刷新状态按钮');
+  for (const p of ['dm', 'xs', 'ks', 'bl']) {
+    assert.match(html, new RegExp(`class="liveStatusRow"><p class="liveStatus" id="${p}-status"[\\s\\S]*?id="${p}-refresh">刷新状态</button>`), `状态行右侧应有纯文本刷新：${p}`);
+  }
+  assert.match(styles, /\.liveStatusRefresh\{[^}]*background:none/, '刷新状态应为纯文本样式');
+  // 底栏布局：左侧当前平台的回复/感谢开关，右侧按钮且「开始监听」在最右
+  assert.match(
+    html,
+    /class="liveFootLeft"[\s\S]*?data-foot-switches="dm"[\s\S]*?data-foot-switches="bl"[\s\S]*?class="liveFootRight"><button[^>]*id="live-open-mini"[\s\S]*?id="live-start">开始监听</,
+    '底栏应为左开关右按钮，开始监听在最右',
+  );
+  assert.doesNotMatch(html, /class="dmSwitches"/, '开关不应再留在配置卡里');
+  assert.match(script, /data-foot-switches="' \+ p/, '切平台应同步切换底栏开关组');
   assert.match(html, /id="dm-url"[\s\S]*?placeholder="粘贴直播间链接，或直接填纯数字房间号"/, '直播间输入框占位符应与旧页一致');
   assert.match(html, /id="dm-cookie"[\s\S]*?placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里"/, 'Cookie 占位符应说明不填走弹窗扫码');
   assert.doesNotMatch(html, /id="panel-danmaku"/, '控制台里不该出现旧页的面板容器');

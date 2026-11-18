@@ -46,6 +46,22 @@ const NAV_ROUTE = {
   },
 };
 
+/** 游客态真实返回：code=-101「账号未登录」，但 wbi_img 照常下发。 */
+const NAV_GUEST_ROUTE = {
+  match: '/x/web-interface/nav',
+  json: {
+    code: -101,
+    message: '账号未登录',
+    data: {
+      isLogin: false,
+      wbi_img: {
+        img_url: 'https://i0.hdslb.com/bfs/wbi/7cd0830bbfda92b66707849a3d39c3d.png',
+        sub_url: 'https://i0.hdslb.com/bfs/wbi/4932caff0ff746e6ab724b08b210005.png',
+      },
+    },
+  },
+};
+
 function roomRoute(liveStatus: number): { match: string; json: Record<string, unknown> } {
   return {
     match: 'getInfoByRoom',
@@ -130,6 +146,17 @@ describe('resolveBiliWsInfo 换票链路', () => {
     assert.ok(calls.some((u) => u.includes('getInfoByRoom')));
     assert.ok(calls.some((u) => u.includes('getDanmuInfo')));
     assert.ok(calls.some((u) => u.includes('w_rid=')));
+  });
+
+  test('游客态 nav 返回 -101 不应被判失败，仍能换到票', async () => {
+    const info = await resolveBiliWsInfo(
+      'https://live.bilibili.com/123456',
+      '',
+      mockFetch([NAV_GUEST_ROUTE, roomRoute(1), DANMU_ROUTE]),
+    );
+    assert.equal(info.token, 'bili-token-xyz');
+    assert.equal(info.roomId, '987654321');
+    assert.equal(info.uid, '0');
   });
 
   test('未开播抛「主播未开播」', async () => {
