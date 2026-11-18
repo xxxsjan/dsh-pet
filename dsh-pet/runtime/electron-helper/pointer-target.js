@@ -46,24 +46,69 @@ const POINTER_POLL_MS = 60;
 const OFF_BODY_RELEASE_MS = 400;
 
 /**
- * body 迟滞确认拍数：穿透 → 可交互方向必须连续这么多拍落在 body 才放行。
- * 拖别的窗口经过宠物时光标快速划过，凑不满连续拍数；真实悬停时光标静止，轻松满足。
+ * body 迟滞确认拍数：穿透 → 可交互方向必须连续这么多拍「落在 body 且光标基本静止」才放行。
+ * 拖别的窗口经过宠物时光标一直在动，凑不满连续静止拍数；真实悬停时光标静止，轻松满足。
+ * 只数「在 body 的拍数」不够：慢速拖窗经过身体同样能凑满，分层窗口照样被反复翻转而闪烁。
  */
 const BODY_CONFIRM_TICKS = 3;
+
+/** 光标「基本静止」的相邻两拍最大位移（DIP）：超过即视为在移动（拖窗/划过），静止确认清零 */
+const BODY_STILL_MAX_PX = 2;
+
+/**
+ * 相邻两拍光标是否基本静止（位移 ≤ BODY_STILL_MAX_PX）。
+ * 缺上一拍点（首拍/刚恢复）按移动处理：宁可晚一拍确认，不可把移动误判成静止。
+ *
+ * @param prev - 上一拍光标位置（DIP），可为 null/undefined。
+ * @param point - 本拍光标位置（DIP）。
+ * @returns 是否静止。
+ */
+function pointerStill(prev, point) {
+  if (!prev || !point) return false;
+  if (![prev.x, prev.y, point.x, point.y].every(Number.isFinite)) return false;
+  return (
+    Math.abs(point.x - prev.x) <= BODY_STILL_MAX_PX &&
+    Math.abs(point.y - prev.y) <= BODY_STILL_MAX_PX
+  );
+}
+
+/**
+ * 拖拽沉降窗（ms）：任一应用窗口 move/will-move 之后的这段时间内视为「外部拖拽进行中」。
+ * 系统拖动循环里窗口每拍都发 move；中途短暂停顿（光标静止但按键仍按住）也落在沉降窗内。
+ * 实测：拖控制台经过宠物时若泵在停顿拍翻转 WS_EX_TRANSPARENT，被拖窗口会瞬移一个
+ * 宠物窗原点的位移（左下角闪烁）。沉降窗内一律禁止翻转，不依赖渲染端按键上报。
+ */
+const WINDOW_DRAG_SETTLE_MS = 500;
+
+/**
+ * 是否处于拖拽沉降窗内。lastMoveMs=0 表示从未记录到窗口移动（不抑制）。
+ *
+ * @param lastMoveMs - 最近一次任一应用窗口 move/will-move 的时间戳（ms）。
+ * @param nowMs - 当前时间戳（ms）。
+ * @param settleMs - 沉降窗长度，默认 WINDOW_DRAG_SETTLE_MS。
+ * @returns 是否抑制本拍翻转。
+ */
+function isWindowDragSettling(lastMoveMs, nowMs, settleMs = WINDOW_DRAG_SETTLE_MS) {
+  return Number(lastMoveMs) > 0 && nowMs - lastMoveMs < settleMs;
+}
 
 /**
  * 外部拖拽抑制：非 busy 期间，渲染端上报鼠标按键处于按住状态（buttons 位掩码非 0）
  * 且本窗口没有焦点——用户正在拖别的窗口（或框选）经过，几何位置翻转必须闭嘴，
  * 否则分层窗口会被反复改 WS_EX_TRANSPARENT 而闪烁。busy 永远不抑制（拖拽租约优先）。
+ * dragSettling（任一应用窗口刚移动过）同样抑制：外部拖动循环持有捕获时渲染端按键
+ * 上报链路是断的，静止闸门也拦不住「拖动中短暂停顿」，沉降窗补上这个缺口。
  *
  * @param state.busy - 渲染端是否正在使用本窗口的鼠标输入。
  * @param state.buttons - 渲染端上报的鼠标按键位掩码（0 = 无按键）。
  * @param state.focused - 本窗口当前是否持有焦点。
+ * @param state.dragSettling - 是否处于应用窗口拖拽沉降窗内。
  * @returns 是否抑制本拍翻转。
  */
 function shouldSuppressFlip(state) {
   const s = state || {};
   if (s.busy) return false;
+  if (s.dragSettling) return true;
   return Number(s.buttons) > 0 && s.focused !== true;
 }
 
@@ -142,9 +187,13 @@ module.exports = {
   POINTER_POLL_MS,
   OFF_BODY_RELEASE_MS,
   BODY_CONFIRM_TICKS,
+  BODY_STILL_MAX_PX,
+  WINDOW_DRAG_SETTLE_MS,
   spriteHitRect,
   pointerZone,
   decideWindowIgnore,
   shouldSuppressFlip,
   bodyFlipConfirmed,
+  pointerStill,
+  isWindowDragSettling,
 };

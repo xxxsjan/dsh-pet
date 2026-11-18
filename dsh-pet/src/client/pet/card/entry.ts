@@ -62,8 +62,6 @@ export interface CardEntryInput {
   drag: Drag;
   /** 第三方菜单项快照；只在右键那一刻读。 */
   menuItemsRef: ReactNS.MutableRefObject<MenuMoreItem[]>;
-  /** 直播监听状态；只在右键那一刻读，决定是否显示「暂停直播」项。 */
-  danmakuListeningRef: ReactNS.MutableRefObject<boolean>;
   /** 菜单动作派发。 */
   runMenuAction: MenuActions['run'];
   /** 打开待办面板：面板占气泡槽，显隐归气泡单槽管。 */
@@ -359,7 +357,6 @@ export function createCardEntry(rt: CardEntryRuntime) {
       const voiceItem: MenuNode = voiceOn
         ? { label: '关闭朗读', action: 'toggle-voice' }
         : { label: '开启朗读', action: 'toggle-voice' };
-      // 直播入口已隐藏：弹幕监听只保留 HTTP API（/danmaku/douyin/*），右键菜单不再提供开始/暂停项。
       // 顺序与桌面端同一排法：余额 / 碎碎念 / 对话 / 配图 / 睡觉 / 朗读 → 动作树 → 显示位置 / 回到初始位置。
       // 待办走 D 快捷键，不进右键菜单。桌面专属的两项（打开软件、重载配置）在网页端没有对应动作，不出现。
       const tools: MenuNode[] = [

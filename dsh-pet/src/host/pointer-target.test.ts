@@ -29,11 +29,15 @@ const {
   POINTER_POLL_MS,
   OFF_BODY_RELEASE_MS,
   BODY_CONFIRM_TICKS,
+  BODY_STILL_MAX_PX,
+  WINDOW_DRAG_SETTLE_MS,
   spriteHitRect,
   pointerZone,
   decideWindowIgnore,
   shouldSuppressFlip,
   bodyFlipConfirmed,
+  pointerStill,
+  isWindowDragSettling,
 } = require(helper + 'pointer-target.js');
 
 /** 包内文件源码（守卫用；相对 src/host/ 解析） */
@@ -397,6 +401,13 @@ describe('外部拖拽抑制 —— 拖控制台靠近宠物时窗口闪烁的�
       assert.equal(shouldSuppressFlip(), false);
       assert.equal(shouldSuppressFlip({}), false);
     });
+    test('拖拽沉降窗内抑制（外部拖动循环持有捕获，按键上报断链时的兜底）', () => {
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 0, focused: false, dragSettling: true }), true);
+      assert.equal(shouldSuppressFlip({ busy: false, buttons: 0, focused: true, dragSettling: true }), true);
+    });
+    test('busy 对沉降窗同样有否决权（宠物自身拖拽租约优先）', () => {
+      assert.equal(shouldSuppressFlip({ busy: true, buttons: 0, focused: false, dragSettling: true }), false);
+    });
   });
 
   describe('bodyFlipConfirmed 迟滞闸门', () => {
@@ -411,6 +422,105 @@ describe('外部拖拽抑制 —— 拖控制台靠近宠物时窗口闪烁的�
     });
     test('确认拍数是命名常量且为正整数', () => {
       assert.ok(Number.isInteger(BODY_CONFIRM_TICKS) && BODY_CONFIRM_TICKS > 0);
+    });
+  });
+
+  describe('光标静止确认 —— 慢速拖窗经过也不得翻转（buttons 上报断链时的第二道防线）', () => {
+    test('pointerStill：位移 ≤ 阈值算静止，超过算移动', () => {
+      const p = { x: 100, y: 100 };
+      assert.equal(pointerStill(p, { x: 100, y: 100 }), true, '完全静止');
+      assert.equal(pointerStill(p, { x: 100 + BODY_STILL_MAX_PX, y: 100 - BODY_STILL_MAX_PX }), true, '阈值内抖动');
+      assert.equal(pointerStill(p, { x: 100 + BODY_STILL_MAX_PX + 1, y: 100 }), false, 'x 超阈值');
+      assert.equal(pointerStill(p, { x: 100, y: 100 + BODY_STILL_MAX_PX + 1 }), false, 'y 超阈值');
+    });
+    test('pointerStill：缺上一拍点 / 非数值坐标一律按移动处理（宁可晚一拍确认）', () => {
+      assert.equal(pointerStill(null, { x: 0, y: 0 }), false);
+      assert.equal(pointerStill(undefined, { x: 0, y: 0 }), false);
+      assert.equal(pointerStill({ x: 0, y: 0 }, null), false);
+      assert.equal(pointerStill({ x: NaN, y: 0 }, { x: 0, y: 0 }), false);
+      assert.equal(pointerStill(), false);
+    });
+    test('静止阈值是命名常量（2 DIP）', () => {
+      assert.equal(BODY_STILL_MAX_PX, 2);
+    });
+
+    test('源码守卫：泵有上一拍光标表，每拍更新且关窗清理', () => {
+      const main = [
+        readSource(helper + 'main.js'),
+        ...readdirSync(fileURLToPath(new URL(helper + 'main/', import.meta.url)))
+          .filter((name) => name.endsWith('.js'))
+          .map((name) => readSource(helper + 'main/' + name)),
+      ].join('\n');
+      assert.ok(/const lastPointerPoint = new Map\(\)/.test(main), '必须有 lastPointerPoint 表');
+      assert.ok(/lastPointerPoint\.delete\(win\.id\)/.test(main), '关窗必须清理 lastPointerPoint');
+      const poll = /setInterval\(\(\) => \{([\s\S]*?)\}, POINTER_POLL_MS\);/.exec(main);
+      assert.ok(poll, '找不到兜底轮询体');
+      assert.ok(/lastPointerPoint\.set\(win\.id, point\)/.test(poll[1]), '每拍必须更新静止基准');
+      assert.ok(/pointerStill\(prevPoint, point\)/.test(poll[1]), 'dwell 累计必须经静止判定');
+      assert.ok(/zone === 'body' && still \?/.test(poll[1]), '移动拍不得累计确认拍数');
+    });
+
+    test('源码守卫：IPC 的非 busy 可交互请求让位给泵；泵挂起时保留直接翻转（冒烟 round-trip）', () => {
+      const ipc = readSource(helper + 'main/ipc.js');
+      const handler = /ipcMain\.on\('pet:set-interactive', \(event, interactive\) => \{([\s\S]*?)\n  \}\);/.exec(ipc);
+      assert.ok(handler, '找不到 pet:set-interactive 处理器');
+      assert.ok(
+        /if \(interactive && !petWindows\.state\.inputBusy\.get\(win\.id\) && !petWindows\.isPointerFallbackPaused\(\)\) return;/.test(
+          handler[1],
+        ),
+        '非 busy 的穿透→可交互请求必须由泵裁决（forward 事件 buttons 恒 0，渲染端识别不了外部拖拽）',
+      );
+      const windows = readSource(helper + 'main/windows.js');
+      assert.ok(/isPointerFallbackPaused: \(\) => pointerFallbackPaused/.test(windows), 'windows 模块必须暴露泵挂起状态');
+    });
+  });
+
+  describe('拖拽沉降窗 —— 拖动中短暂停顿也不得翻转（哨兵实测：停顿拍翻转会把被拖窗口瞬移左下角）', () => {
+    test('isWindowDragSettling：窗口刚移动过 → 沉降窗内；超时 → 窗外', () => {
+      assert.equal(isWindowDragSettling(1000, 1000 + WINDOW_DRAG_SETTLE_MS - 1), true);
+      assert.equal(isWindowDragSettling(1000, 1000 + WINDOW_DRAG_SETTLE_MS), false);
+      assert.equal(isWindowDragSettling(1000, 1000 + WINDOW_DRAG_SETTLE_MS + 50), false);
+    });
+    test('isWindowDragSettling：从未移动（0）不抑制；自定义窗长生效', () => {
+      assert.equal(isWindowDragSettling(0, 100), false);
+      assert.equal(isWindowDragSettling(1000, 1100, 200), true);
+      assert.equal(isWindowDragSettling(1000, 1200, 200), false);
+    });
+    test('沉降窗是命名常量且足够覆盖拖动中的短暂停顿（≥ 3 个确认拍）', () => {
+      assert.ok(Number.isInteger(WINDOW_DRAG_SETTLE_MS) && WINDOW_DRAG_SETTLE_MS > 0);
+      assert.ok(WINDOW_DRAG_SETTLE_MS >= BODY_CONFIRM_TICKS * POINTER_POLL_MS);
+    });
+    test('源码守卫：泵把沉降窗带进抑制判定，windows 模块暴露移动记录出口', () => {
+      const windows = readSource(helper + 'main/windows.js');
+      assert.ok(/let lastWindowMoveMs = 0/.test(windows), '必须有全应用窗口移动时间戳');
+      assert.ok(/function noteWindowMove\(\)/.test(windows), '必须有 noteWindowMove 记录函数');
+      assert.ok(/noteWindowMove,/.test(windows), 'noteWindowMove 必须导出给装配根接线');
+      const poll = /setInterval\(\(\) => \{([\s\S]*?)\}, POINTER_POLL_MS\);/.exec(windows);
+      assert.ok(poll, '找不到兜底轮询体');
+      assert.ok(
+        /dragSettling: isWindowDragSettling\(lastWindowMoveMs, Date\.now\(\)\)/.test(poll[1]),
+        '泵必须把拖拽沉降窗带进 shouldSuppressFlip',
+      );
+    });
+    test('源码守卫：装配根把所有应用窗口的 move/will-move 接进沉降窗', () => {
+      const main = readSource(helper + 'main.js');
+      assert.ok(/app\.on\('browser-window-created'/.test(main), '必须覆盖所有窗口（含控制台/设置/直播间）');
+      assert.ok(/win\.on\('will-move', petWindows\.noteWindowMove\)/.test(main), 'will-move 必须接线');
+      assert.ok(/win\.on\('move', petWindows\.noteWindowMove\)/.test(main), 'move 必须接线');
+    });
+    test('源码守卫：Windows 穿透翻转不带 forward（被拖窗口瞬移的触发源），其它平台保留', () => {
+      const windows = readSource(helper + 'main/windows.js');
+      const fn = /function setWindowIgnore\(win, ignore\) \{([\s\S]*?)\n  \}/.exec(windows);
+      assert.ok(fn, '找不到 setWindowIgnore');
+      assert.ok(
+        /if \(process\.platform === 'win32'\) win\.setIgnoreMouseEvents\(ignore\);/.test(fn[1]),
+        'win32 必须不带 forward：低级钩子+转发会把被拖窗口瞬移一个宠物窗原点（哨兵实锤）；deps.platform 是配置对象不是字符串',
+      );
+      assert.ok(
+        /win\.setIgnoreMouseEvents\(ignore, \{ forward: true \}\);/.test(fn[1]),
+        '其它平台保留 forward（无此 bug，悬停即时响应）',
+      );
+      assert.ok(!/flip-diag/.test(windows), '临时诊断日志必须清除');
     });
   });
 

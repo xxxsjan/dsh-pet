@@ -113,7 +113,7 @@ export class PollStateStore {
       // 桌面宠物点会话气泡后的跳转意图（`POST /focus-session`）：页面据此切会话。
       // 一次性信号：带 ts，消费端据它判重，页面晚于写入加载时仍可重放一次。
       focusSession: emptyLeaf(),
-      // 直播监听状态：宿主启动/停止监听时写它，右键菜单据此决定是否显示「暂停直播」项。
+      // 直播监听状态：宿主启动/停止监听时写它，供 /state 的消费方读取（右键菜单入口已移除）。
       danmaku: emptyLeaf(),
       // 小红书中控台弹幕监听状态（独立段，避免覆盖抖音段）。
       'xhs-danmaku': emptyLeaf(),

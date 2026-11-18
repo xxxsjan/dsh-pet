@@ -55,6 +55,7 @@ const { dshHomeDir, resolveUserDataDir } = require('./main/user-data.js');
 const { startDouyinSignBridge } = require('./main/douyin-sign.js');
 const { startDouyinCdpBridge } = require('./main/douyin-cdp.js');
 const { startXhsCdpBridge } = require('./main/xhs-cdp.js');
+const { startGlobalButtonWatch } = require('./main/win32-buttons.js');
 
 /** Linux 指针提供者：仅在 Linux 创建；查询失败时 get() 返回 null（调用方回退 Electron 原生 API） */
 const linuxPointer = process.platform === 'linux' ? createLinuxPointer() : null;
@@ -154,8 +155,14 @@ if (process.platform === 'win32') {
 // 把音频服务改回浏览器进程内后实测恢复（7 个输出设备、AudioContext 正常推进）。
 // 代价是少一层进程隔离自带的崩溃隔离，本进程只播本地素材、不加载不可信内容，可以接受。
 // 必须在 ready 之前加，之后再加不生效。
+//
+// CalculateNativeWinOcclusion：Chromium 的 Windows 原生窗口遮挡检测。别的窗口拖过来盖住桌宠窗时，
+// 遮挡状态逐帧变化 → 合成器随之挂起/恢复；本进程又是软件合成的分层窗（见上方 disableHardwareAcceleration），
+// 恢复那一帧 layered 位图会被贴到错误位置（实测整窗内容瞬移到屏幕左下角再弹回），拖动反复覆盖就反复闪。
+// 关掉遮挡检测后覆盖不再触发合成器挂起，桌宠被盖住时也照常动画。VS Code 同类问题同法修复
+// （microsoft/vscode#116615）。注意 disable-features 重复 appendSwitch 只有最后一个生效，必须合并成一条。
 if (process.platform === 'win32') {
-  app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess');
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess,CalculateNativeWinOcclusion');
 }
 
 // 全局 DPI 线性化：所有显示器强制同一 scale factor——逐屏仿射变换会在拖过屏缝时反复翻转
@@ -248,6 +255,18 @@ const petWindows = createWindows({
   shouldReassertTopmost,
   topmostLevel,
   taskbarWatchdogEnabled: taskbarWatchdogEnabledFromEnv(process.env.BLUE_FISH_TASKBAR_WATCHDOG),
+});
+// 拖拽沉降窗接线：所有应用窗口（宠物/控制台/设置/直播间）的移动都记时间戳。
+// 系统拖动循环期间 move/will-move 持续触发，兜底泵据此在沉降窗内禁止穿透翻转——
+// 否则拖窗经过宠物时的翻转会把被拖窗口瞬移一个宠物窗原点（左下角闪烁，哨兵实测）。
+app.on('browser-window-created', (_event, win) => {
+  win.on('will-move', petWindows.noteWindowMove);
+  win.on('move', petWindows.noteWindowMove);
+});
+// 全局按键监视：按住鼠标键期间（含拖窗在宠物身上长时间停顿）泵禁止翻转。
+// 渲染端按键上报在外部拖动捕获下断链、沉降窗只覆盖 500ms，GetAsyncKeyState 补上剩余缺口。
+const globalButtonWatch = startGlobalButtonWatch({
+  onButtons: petWindows.setGlobalButtons,
 });
 /** 托盘：显示开关与退出入口。 */
 const tray = createTray({
@@ -387,6 +406,7 @@ app.on('before-quit', () => {
   petWindows.setPointerFallbackPaused(true);
   petWindows.clearAllForwardMouseHooks();
   petWindows.stopTaskbarWatchdog();
+  globalButtonWatch.stop();
   if (!tray.exists()) return;
   try {
     tray.destroy();

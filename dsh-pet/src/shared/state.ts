@@ -343,7 +343,7 @@ export function readThrow(leaf: StateLeaf): { angle: number; power: number } | n
 export type DanmakuStatus = { listening: boolean };
 
 /** 类型收窄：直播监听叶子 → DanmakuStatus（形状非法 → null，消费端跳过这一拍）。
- *  只关心 listening 字段：右键菜单据此决定是否显示「暂停直播」项。 */
+ *  只关心 listening 字段：供 /state 的消费方（如第三方扩展）读取监听状态。 */
 export function readDanmaku(leaf: StateLeaf): DanmakuStatus | null {
   if (!leaf.data || typeof leaf.data !== 'object') return null;
   const d = leaf.data as { listening?: unknown };

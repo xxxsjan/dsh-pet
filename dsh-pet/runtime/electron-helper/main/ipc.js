@@ -104,6 +104,12 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
   ipcMain.on('pet:set-interactive', (event, interactive) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || win.isDestroyed()) return;
+    // 穿透→可交互方向在兜底泵运行时交给泵的「静止确认」裁决，这里不直接翻：
+    // 外部拖窗经过时 forward 转发的事件不带按键状态（buttons 恒 0），渲染端识别不了拖拽，
+    // 会按普通悬停请求可交互；直接翻就会反复改分层窗 WS_EX_TRANSPARENT 而闪烁。
+    // 泵按真实光标连续静止才放行。释放方向（false）与 busy（拖拽/菜单/弹窗）不受影响；
+    // 泵挂起期间（冒烟自检/重建）保持原直接翻转行为，冒烟的 round-trip 断言才成立。
+    if (interactive && !petWindows.state.inputBusy.get(win.id) && !petWindows.isPointerFallbackPaused()) return;
     const input = petWindows.state.inputRegions.get(win.id);
     // 渲染端的旧 menuOpen/chatOpen 守卫会请求整窗可交互；这里按真实光标和控件矩形裁定。
     const ignoring =

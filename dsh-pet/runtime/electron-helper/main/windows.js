@@ -7,7 +7,7 @@
  * @module dsh-pet/runtime/electron-helper/main/windows
  */
 const path = require('node:path');
-const { pointerZone, decideWindowIgnore, shouldSuppressFlip, bodyFlipConfirmed } = require('../pointer-target.js');
+const { pointerZone, decideWindowIgnore, shouldSuppressFlip, bodyFlipConfirmed, pointerStill, isWindowDragSettling } = require('../pointer-target.js');
 const { TOPMOST_WATCHDOG_ENABLED, TOPMOST_WATCHDOG_TICK_MS } = require('../topmost-watchdog.js');
 const { TASKBAR_WATCHDOG_TICK_MS, shouldRunTaskbarWatchdog } = require('../taskbar-watchdog.js');
 const { applyLiveCaptureExStyle } = require('./win32-exstyle.js');
@@ -57,8 +57,10 @@ function createWindows({
   const inputBusy = new Map();
   /** 每窗口渲染端上报的鼠标按键位掩码（0=无按键）：非 busy 按住键经过 = 外部拖拽，抑制翻转 */
   const pointerButtons = new Map();
-  /** 每窗口光标连续落在 body 区的拍数：穿透→可交互方向的迟滞确认（防外部拖窗快速划过） */
+  /** 每窗口光标连续「落在 body 且基本静止」的拍数：穿透→可交互方向的迟滞确认（防外部拖窗经过时翻转闪烁） */
   const bodyDwellTicks = new Map();
+  /** 每窗口上一拍的真实光标位置（DIP）：静止判定的基准，每拍更新（抑制拍也要更新，恢复后基准才新鲜） */
+  const lastPointerPoint = new Map();
   /** 新渲染端把菜单/聊天框局部矩形单独上报，避免忙碌态下整窗透明余量吞点击 */
   const inputRegions = new Map();
   /** 每窗口「光标停在余量区且非 busy」的连续时长（ms）：到点由兜底通道强制恢复穿透 */
@@ -67,6 +69,10 @@ function createWindows({
   const petStates = new Map();
   /** 冒烟期间暂停兜底泵：它按真实光标翻转，会干扰冒烟对渲染端通道的断言 */
   let pointerFallbackPaused = false;
+  /** 最近一次任一应用窗口 move/will-move 的时间戳：外部拖拽沉降窗的基准（main.js 全窗口接线） */
+  let lastWindowMoveMs = 0;
+  /** 全局鼠标按键位掩码（win32-buttons 子进程上报，跨窗口/跨捕获有效）：按住键期间禁止翻转 */
+  let globalButtons = 0;
   /** 已对 HWND 打过 OBS 扩展样式的窗口：show / ready-to-show 都会进 listing，只允许打一次。 */
   const obsExStyleApplied = new WeakSet();
 
@@ -88,10 +94,23 @@ function createWindows({
     broadcastPetStates();
   }
 
-  /** 翻转整窗穿透的唯一出口：状态与镜像永远一起更新（穿透期间保留 forward）。 */
+  /** 翻转整窗穿透的唯一出口：状态与镜像永远一起更新。
+   *
+   * Windows 上不带 forward：低级鼠标钩子 + 输入转发在「强制 DSF=1 + 置顶分层窗 + 系统拖动循环」
+   * 组合下，会把正在被拖的窗口瞬移一个宠物窗原点（左下角闪烁）。哨兵逐帧实锤：光标落入身体
+   * 命中区即触发，与泵的穿透翻转无关（全局按键抑制期间照样跳），关掉 forward 即消失。
+   * 穿透裁决由兜底泵按真实光标独立完成（静止确认 + 全局按键 + 拖拽沉降窗），交互不受影响。
+   * 其它平台保留 forward（无此 bug，渲染端悬停即时响应）。 */
   function setWindowIgnore(win, ignore) {
-    win.setIgnoreMouseEvents(ignore, { forward: true });
+    // 注意：deps.platform 是 tray-platform 的配置对象，不是平台字符串，这里必须用 process.platform。
+    if (process.platform === 'win32') win.setIgnoreMouseEvents(ignore);
+    else win.setIgnoreMouseEvents(ignore, { forward: true });
     windowIgnore.set(win.id, ignore);
+  }
+
+  /** 记录任一应用窗口的移动（main.js 挂在所有窗口的 move/will-move 上）：拖拽沉降窗基准。 */
+  function noteWindowMove() {
+    lastWindowMoveMs = Date.now();
   }
 
   /**
@@ -196,19 +215,28 @@ function createWindows({
       const point = dpi.currentPointer();
       const margin = winMargins.get(win.id);
       const zone = pointerZone(bounds, point, margin);
+      // 静止基准每拍更新（含抑制拍）：外部拖拽结束后的第一拍就有新鲜基准可比。
+      const prevPoint = lastPointerPoint.get(win.id);
+      lastPointerPoint.set(win.id, point);
       // 外部拖拽抑制：用户正按住鼠标键在别的窗口操作（如拖控制台经过宠物），本拍不翻转，
       // 避免分层窗口被反复改 WS_EX_TRANSPARENT 触发 DWM 重绘闪烁。迟滞计数同时清零。
+      // 三层防线：全局按键（win32-buttons，穿透期渲染端收不到事件，按键上报靠它）、
+      // 拖拽沉降窗（任一应用窗口 500ms 内移动过）、光标静止确认（慢速拖窗经过）。
       const suppressed = shouldSuppressFlip({
         busy,
-        buttons: pointerButtons.get(win.id) ?? 0,
+        buttons: Math.max(pointerButtons.get(win.id) ?? 0, globalButtons),
         focused: win.isFocused(),
+        dragSettling: isWindowDragSettling(lastWindowMoveMs, Date.now()),
       });
       if (suppressed) {
         bodyDwellTicks.set(win.id, 0);
         return;
       }
-      // body 迟滞：连续落在 body 才累计，换区清零；仅用于穿透→可交互方向的确认闸门。
-      const dwell = zone === 'body' ? (bodyDwellTicks.get(win.id) ?? 0) + 1 : 0;
+      // body 迟滞：连续「落在 body 且光标基本静止」才累计，换区或光标在动都清零。
+      // Windows 穿透期渲染端收不到鼠标事件（forward 已关），按键状态全靠全局监视；
+      // 静止闸门是第三层保险——慢速拖窗经过时光标一直在动，永远凑不满确认拍数。
+      const still = pointerStill(prevPoint, point);
+      const dwell = zone === 'body' && still ? (bodyDwellTicks.get(win.id) ?? 0) + 1 : 0;
       bodyDwellTicks.set(win.id, dwell);
       const nextMs = !busy && zone === 'margin' ? (offBodyMs.get(win.id) ?? 0) + POINTER_POLL_MS : 0;
       offBodyMs.set(win.id, nextMs);
@@ -329,6 +357,7 @@ function createWindows({
       offBodyMs.delete(win.id);
       pointerButtons.delete(win.id);
       bodyDwellTicks.delete(win.id);
+      lastPointerPoint.delete(win.id);
     });
     win.loadFile(path.join(helperDir, 'index.html'), { query: windowQuery(pet, geo, scale) }).catch((error) => {
       console.error(`[blue-fish-desktop-helper] page load failed (${pet.id}):`, error);
@@ -411,6 +440,7 @@ function createWindows({
     closeAll: closeAllPetWindows,
     geometry: deskGeometry,
     setWindowIgnore,
+    noteWindowMove,
     clearAllForwardMouseHooks,
     updatePetState,
     broadcastPetStates,
@@ -418,6 +448,12 @@ function createWindows({
     stopTaskbarWatchdog,
     setPointerFallbackPaused: (paused) => {
       pointerFallbackPaused = paused;
+    },
+    /** 兜底泵是否挂起（冒烟自检/重建期间）：IPC 通道据此决定要不要把翻转裁决让给泵。 */
+    isPointerFallbackPaused: () => pointerFallbackPaused,
+    /** 全局按键掩码入口（win32-buttons 子进程 → main.js → 这里）：按住键期间泵不翻转。 */
+    setGlobalButtons: (mask) => {
+      globalButtons = Number(mask) > 0 ? Number(mask) : 0;
     },
   };
 }
