@@ -1,5 +1,5 @@
 /**
- * 选中宠物的配置卡：头像、名字 / 大小、角落与偏移、四个功能开关、实例级人设。
+ * 选中宠物的配置卡：头像、名字 / 大小、角落与偏移、功能开关（含点击音效与音量）、实例级人设。
  * 只编辑 main 条目的实例字段：条目级字段由成品配置回落，卡里不出现也不回写；文件宠物永不进这张卡。
  * 纯展示 + 回调，状态全在设置页外壳；`onChange` 的补丁形状即提交形状的预览。
  * 头像格与两组字段在 ./pet-card-parts，本文件只做编排。
@@ -8,7 +8,7 @@
 import type { ChangeEvent, FunctionComponent } from 'react';
 import type { Pet } from '../../shared/types.ts';
 import type { SettingsRuntime } from './runtime.ts';
-import { INPUT_CLASS, makeUiKit } from './ui.ts';
+import { INPUT_CLASS, makeUiKit, numberInputProps } from './ui.ts';
 import { makePetAvatarCell, makePetIdentityFields, makePetPositionFields, type PetPatch } from './pet-card-parts.ts';
 
 /** 宠物卡的全部输入。 */
@@ -121,6 +121,26 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
               props.onChange({ workStatusEnabled: v }),
             ),
             toggleCell('fixedEnabled', !!pet.fixedEnabled, busy, (v) => props.onChange({ fixedEnabled: v })),
+          ],
+        }),
+
+        // 点击音效（实例级）：开关与音量并排一行，每只宠物各自一份。
+        h('div', {
+          className: 'blue-fish-cfg__grid2',
+          children: [
+            toggleCell('clickSoundEnabled', pet.clickSoundEnabled !== false, busy, (v) =>
+              props.onChange({ clickSoundEnabled: v }),
+            ),
+            field(
+              t('clickSoundVolumeLabel'),
+              h('input', numberInputProps(pet.clickSoundVolume ?? 0.5, (v) => props.onChange({ clickSoundVolume: v }), {
+                min: '0',
+                max: '1',
+                step: '0.05',
+                disabled: busy,
+              })),
+              t('clickSoundVolumeHint'),
+            ),
           ],
         }),
 

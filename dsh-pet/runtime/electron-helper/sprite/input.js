@@ -411,7 +411,7 @@ Object.assign(PetSprite.prototype, {
     // 叫醒的表现由 /wake 写回的 sleep 叶子驱动（end 播一遍，播完回随机链）。
     // 这里直接压当前前台那一帧：平时靠 pendingSquash 等新动画就位，这条路没有换源。
     if (this.sleeping) {
-      playClickSound();
+      playClickSound(this.pet);
       const front = this.front === 0 ? this.videoA : this.videoB;
       if (front) this.startSquash(front);
       this.postSleepAction('wake');
@@ -426,7 +426,7 @@ Object.assign(PetSprite.prototype, {
       return;
     }
     // 点击音效与浏览器同位置：放在「按下已触发积分」的早退之后、点击动画判断之前
-    playClickSound();
+    playClickSound(this.pet);
     if (!this.animations.clicks.length) return;
     this.pendingSquash = true; // 等新点击动画切到前台后 Q 弹（压新首帧，与浏览器一致）
     this.playOnce(S.pick(this.animations.clicks));

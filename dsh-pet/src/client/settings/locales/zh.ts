@@ -15,7 +15,7 @@ export const zh = {
   avatarUploading: '上传中…',
   avatarUploaded: '头像已更新',
   petCardHint:
-    '每只宠物独立配置：名字 / 大小 / 显示位置 / 位置 / 偏移 / 四个功能开关。改完点最下面的「保存」即时生效。',
+    '每只宠物独立配置：名字 / 大小 / 显示位置 / 位置 / 偏移 / 功能开关（含点击音效与音量）。改完点最下面的「保存」即时生效。',
   globalTitle: '全局开关',
   globalHint:
     '所有宠物共用（pet pack 可在自己种类文件里单独覆盖）。这几个开关只改本地状态，随「保存」整包写入用户配置（不做即时写入）；系统通知在保存后即时重读，无需刷新页面。',
@@ -127,9 +127,11 @@ export const zh = {
   savePartial: '主宠物已保存，但 {names} 没能写回：检查该角色包配置是否合法、目录是否可写。',
   notifyToggle: '系统通知',
   notifyToggleHint: '对话完成 / 生成失败 / 权限申请 / 用户选择，在窗口失焦时弹出系统级通知（桌面右下角）。',
-  clickSoundToggle: '点击音效',
-  clickSoundToggleHint:
-    '点一下宠物播一声内置音效（assets/sound/click-duck.wav，音量 0.5；100ms 内的连续点击只响一次，多开也不会叠音）。关掉即完全静音。随「保存」写入用户配置。',
+  clickSoundEnabled: '点击音效',
+  clickSoundEnabledHint:
+    '点一下这只宠物播一声内置音效（assets/sound/click-duck.wav；100ms 内的连续点击只响一次，多开也不会叠音）。关掉即这只宠物完全静音。随「保存」写入用户配置。',
+  clickSoundVolumeLabel: '点击音效音量（0–1）',
+  clickSoundVolumeHint: '1 = 100%，默认 0.5；短提示音不做增益放大。只影响这只宠物。',
   whisperImageToggle: '碎碎念配图',
   whisperImageToggleHint:
     '碎碎念时从表情包池随机抽一张，连同那句话一起显示（图片映射在配置文件顶层 memes）。token：碎碎念本来就每次生成都要调一次模型，配图只是把抽中那张的名称+描述（约 100 字符 / ≈60 token）加进同一次请求，增量可忽略。',

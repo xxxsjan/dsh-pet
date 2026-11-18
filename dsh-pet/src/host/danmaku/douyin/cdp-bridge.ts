@@ -26,6 +26,8 @@ export type DouyinCdpBridge = {
     url: string;
     loggedIn: boolean;
     lastError: string;
+    title: string;
+    anchor: string;
   };
   /** 订阅入站帧；返回取消订阅函数。 */
   onFrame(fn: (frame: DouyinCdpFrame) => void): () => void;
@@ -33,6 +35,8 @@ export type DouyinCdpBridge = {
   onLogin(fn: () => void): () => void;
   /** 订阅内嵌窗被关闭（旁听中断）事件。 */
   onClosed(fn: () => void): () => void;
+  /** 订阅「读到房间标题 / 主播」事件（内嵌页 RENDER_DATA）。 */
+  onMeta(fn: (meta: { title: string; anchor: string }) => void): () => void;
 };
 
 /** globalThis 上挂 CDP 控制器的键（与 Helper 装配一致）。 */

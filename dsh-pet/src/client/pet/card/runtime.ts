@@ -308,7 +308,7 @@ export function createCardRuntime(rt: PetRuntime) {
         if (phase !== null && phase !== 'start') {
           const front = ownAnim.frontVideo();
           if (front) liveRef.current.squash.start(front);
-          playClickSound();
+          playClickSound(cfg.clickSoundEnabled === true, cfg.clickSoundVolume);
           void postAction(ROUTE_PATH + '/wake?pet=' + encodeURIComponent(cfg.id));
           return;
         }

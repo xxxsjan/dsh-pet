@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { warnOnce } from './constants.ts';
 import type { ConfigPaths } from './constants.ts';
 import { effectiveUserFile, readJsonc } from './jsonc.ts';
-import { mergeEntry, packBase } from './merge.ts';
+import { mergeEntry, packBase, legacyClickSoundOf } from './merge.ts';
 
 /**
  * 老用户一次性迁移：main-config.json → main-config.jsonc（重命名，内容一字不动）。
@@ -86,6 +86,8 @@ export function readAllConfig(paths: ConfigPaths): Record<string, Record<string,
 
   // 文件宠物条目：pet/<名>-config.json，一个文件一个条目（key = 文件名前缀 = 素材根）。
   // 基座 = 内置默认，但白名单字段（用户级成本/偏好/环境）取用户层——「全局默认 + 种类可覆盖」。
+  // 旧版顶层全局点击音效值也带给文件宠物：它当年对所有宠物生效，下沉实例级后不能把种类落下。
+  const mainLegacy = legacyClickSoundOf(mainOverlay);
   const filePetBase = packBase(base, mainOverlay);
   for (const file of scanPetFiles(paths.petDir)) {
     const parsed = readJsonc(file.path);
@@ -93,7 +95,7 @@ export function readAllConfig(paths: ConfigPaths): Record<string, Record<string,
       warnOnce('file:' + file.path, '文件宠物配置解析失败，已跳过：' + file.path);
       continue;
     }
-    out[file.prefix] = mergeEntry(filePetBase, parsed, file.prefix + '-config.json', basePets, seenIds);
+    out[file.prefix] = mergeEntry(filePetBase, parsed, file.prefix + '-config.json', basePets, seenIds, mainLegacy);
   }
   return out;
 }

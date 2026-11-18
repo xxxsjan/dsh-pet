@@ -427,11 +427,13 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       minWidth: Math.round(300 * scale),
       minHeight: Math.round(320 * scale),
       autoHideMenuBar: true,
-      backgroundColor: '#070d18',
+      backgroundColor: '#20212466',
       title: '弹幕小窗',
       icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
       // 无边框 + 置顶：头部由页面自绘并当拖动区，关闭按钮走页内 pet:close-live。
       frame: false,
+      // 整窗背景带 66 透明度，透出后方桌面；透明窗必须开 transparent，否则背景色 alpha 不生效。
+      transparent: true,
       alwaysOnTop: true,
       maximizable: false,
       fullscreenable: false,
@@ -467,6 +469,15 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       win.destroy();
     });
     liveMiniWindow = win;
+  };
+
+  // 停止监听后同步关掉弹幕小窗：只关正在展示该平台的小窗（platform 缺省 = 无条件关）。
+  // 小窗本来就可能被用户手动关过，不存在/已销毁时静默跳过。
+  const closeLiveMiniWindow = (platform) => {
+    if (!liveMiniWindow || liveMiniWindow.isDestroyed()) return;
+    const wanted = LIVE_MINI_PLATFORMS.includes(platform) ? platform : '';
+    if (wanted && liveMiniPlatform && liveMiniPlatform !== wanted) return;
+    liveMiniWindow.close();
   };
 
   // 应用自注册的 dsh:// 协议：已运行时把主窗口提到前台，未运行则直接把应用拉起来。
@@ -512,6 +523,13 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     if (openTarget !== 'standalone') return;
     const platform = payload && typeof payload === 'object' ? String(payload.platform || '') : '';
     openLiveMiniWindow(platform);
+  });
+
+  // 控制台「停止监听」成功后同步关小窗：只关展示被停平台的那扇，避免误关别的平台。
+  ipcMain.on('pet:close-live-mini', (event, payload) => {
+    if (openTarget !== 'standalone') return;
+    const platform = payload && typeof payload === 'object' ? String(payload.platform || '') : '';
+    closeLiveMiniWindow(platform);
   });
 
   // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址，只接受 http(s) 链接。

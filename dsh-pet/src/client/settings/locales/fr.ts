@@ -17,7 +17,7 @@ export const fr: Record<Key, string> = {
   avatarUploading: 'Envoi…',
   avatarUploaded: 'Avatar mis à jour',
   petCardHint:
-    'Réglages par compagnon : nom / taille / affichage / coin / décalages / les quatre interrupteurs de fonctionnalités. Cliquez sur « Enregistrer » en bas pour appliquer immédiatement.',
+    'Réglages par compagnon : nom / taille / affichage / coin / décalages / interrupteurs de fonctionnalités (dont le son au clic et son volume). Cliquez sur « Enregistrer » en bas pour appliquer immédiatement.',
   globalTitle: 'Interrupteurs globaux',
   globalHint:
     "Partagés par tous les compagnons (un pet pack peut les remplacer dans son propre fichier de type). Ces interrupteurs ne modifient que l'état local et sont écrits dans la configuration utilisateur lors de l'enregistrement (jamais immédiatement) ; les notifications système sont relues juste après l'enregistrement, sans rafraîchir la page.",
@@ -138,9 +138,11 @@ export const fr: Record<Key, string> = {
   notifyToggle: 'Notifications système',
   notifyToggleHint:
     "Notifications du système d'exploitation (en bas à droite du bureau) pour la fin d'une conversation, les échecs, les demandes de permission et les questions — uniquement lorsque cette fenêtre n'a pas le focus.",
-  clickSoundToggle: 'Son au clic',
-  clickSoundToggleHint:
-    "Joue le son intégré (assets/sound/click-duck.wav, volume 0,5) quand on clique sur un compagnon ; les clics répétés en moins de 100 ms ne sonnent qu'une fois, donc plusieurs compagnons ne se superposent jamais. Désactivez-le pour un silence total. Écrit dans la configuration utilisateur avec « Enregistrer ».",
+  clickSoundEnabled: 'Son au clic',
+  clickSoundEnabledHint:
+    "Joue le son intégré (assets/sound/click-duck.wav) quand on clique sur ce compagnon ; les clics répétés en moins de 100 ms ne sonnent qu'une fois, donc plusieurs compagnons ne se superposent jamais. Désactivez-le pour rendre ce compagnon totalement silencieux. Écrit dans la configuration utilisateur avec « Enregistrer ».",
+  clickSoundVolumeLabel: 'Volume du son au clic (0–1)',
+  clickSoundVolumeHint: "1 = 100 %, par défaut 0,5 ; les sons courts ne sont pas amplifiés. Ne s'applique qu'à ce compagnon.",
   whisperImageToggle: 'Images des murmures',
   whisperImageToggleHint:
     "Joindre un mème tiré au hasard dans le pool à chaque murmure (la correspondance des images se trouve dans le champ memes, au niveau supérieur de la configuration). Tokens : un murmure appelle déjà le modèle à chaque cycle ; l'image ajoute seulement le nom + la description de ce mème (environ 100 caractères / ~60 tokens) à la même requête — négligeable.",

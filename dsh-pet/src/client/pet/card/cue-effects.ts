@@ -8,7 +8,7 @@
 import { balanceEventIndex, balancePercent } from '../../../shared/balance/index.ts';
 import { pickSlot, poolIncludes } from '../../../shared/pickers.ts';
 import { WORK_STATUS_INDEX } from '../../../shared/work-status.ts';
-import { playSayVoice } from '../../../shared/voice.ts';
+import { playSayVoice, stopSayVoice } from '../../../shared/voice.ts';
 import type { CardHub } from './hub.ts';
 import type { PetCardProps } from './props.ts';
 import type * as ReactNS from 'react';
@@ -163,6 +163,8 @@ export function createCueEffects(rt: CueEffectsRuntime) {
       prevSayRef.current = say.seq;
       if (say.kind === 'clear') {
         hub.bubbles.clearWhisper();
+        // 宿主点名停播（弹幕开关关闭）：连带掐断正在朗读的自动播报；普通清空只收气泡。
+        if (say.stopVoice) stopSayVoice();
         return;
       }
       hub.speak(say.text, say.image, say.url, say.duration, say.anim);

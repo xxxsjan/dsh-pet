@@ -17,7 +17,7 @@ export const es: Record<Key, string> = {
   avatarUploading: 'Subiendo…',
   avatarUploaded: 'Avatar actualizado',
   petCardHint:
-    'Ajustes por mascota: nombre / tamaño / visualización / esquina / márgenes / los cuatro interruptores de funciones. Pulsa "Guardar" abajo para aplicar al instante.',
+    'Ajustes por mascota: nombre / tamaño / visualización / esquina / márgenes / interruptores de funciones (incl. sonido de clic y volumen). Pulsa "Guardar" abajo para aplicar al instante.',
   globalTitle: 'Interruptores globales',
   globalHint:
     'Compartidos por todas las mascotas (un pet pack puede sobrescribirlos en el archivo de su propio tipo). Estos interruptores solo cambian el estado local y se escriben en la configuración del usuario al "Guardar" (nunca al instante); las notificaciones del sistema se vuelven a leer justo después de guardar, sin necesidad de recargar la página.',
@@ -140,9 +140,11 @@ export const es: Record<Key, string> = {
   notifyToggle: 'Notificaciones del sistema',
   notifyToggleHint:
     'Avisos del sistema operativo (abajo a la derecha del escritorio) al completarse una conversación, si falla la generación, cuando se solicita permiso o cuando hay que elegir; solo mientras esta ventana no tiene el foco.',
-  clickSoundToggle: 'Sonido al hacer clic',
-  clickSoundToggleHint:
-    'Reproduce el sonido de clic integrado (assets/sound/click-duck.wav, volumen 0.5) al hacer clic en una mascota; los clics repetidos en menos de 100 ms solo suenan una vez, así que varias mascotas nunca se superponen. Desactívalo para silencio total. Se escribe en la configuración del usuario al Guardar.',
+  clickSoundEnabled: 'Sonido al hacer clic',
+  clickSoundEnabledHint:
+    'Reproduce el sonido de clic integrado (assets/sound/click-duck.wav) al hacer clic en esta mascota; los clics repetidos en menos de 100 ms solo suenan una vez, así que varias mascotas nunca se superponen. Desactívalo para silenciar esta mascota. Se escribe en la configuración del usuario al Guardar.',
+  clickSoundVolumeLabel: 'Volumen del clic (0–1)',
+  clickSoundVolumeHint: '1 = 100 %, predeterminado 0.5; los avisos cortos no se amplifican. Solo afecta a esta mascota.',
   whisperImageToggle: 'Imágenes en susurros',
   whisperImageToggleHint:
     'Adjunta un meme aleatorio del pool a cada susurro (el mapeo de imágenes está en el campo `memes` de la configuración de nivel superior). Tokens: un susurro ya llama al modelo en cada ciclo, así que la imagen solo añade el nombre + la descripción de ese meme (~100 caracteres / ~60 tokens) a la misma solicitud: insignificante.',

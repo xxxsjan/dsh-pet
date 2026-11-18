@@ -27,13 +27,16 @@ export interface FormValues {
 export const modelPairValid = (model: ModelSelection): boolean =>
   (model.provider.trim() === '') === (model.model.trim() === '');
 
-/** 宠物：宽度必须为正数、百分比缺省或是不小于 1 的数字、两个偏移必须是有限数（负数合法，宠物可以压出屏外）。 */
+/** 宠物：宽度必须为正数、百分比缺省或是不小于 1 的数字、两个偏移必须是有限数（负数合法，宠物可以压出屏外）、
+ *  点击音效音量缺省或是 0–1 的有限数（与宿主 topFieldValid('clickSoundVolume') 同规则）。 */
 const petValid = (pet: Pet): boolean =>
   Number.isFinite(pet.size) &&
   pet.size > 0 &&
   (pet.sizePercent === undefined || isValidSizePercent(pet.sizePercent)) &&
   Number.isFinite(pet.position.marginX) &&
-  Number.isFinite(pet.position.marginY);
+  Number.isFinite(pet.position.marginY) &&
+  (pet.clickSoundVolume === undefined ||
+    (Number.isFinite(pet.clickSoundVolume) && pet.clickSoundVolume >= 0 && pet.clickSoundVolume <= 1));
 
 /** 物理参数：与宿主 `physicsValid` 同名规则，客户端只覆盖数值字段（布尔项由宿主兜底）。 */
 const physicsValid = (physics: PhysicsParams): boolean =>

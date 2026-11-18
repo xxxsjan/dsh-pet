@@ -1,7 +1,8 @@
 /**
  * 点击音效：单例 audio，按键连点节流，播放失败一律静默（没有声音也不该有报错）。
- * 开关与音量由成品配置驱动：配置没加载前保守静音，避免用户在设置页关掉后还响一声。
- * 模块级单例（不是每个宠物一份），多开时同时点也只响一次。
+ * 开关与音量是实例级配置（pets[].clickSoundEnabled / clickSoundVolume），由调用方按宠物传入；
+ * 成品配置没加载前调用方拿不到 true，天然保守静音。
+ * audio 与节流仍是模块级单例（不是每个宠物一份），多开时同时点也只响一次。
  * @module dsh-pet/src/client/pet/click-sound
  */
 import { ROUTE_PATH } from '../../shared/constants.ts';
@@ -17,34 +18,25 @@ const CLICK_SOUND_THROTTLE_MS = 100;
 let clickAudio: HTMLAudioElement | null = null;
 /** 上一次真正播放的时间戳（ms）。 */
 let lastClickSoundAt = 0;
-/** 点击音效开关；配置未加载前保守静音。 */
-let clickSoundEnabled = false;
-/** 点击音效音量（0–1）；配置未加载或值非法时回退缺省 0.5。 */
-let clickSoundVolume = CLICK_SOUND_VOLUME_DEFAULT;
 
 /**
- * 打开或关闭点击音效，并更新音量。
+ * 播放点击音效；开关关闭、节流中或音频不可用时静默返回。
  *
- * @param enabled - 成品配置里的 `clickSoundEnabled`。
- * @param volume - 成品配置里的 `clickSoundVolume`（0–1）；非法或缺省回退 0.5。
+ * @param enabled - 该宠物成品配置里的 `clickSoundEnabled`；非 true 一律静音。
+ * @param volume - 该宠物成品配置里的 `clickSoundVolume`（0–1）；非法或缺省回退 0.5。
  */
-export function setClickSoundEnabled(enabled: boolean, volume?: number): void {
-  clickSoundEnabled = enabled;
-  clickSoundVolume =
-    typeof volume === 'number' && Number.isFinite(volume)
-      ? Math.min(1, Math.max(0, volume))
-      : CLICK_SOUND_VOLUME_DEFAULT;
-}
-
-/** 播放点击音效；开关关闭、节流中或音频不可用时静默返回。 */
-export function playClickSound(): void {
-  if (!clickSoundEnabled) return;
+export function playClickSound(enabled: boolean, volume?: number): void {
+  if (enabled !== true) return;
   const now = Date.now();
   if (now - lastClickSoundAt < CLICK_SOUND_THROTTLE_MS) return;
   lastClickSoundAt = now;
+  const vol =
+    typeof volume === 'number' && Number.isFinite(volume)
+      ? Math.min(1, Math.max(0, volume))
+      : CLICK_SOUND_VOLUME_DEFAULT;
   try {
     clickAudio ??= new Audio(CLICK_SOUND_URL);
-    clickAudio.volume = clickSoundVolume;
+    clickAudio.volume = vol;
     clickAudio.currentTime = 0;
     void clickAudio.play().catch(() => {});
   } catch {

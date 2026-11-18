@@ -38,6 +38,8 @@ function addPet() {
     whisperEnabled: true,
     workStatusEnabled: true,
     fixedEnabled: false,
+    clickSoundEnabled: true,
+    clickSoundVolume: 0.5,
     position: { corner: 'bottom-right', marginX: 40, marginY: 40 },
   });
   state.petIndex = list.length - 1;
@@ -105,6 +107,8 @@ function petCard() {
     toggleRow('pet-whisper', '碎碎念', '按周期让模型生成一句话并播放；不需要就关掉，省调用额度。', pet.whisperEnabled !== false, (value) => { pet.whisperEnabled = value; }),
     toggleRow('pet-work', '工作状态联动', '跟随会话状态切换动画与气泡，不调用模型。', pet.workStatusEnabled !== false, (value) => { pet.workStatusEnabled = value; }),
     toggleRow('pet-fixed', '固定不动', '开启后随机链不再抽转向与移动；手动点播与拖拽照常。', pet.fixedEnabled === true, (value) => { pet.fixedEnabled = value; }),
+    toggleRow('pet-click', '点击音效', '点击这只宠物时播放内置音效；每只宠物各自一份。', pet.clickSoundEnabled !== false, (value) => { pet.clickSoundEnabled = value; }),
+    numberField('pet-click-volume', '点击音效音量（0–1）', typeof pet.clickSoundVolume === 'number' ? pet.clickSoundVolume : 0.5, (value) => { pet.clickSoundVolume = clampNumber(value, 0, 1, 0.5); }, { min: 0, max: 1, step: 0.05, hint: '1 = 100%；短提示音不做增益放大。只影响这只宠物。' }),
     make('div', { class: 'field' }, [
       make('label', { for: 'pet-persona', text: '这只的人设（可选）' }),
       personaWrap(pet),

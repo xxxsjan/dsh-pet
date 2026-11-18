@@ -173,6 +173,7 @@ export function readBalance(leaf: StateLeaf): { state: BalanceState; manual: boo
  *  say：弹一个气泡，duration = 显示时长（毫秒；缺省 10s，0 = 字面意思「不显示」），
  *  anim 只在显式 false 时出现，表示这次不联动 events.whisper 动画、只弹气泡。
  *  clear：收起当前气泡（POST /bubble/clear 的落点），必须是单独形态——空文本会被判成非法、整拍跳过。
+ *  clear.stopVoice：连带掐断正在朗读的自动播报（弹幕开关关闭时宿主写入）；缺省只收气泡不动声音。
  *  配图两种形态并列、由字段名区分：image = 表情包池内的名称（消费端拼图片路径），url = 第三方给的完整地址。
  *  不做「一个中性字段装两种值」：消费端必须知道该不该拼路径，靠 startsWith('http') 嗅探在名字像 URL 时会出错。
  *  voiceTo：宿主指定这一句该由哪一端念（目前只有周期碎碎念与待办提醒写入）；缺省 = 谁都不念。
@@ -189,7 +190,7 @@ export type SayCue =
       voiceTo?: VoiceTarget;
       voiceUtteranceId?: string;
     }
-  | { kind: 'clear' };
+  | { kind: 'clear'; stopVoice?: boolean };
 
 /** 一次说话该由哪一端念；与 src/host/surface 的同名联合体是两份（宿主不 import src/shared），改动时两边一起改。 */
 export type VoiceTarget = 'web' | 'desktop';
@@ -208,9 +209,10 @@ export function readSay(leaf: StateLeaf): SayCue | null {
     voiceTo?: unknown;
     voiceUtteranceId?: unknown;
     clear?: unknown;
+    stopVoice?: unknown;
   };
   // 清空指令优先：它不带 text，所以必须排在文本校验前面
-  if (d.clear === true) return { kind: 'clear' };
+  if (d.clear === true) return d.stopVoice === true ? { kind: 'clear', stopVoice: true } : { kind: 'clear' };
   if (typeof d.text !== 'string' || !d.text) return null;
   return {
     kind: 'say',

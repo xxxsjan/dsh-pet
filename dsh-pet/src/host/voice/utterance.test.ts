@@ -46,6 +46,28 @@ describe('VoiceUtteranceStore', () => {
     assert.equal(second.status, 'pending');
   });
 
+  test('cancel 唤醒 waitUntilDone，标 skipped/cancelled；终态与未知编号返回 false', async () => {
+    const store = new VoiceUtteranceStore();
+    const rec = store.create('main');
+    const waiting = store.waitUntilDone(rec.utteranceId, 5_000);
+    assert.equal(store.cancel(rec.utteranceId), true);
+    const r = await waiting;
+    assert.equal(r.matched, true);
+    assert.equal(r.record?.status, 'skipped');
+    assert.equal(r.record?.reason, 'cancelled');
+    assert.equal(store.cancel(rec.utteranceId), false, '已终态不重复取消');
+    assert.equal(store.cancel('vu-nope'), false, '未知编号返回 false');
+    // 取消后渲染端迟到的上报应被忽略
+    assert.equal(store.report(rec.utteranceId, 'ended'), 'ignored');
+  });
+
+  test('cancel 支持自定义 reason（弹幕开关关闭用 reply-disabled）', async () => {
+    const store = new VoiceUtteranceStore();
+    const rec = store.create('main');
+    assert.equal(store.cancel(rec.utteranceId, 'reply-disabled'), true);
+    assert.equal((await store.waitUntilDone(rec.utteranceId, 100)).record?.reason, 'reply-disabled');
+  });
+
   test('非法 status / 未知编号', () => {
     const store = new VoiceUtteranceStore();
     const rec = store.create('main');

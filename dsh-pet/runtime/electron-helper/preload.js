@@ -73,6 +73,10 @@ contextBridge.exposeInMainWorld('petBridge', {
   openLiveMini(platform) {
     ipcRenderer.send('pet:open-live-mini', platform ? { platform: String(platform) } : null);
   },
+  // 控制台「停止监听」成功后同步关小窗：主进程只关正在展示该平台的小窗，别的平台不误关。
+  closeLiveMini(platform) {
+    ipcRenderer.send('pet:close-live-mini', platform ? { platform: String(platform) } : null);
+  },
   // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址（只接受 http(s) 链接）。
   openExternal(url) {
     ipcRenderer.send('pet:open-external', url ? { url: String(url) } : null);

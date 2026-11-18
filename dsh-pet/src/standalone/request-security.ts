@@ -55,6 +55,7 @@ function publicRead(req: IncomingMessage): boolean {
       '/standalone-console/console.js',
       '/standalone-console/console.css',
       '/standalone-console/console-bg.webp',
+      '/standalone-console/console-bg-dark.webp',
       '/standalone-console/chat-panel.js',
     ].includes(path) || path === ROUTE_SEGMENT || path.startsWith(`${ROUTE_SEGMENT}/`)
   );

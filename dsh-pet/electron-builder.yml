@@ -32,6 +32,7 @@ files:
   - assets/config.jsonc
   - assets/logo.png
   - assets/console-bg.webp
+  - assets/console-bg-dark.webp
   - package.json
   - '!node_modules/**'
 

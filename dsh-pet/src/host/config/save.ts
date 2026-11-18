@@ -60,6 +60,13 @@ export function saveUserConfig(
     // 传了必须是布尔，没传则走下面的读取侧默认值（内置默认 false = 不固定）。
     const fixedEnabled = pp.fixedEnabled;
     if (fixedEnabled !== undefined && typeof fixedEnabled !== 'boolean') return null;
+    // 点击音效开关与音量（实例级）：与上面几个开关同语义——可选，传了必须合法，
+    // 没传走读取侧默认（开关 true / 音量 0.5；旧配置顶层全局值在读取侧回落）。
+    // 音量校验直接复用读取侧的 topFieldValid（0–1 有限数字），读写同一份规则。
+    const clickSoundEnabled = pp.clickSoundEnabled;
+    if (clickSoundEnabled !== undefined && typeof clickSoundEnabled !== 'boolean') return null;
+    const clickSoundVolume = pp.clickSoundVolume;
+    if (clickSoundVolume !== undefined && !topFieldValid('clickSoundVolume', clickSoundVolume)) return null;
     const display = String(pp.display ?? '');
     if (!PET_DISPLAY_SET.has(display)) return null;
     const pos = pp.position && typeof pp.position === 'object' ? (pp.position as Record<string, unknown>) : {};
@@ -83,6 +90,8 @@ export function saveUserConfig(
       whisperEnabled,
       workStatusEnabled,
       fixedEnabled,
+      clickSoundEnabled,
+      clickSoundVolume,
       display,
       position: { corner, marginX, marginY },
     };
@@ -92,12 +101,6 @@ export function saveUserConfig(
   }
   const ne = o.notificationsEnabled;
   if (ne !== undefined && typeof ne !== 'boolean') return null;
-  // 点击音效开关（全局布尔，与 notificationsEnabled 同语义）：传了必须是布尔，没传走透传保留
-  const cse = o.clickSoundEnabled;
-  if (cse !== undefined && typeof cse !== 'boolean') return null;
-  // 点击音效音量（0–1）：与 voiceVolume 同一套 topFieldValid 校验
-  const csv = o.clickSoundVolume;
-  if (csv !== undefined && !topFieldValid('clickSoundVolume', csv)) return null;
   const wie = o.whisperImageEnabled;
   if (wie !== undefined && typeof wie !== 'boolean') return null;
   const cie = o.chatImageEnabled;
@@ -187,8 +190,6 @@ export function saveUserConfig(
   // 对话历史条数）同样只在请求体真的传了时才写（未传则走下面的透传保留，不凭空造值）
   const outConfig: { pets: unknown[]; [key: string]: unknown } = { pets: out };
   if (ne !== undefined) outConfig.notificationsEnabled = ne;
-  if (cse !== undefined) outConfig.clickSoundEnabled = cse;
-  if (csv !== undefined) outConfig.clickSoundVolume = csv;
   if (wie !== undefined) outConfig.whisperImageEnabled = wie;
   if (cie !== undefined) outConfig.chatImageEnabled = cie;
   if (cae !== undefined) outConfig.chatAnimationEnabled = cae;
@@ -223,8 +224,6 @@ export function saveUserConfig(
   // 否则整包调用的调用方漏传一个字段，就会把用户既有设置悄悄抹成默认。
   const bodyOwned = new Set(['pets']);
   if (ne !== undefined) bodyOwned.add('notificationsEnabled');
-  if (cse !== undefined) bodyOwned.add('clickSoundEnabled');
-  if (csv !== undefined) bodyOwned.add('clickSoundVolume');
   if (wie !== undefined) bodyOwned.add('whisperImageEnabled');
   if (cie !== undefined) bodyOwned.add('chatImageEnabled');
   if (cae !== undefined) bodyOwned.add('chatAnimationEnabled');

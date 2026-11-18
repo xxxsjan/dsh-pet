@@ -42,6 +42,8 @@ const stateListeners = new Set<(state: VoiceState) => void>();
 const utteranceListeners = new Set<(event: VoiceUtteranceEvent) => void>();
 /** 播报序号；每次决定要念一句就自增，用来让气泡丢掉迟到的「上一句播完了」。 */
 let utteranceSeq = 0;
+/** 当前自动播报那一句的取消句柄（含等配置/等合成阶段）；null = 没在念。弹幕队列串行，同一时至多一句。 */
+let sayCancel: (() => void) | null = null;
 
 /** 语音播报对外的四种状态；只用于展示，不接受外部驱动。`failed` = 这次合成没成功。 */
 export type VoiceState = 'idle' | 'loading' | 'ready' | 'failed';
@@ -325,33 +327,84 @@ function reportVoiceUtterance(
 
 /** 确认配置后再播；桌面端首次调用会顺手拉一次 `/config`。 */
 async function speakIfEnabled(text: string, utteranceId?: string): Promise<void> {
-  await loadConfigOnce();
-  if (!voiceEnabled) {
-    setVoiceState('idle');
-    if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'disabled');
-    return;
-  }
-  const seq = ++utteranceSeq;
-  // 先报开始再置 loading：气泡要靠这条事件挂起收起计时，晚一步它就可能已经收了。
-  emitUtterance({ kind: 'start', seq, text });
-  setVoiceState('loading');
-  let failed = false;
+  // 取消句柄从等配置阶段就挂上：stopSayVoice 在任何时刻进来都能拦住这一句。
+  let cancelled = false;
+  let cancelSpeak: (() => void) | null = null;
+  const cancel = (): void => {
+    cancelled = true;
+    cancelSpeak?.();
+  };
+  sayCancel = cancel;
   try {
-    await speak(speechSlice(text));
-    // speak 内部失败会置 failed，这里再读一次：合成失败也要给宿主回执，否则弹幕队列会干等到超时
-    failed = getVoiceState() === 'failed';
-  } finally {
-    // 成功、失败、超时都走这里：气泡在等这个收尾，漏一次就永远挂着。
-    emitUtterance({ kind: 'end', seq, text });
-    if (utteranceId) {
-      reportVoiceUtterance(utteranceId, failed ? 'failed' : 'ended', failed ? 'speak-failed' : undefined);
+    await loadConfigOnce();
+    if (cancelled) {
+      setVoiceState('idle');
+      if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'cancelled');
+      return;
     }
+    if (!voiceEnabled) {
+      setVoiceState('idle');
+      if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'disabled');
+      return;
+    }
+    const seq = ++utteranceSeq;
+    // 先报开始再置 loading：气泡要靠这条事件挂起收起计时，晚一步它就可能已经收了。
+    emitUtterance({ kind: 'start', seq, text });
+    setVoiceState('loading');
+    let failed = false;
+    try {
+      await speak(speechSlice(text), {
+        isCancelled: () => cancelled,
+        onCancel: (fn) => {
+          cancelSpeak = fn;
+          if (cancelled) fn();
+        },
+      });
+      // speak 内部失败会置 failed，这里再读一次：合成失败也要给宿主回执，否则弹幕队列会干等到超时
+      failed = !cancelled && getVoiceState() === 'failed';
+    } finally {
+      // 成功、失败、超时、被打断都走这里：气泡在等这个收尾，漏一次就永远挂着。
+      emitUtterance({ kind: 'end', seq, text });
+      if (utteranceId) {
+        reportVoiceUtterance(
+          utteranceId,
+          cancelled ? 'skipped' : failed ? 'failed' : 'ended',
+          cancelled ? 'cancelled' : failed ? 'speak-failed' : undefined,
+        );
+      }
+    }
+    if (cancelled) setVoiceState('idle');
+  } finally {
+    if (sayCancel === cancel) sayCancel = null;
   }
 }
 
+/**
+ * 打断当前自动播报（宿主关闭弹幕开关时经 say `clear.stopVoice` 下发到这里）。
+ * 中止在途的合成请求、暂停在播音频并释放资源；手动点播不受影响。没在念时无操作。
+ */
+export function stopSayVoice(): void {
+  const cancel = sayCancel;
+  sayCancel = null;
+  cancel?.();
+}
+
+/** 合成请求的打断控制：调用方（speakIfEnabled）注入「是否已被打断」并登记打断回调。 */
+interface SpeakControl {
+  isCancelled: () => boolean;
+  onCancel: (fn: () => void) => void;
+}
+
 /** 请求合成并播放；任何一步失败都落到 `failed`（气泡上留一个静音喇叭，而不是干脆没图标）。
- *  成功路径要等到 `onended`（或出错）才返回——调用方靠它判断「真正读完」，不能在 `play()` 一兑现就收尾。 */
-async function speak(text: string): Promise<void> {
+ *  成功路径要等到 `onended`（或出错/被打断）才返回——调用方靠它判断「真正读完」，不能在 `play()` 一兑现就收尾。 */
+async function speak(text: string, ctl: SpeakControl): Promise<void> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), SPEAK_TIMEOUT_MS);
+  let stopPlayback: (() => void) | null = null;
+  ctl.onCancel(() => {
+    abort.abort();
+    stopPlayback?.();
+  });
   try {
     const response = await fetch(voiceBase + '/voice/speak', {
       method: 'POST',
@@ -361,34 +414,49 @@ async function speak(text: string): Promise<void> {
         rate: absoluteRateToEdge(voiceRate),
         ...(voiceName ? { voice: voiceName } : {}),
       }),
-      signal: speakSignal(),
+      signal: abort.signal,
     });
     if (!response.ok || !(response.headers.get('content-type') ?? '').includes('audio')) {
       setVoiceState('failed');
       return;
     }
     const objectUrl = URL.createObjectURL(await response.blob());
+    // 等合成/等音量期间被打断：不再起播，直接释放资源返回（状态由调用方归回 idle）。
+    if (ctl.isCancelled()) {
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
     const audio = new Audio(objectUrl);
     await applyPlaybackVolume(audio, voiceVolume);
+    if (ctl.isCancelled()) {
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
     // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
     setVoiceState('ready');
-    // 播完 / 出错 / play 被拒都要释放 blob，并让 await 真正等到读完（或失败）
+    // 播完 / 出错 / play 被拒 / 被打断都要释放 blob，并让 await 真正等到读完（或失败）
     await new Promise<void>((resolve) => {
       let settled = false;
       const finish = (ok: boolean): void => {
         if (settled) return;
         settled = true;
-        if (!ok) setVoiceState('failed');
+        if (!ok && !ctl.isCancelled()) setVoiceState('failed');
         URL.revokeObjectURL(objectUrl);
         resolve();
+      };
+      stopPlayback = () => {
+        audio.pause();
+        finish(true);
       };
       audio.onended = () => finish(true);
       audio.onerror = () => finish(false);
       void audio.play().catch(() => finish(false));
     });
   } catch {
-    /* 含超时：气泡已经显示，失败也不能反过来打断渲染，只把图标换成静音喇叭 */
-    setVoiceState('failed');
+    /* 含超时与主动打断：打断时由调用方归回 idle；其余失败也不能反过来打断渲染，只把图标换成静音喇叭 */
+    if (!ctl.isCancelled()) setVoiceState('failed');
+  } finally {
+    clearTimeout(timer);
   }
 }
 

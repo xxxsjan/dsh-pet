@@ -30,7 +30,6 @@ export interface ConfigMeta {
 export interface SaveFields {
   pets: readonly Pet[];
   notificationsEnabled: boolean;
-  clickSoundEnabled: boolean;
   whisperImageEnabled: boolean;
   chatImageEnabled: boolean;
   /** 对话动作联动开关。 */
@@ -97,7 +96,6 @@ export function buildSaveBody(fields: SaveFields): Record<string, unknown> {
   return {
     pets: fields.pets,
     notificationsEnabled: fields.notificationsEnabled,
-    clickSoundEnabled: fields.clickSoundEnabled,
     whisperImageEnabled: fields.whisperImageEnabled,
     chatImageEnabled: fields.chatImageEnabled,
     chatAnimationEnabled: fields.chatAnimationEnabled,

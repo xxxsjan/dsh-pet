@@ -66,8 +66,12 @@ export type KsMonitorStatus = {
   recent: KsFeedItem[];
 };
 
-/** 对话入口（与路由层 chatWithPet 同形，只要 text）。 */
-export type KsChatFn = (petId: string, text: string) => Promise<{ ok: boolean; message?: string }>;
+/** 对话入口（与路由层 chatWithPet 同形；kind 用于宿主侧区分弹幕/礼物语音的取消）。 */
+export type KsChatFn = (
+  petId: string,
+  text: string,
+  kind: 'chat' | 'gift',
+) => Promise<{ ok: boolean; message?: string }>;
 
 /** createKsMonitor 依赖。 */
 export type KsMonitorDeps = {
@@ -76,6 +80,8 @@ export type KsMonitorDeps = {
   resolvePetId: () => string;
   /** 把一条用户文本交给宠物对话。 */
   chatWithPet: KsChatFn;
+  /** 开关关闭时掐断该类正在生成/朗读的回复（宿主侧取消 utterance 并通知渲染端停播）；缺省不掐。 */
+  cancelVoice?: (kind: 'chat' | 'gift') => void;
 };
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
@@ -88,7 +94,7 @@ const UA =
  * 创建快手直连弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createKsMonitor(deps: KsMonitorDeps) {
-  const { log, resolvePetId, chatWithPet } = deps;
+  const { log, resolvePetId, chatWithPet, cancelVoice } = deps;
 
   let listening = false;
   let wantListen = false;
@@ -114,6 +120,8 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   /** 待发给宠物的对话；超出则丢最旧。 */
   const pendingChats: Array<{ prompt: string; kind: 'chat' | 'gift' }> = [];
   let chatPumpRunning = false;
+  /** 正在交给宠物处理的那一条的类型；开关关闭时据此决定要不要掐断在播语音。 */
+  let currentJobKind: 'chat' | 'gift' | null = null;
   /** 礼物名称目录：giftId → 名称；未命中兜底 礼物#<id>。 */
   const catalog = createKsGiftCatalog();
 
@@ -155,12 +163,18 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       while (pendingChats.length > 0) {
         const job = pendingChats.shift();
         if (!job) break;
+        // 消费时复查开关：入队后开关被关掉的任务直接跳过，不再发给宠物。
+        if (job.kind === 'chat' ? !replyChat : !thankGift) {
+          log.info?.(`[blue-fish][kuaishou] skip queued kind=${job.kind}: switch off`);
+          continue;
+        }
         const petId = (resolvePetId() || 'main').trim() || 'main';
+        currentJobKind = job.kind;
         try {
           log.info?.(
             `[blue-fish][kuaishou] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
           );
-          const r = await chatWithPet(petId, job.prompt);
+          const r = await chatWithPet(petId, job.prompt, job.kind);
           if (!r.ok) {
             log.warn?.(`[blue-fish][kuaishou] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
           }
@@ -168,6 +182,8 @@ export function createKsMonitor(deps: KsMonitorDeps) {
           log.warn?.(
             `[blue-fish][kuaishou] chat exception kind=${job.kind}: ${e instanceof Error ? e.message : String(e)}`,
           );
+        } finally {
+          currentJobKind = null;
         }
       }
     } finally {
@@ -334,9 +350,30 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     }
   }
 
+  /** 开关 true→false：清掉该类排队任务；正在处理的那条同类时通知宿主掐断语音。 */
+  function dropPendingKind(kind: 'chat' | 'gift'): void {
+    const before = pendingChats.length;
+    for (let i = pendingChats.length - 1; i >= 0; i -= 1) {
+      if (pendingChats[i]?.kind === kind) pendingChats.splice(i, 1);
+    }
+    if (before !== pendingChats.length) {
+      log.info?.(
+        `[blue-fish][kuaishou] switch off kind=${kind}: drop queued=${before - pendingChats.length}`,
+      );
+    }
+    if (currentJobKind === kind) {
+      log.info?.(`[blue-fish][kuaishou] switch off kind=${kind}: cancel in-flight voice`);
+      cancelVoice?.(kind);
+    }
+  }
+
   function applyOptions(input: Partial<KsMonitorOptions>): KsMonitorOptions {
+    const prevReplyChat = replyChat;
+    const prevThankGift = thankGift;
     if (typeof input.replyChat === 'boolean') replyChat = input.replyChat;
     if (typeof input.thankGift === 'boolean') thankGift = input.thankGift;
+    if (prevReplyChat && !replyChat) dropPendingKind('chat');
+    if (prevThankGift && !thankGift) dropPendingKind('gift');
     return { replyChat, thankGift };
   }
 

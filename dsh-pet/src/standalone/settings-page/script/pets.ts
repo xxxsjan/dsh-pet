@@ -26,9 +26,6 @@ function pickGlobals(main) {
   physicsSource = physics;
   return {
     notificationsEnabled: source.notificationsEnabled !== false,
-    clickSoundEnabled: source.clickSoundEnabled !== false,
-    clickSoundVolume: typeof source.clickSoundVolume === 'number' && Number.isFinite(source.clickSoundVolume)
-      ? clampNumber(source.clickSoundVolume, 0, 1, 0.5) : 0.5,
     whisperImageEnabled: source.whisperImageEnabled === true,
     chatImageEnabled: source.chatImageEnabled === true,
     chatAnimationEnabled: source.chatAnimationEnabled === true,
@@ -226,8 +223,6 @@ function tabBody(tab) {
   if (tab === 'global') {
     return Object.assign(p, {
       notificationsEnabled: state.globals.notificationsEnabled,
-      clickSoundEnabled: state.globals.clickSoundEnabled,
-      clickSoundVolume: state.globals.clickSoundVolume,
       whisperImageEnabled: state.globals.whisperImageEnabled,
       chatImageEnabled: state.globals.chatImageEnabled,
       chatAnimationEnabled: state.globals.chatAnimationEnabled,
@@ -269,9 +264,6 @@ function applySavedTab(tab, merged) {
   }
   if (tab === 'global') {
     g.notificationsEnabled = main.notificationsEnabled !== false;
-    g.clickSoundEnabled = main.clickSoundEnabled !== false;
-    g.clickSoundVolume = typeof main.clickSoundVolume === 'number' && Number.isFinite(main.clickSoundVolume)
-      ? clampNumber(main.clickSoundVolume, 0, 1, 0.5) : 0.5;
     g.whisperImageEnabled = main.whisperImageEnabled === true;
     g.chatImageEnabled = main.chatImageEnabled === true;
     g.chatAnimationEnabled = main.chatAnimationEnabled === true;

@@ -64,8 +64,12 @@ export type DouyinMonitorStatus = {
   recent: DouyinFeedItem[];
 };
 
-/** 对话入口（与路由层 chatWithPet 同形，只要 text）。 */
-export type DouyinChatFn = (petId: string, text: string) => Promise<{ ok: boolean; message?: string }>;
+/** 对话入口（与路由层 chatWithPet 同形；kind 用于宿主侧区分弹幕/礼物语音的取消）。 */
+export type DouyinChatFn = (
+  petId: string,
+  text: string,
+  kind: 'chat' | 'gift',
+) => Promise<{ ok: boolean; message?: string }>;
 
 /** createDouyinMonitor 依赖。 */
 export type DouyinMonitorDeps = {
@@ -78,6 +82,10 @@ export type DouyinMonitorDeps = {
   resolvePetId: () => string;
   /** 把一条用户文本交给宠物对话。 */
   chatWithPet: DouyinChatFn;
+  /** 开关关闭时掐断该类正在生成/朗读的回复（宿主侧取消 utterance 并通知渲染端停播）；缺省不掐。 */
+  cancelVoice?: (kind: 'chat' | 'gift') => void;
+  /** 进房取元数据（标题/主播）；CDP 旁听页读不到时兜底，缺省用真实 fetchDyLiveInfo。 */
+  fetchLiveInfo?: (url: string, cookie: string) => Promise<DyLiveInfo>;
 };
 
 function parseCookieMap(cookieStr: string): Map<string, string> {
@@ -140,7 +148,8 @@ function buildWsUrl(roomId: string, userUniqueId: string, signature: string): st
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createDouyinMonitor(deps: DouyinMonitorDeps) {
-  const { log, getSignBaseUrl, getCdpBridge, resolvePetId, chatWithPet } = deps;
+  const { log, getSignBaseUrl, getCdpBridge, resolvePetId, chatWithPet, cancelVoice } = deps;
+  const fetchLiveInfo = deps.fetchLiveInfo ?? fetchDyLiveInfo;
 
   let listening = false;
   let connecting = false;
@@ -165,6 +174,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let cdpUnsubs: Array<() => void> = [];
   let cdpVisible = false;
   let cdpLoggedIn = false;
+  /** CDP 旁听不做签名进房，标题/主播由内嵌页 RENDER_DATA 补（直连路径仍用 info）。 */
+  let cdpMeta = { title: '', anchor: '' };
   const recentKeys = new Map<string, number>();
   /** 礼物连击：key → 已处理的最高件数（用于放行升高、拦重放） */
   const giftCounts = new Map<string, number>();
@@ -175,6 +186,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   const pendingChats: Array<{ prompt: string; kind: 'chat' | 'gift' }> = [];
   const CHAT_QUEUE_MAX = 3;
   let chatPumpRunning = false;
+  /** 正在交给宠物处理的那一条的类型；开关关闭时据此决定要不要掐断在播语音。 */
+  let currentJobKind: 'chat' | 'gift' | null = null;
 
   function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): void {
     feedSeq += 1;
@@ -231,6 +244,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     cdp = null;
     cdpVisible = false;
     cdpLoggedIn = false;
+    cdpMeta = { title: '', anchor: '' };
   }
 
   /**
@@ -253,11 +267,29 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         listening = false;
         noteError('内嵌窗口已关闭，弹幕旁听中断');
       }),
+      bridge.onMeta((meta) => {
+        cdpMeta = {
+          title: String(meta?.title || '').trim() || cdpMeta.title,
+          anchor: String(meta?.anchor || '').trim() || cdpMeta.anchor,
+        };
+      }),
     );
     await bridge.start({ url: currentUrl, cookie: currentCookie });
     const snap = bridge.status();
     cdpVisible = snap.visible;
     cdpLoggedIn = snap.loggedIn;
+    cdpMeta = { title: String(snap.title || '').trim(), anchor: String(snap.anchor || '').trim() };
+    // 元数据双保险：内嵌页 SSR 状态读不到时，带用户 Cookie 尽力走一次 enter 流程补；
+    // 被风控/未开播等失败一律静默，不影响旁听；空值不覆盖已读到的值。
+    void fetchLiveInfo(currentUrl, currentCookie)
+      .then((meta) => {
+        if (mode !== 'cdp') return;
+        cdpMeta = {
+          title: String(meta.title || '').trim() || cdpMeta.title,
+          anchor: String(meta.anchor || '').trim() || cdpMeta.anchor,
+        };
+      })
+      .catch(() => { /* 元数据是加分项，enter 失败保留页面读到的结果 */ });
     mode = 'cdp';
     listening = true;
     lastError = '';
@@ -313,12 +345,18 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       while (pendingChats.length > 0) {
         const job = pendingChats.shift();
         if (!job) break;
+        // 消费时复查开关：入队后开关被关掉的任务直接跳过，不再发给宠物。
+        if (job.kind === 'chat' ? !replyChat : !thankGift) {
+          log.info?.(`[blue-fish][douyin] skip queued kind=${job.kind}: switch off`);
+          continue;
+        }
         const petId = (resolvePetId() || 'main').trim() || 'main';
+        currentJobKind = job.kind;
         try {
           log.info?.(
             `[blue-fish][douyin] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
           );
-          const r = await chatWithPet(petId, job.prompt);
+          const r = await chatWithPet(petId, job.prompt, job.kind);
           if (!r.ok) {
             log.warn?.(`[blue-fish][douyin] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
           }
@@ -326,6 +364,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
           log.warn?.(
             `[blue-fish][douyin] chat exception kind=${job.kind}: ${e instanceof Error ? e.message : String(e)}`,
           );
+        } finally {
+          currentJobKind = null;
         }
       }
     } finally {
@@ -568,9 +608,30 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     }
   }
 
+  /** 开关 true→false：清掉该类排队任务；正在处理的那条同类时通知宿主掐断语音。 */
+  function dropPendingKind(kind: 'chat' | 'gift'): void {
+    const before = pendingChats.length;
+    for (let i = pendingChats.length - 1; i >= 0; i -= 1) {
+      if (pendingChats[i]?.kind === kind) pendingChats.splice(i, 1);
+    }
+    if (before !== pendingChats.length) {
+      log.info?.(
+        `[blue-fish][douyin] switch off kind=${kind}: drop queued=${before - pendingChats.length}`,
+      );
+    }
+    if (currentJobKind === kind) {
+      log.info?.(`[blue-fish][douyin] switch off kind=${kind}: cancel in-flight voice`);
+      cancelVoice?.(kind);
+    }
+  }
+
   function applyOptions(input: Partial<DouyinMonitorOptions>): DouyinMonitorOptions {
+    const prevReplyChat = replyChat;
+    const prevThankGift = thankGift;
     if (typeof input.replyChat === 'boolean') replyChat = input.replyChat;
     if (typeof input.thankGift === 'boolean') thankGift = input.thankGift;
+    if (prevReplyChat && !replyChat) dropPendingKind('chat');
+    if (prevThankGift && !thankGift) dropPendingKind('gift');
     return { replyChat, thankGift };
   }
 
@@ -626,8 +687,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       listening: listening && wantListen,
       url: currentUrl,
       roomId: info?.roomId || '',
-      title: info?.title || '',
-      anchor: info?.anchor || '',
+      title: info?.title || cdpMeta.title || '',
+      anchor: info?.anchor || cdpMeta.anchor || '',
       chatCount,
       giftCount,
       lastError,

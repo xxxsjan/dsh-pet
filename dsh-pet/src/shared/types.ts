@@ -102,6 +102,11 @@ export interface Pet {
   /** 宠物固定：true = 随机链不抽转向与移动两档（权重按 0 算，份额并入原地小动作），只影响随机链——
    *  右键点播、/anim 接口、事件动画、点击回应与拖拽一律照常。缺失默认 false。 */
   fixedEnabled: boolean;
+  /** 点击音效开关（实例级）：true = 点击这只宠物时播放内置 click-duck.wav（音量见 clickSoundVolume、
+   *  100ms 内去重），false = 静音。缺失默认 true；旧配置顶层的全局值在读取侧回落为缺省（见 host/config/merge）。 */
+  clickSoundEnabled: boolean;
+  /** 点击音效音量（实例级）：0–1（1 = 100%，HTMLAudioElement 无增益放大），缺省 0.5。 */
+  clickSoundVolume: number;
   /** 显示位置（必填）：缺失即配置错误，代码不做兜底 */
   display: PetDisplay;
   position: { corner: Corner; marginX: number; marginY: number };
@@ -204,11 +209,6 @@ export interface FontConfig {
 export interface ClientConfig {
   /** 系统通知总开关：true = 对话完成 / 生成失败 / 输出截断 / 权限申请 / 用户选择时弹出通知；缺失即配置错误 */
   notificationsEnabled: boolean;
-  /** 点击音效开关：true = 点击宠物时播放内置 click-duck.wav（音量见 clickSoundVolume、100ms 内去重），false = 静音。
-   *  内置默认 false（默认静音，不突袭既有用户）。只读 main 条目这一份，pet pack 不单独覆盖。 */
-  clickSoundEnabled: boolean;
-  /** 点击音效音量：0–1（1 = 100%，HTMLAudioElement 无增益放大），缺省 0.5。 */
-  clickSoundVolume: number;
   /** 桌面模式系统托盘开关：true = 桌面端启动后在通知区域（macOS 为菜单栏）建托盘，列出配置里全部宠物
    *  （含 display 为 web/none 的），勾选即可切回桌面；false = 不建。
    *  缺失默认 true。关掉后「把不在桌面的宠物叫回桌面」在桌面侧没有入口，只能走设置页或网页端右键菜单。 */

@@ -1,12 +1,13 @@
 /**
  * 点击音效（src/client/pet/click-sound.ts）的契约测试：开关关闭时不构造不播放；
  * 打开后播放一次、节流窗口内连点只响一次；音频构造或播放失败都不外抛。
+ * 开关与音量按宠物逐次传入（实例级配置），audio 与节流仍是模块级单例。
  * 用假的 Audio 与假时钟，不碰真实设备。
  */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { playClickSound, setClickSoundEnabled } from './click-sound.ts';
+import { playClickSound } from './click-sound.ts';
 
 /** 假 Audio：记录构造与播放次数。 */
 class FakeAudio {
@@ -32,7 +33,7 @@ interface Clock {
   now: number;
 }
 
-/** 换掉 Audio 与 Date.now，跑一段用例后还原（包括把开关关回去）。 */
+/** 换掉 Audio 与 Date.now，跑一段用例后还原。 */
 function withFakeAudio(run: (clock: Clock) => void): void {
   const previousAudio = globalThis.Audio;
   const previousNow = Date.now;
@@ -47,15 +48,14 @@ function withFakeAudio(run: (clock: Clock) => void): void {
   } finally {
     (globalThis as { Audio?: unknown }).Audio = previousAudio;
     Date.now = previousNow;
-    setClickSoundEnabled(false);
   }
 }
 
-describe('playClickSound —— 点击音效', () => {
-  test('开关关闭：不构造、不播放', () => {
+describe('playClickSound —— 点击音效（实例级开关与音量）', () => {
+  test('开关关闭或缺失：不构造、不播放', () => {
     withFakeAudio(() => {
-      setClickSoundEnabled(false);
-      playClickSound();
+      playClickSound(false);
+      playClickSound(undefined as unknown as boolean);
       assert.equal(FakeAudio.constructed, 0);
       assert.equal(FakeAudio.plays, 0);
     });
@@ -63,33 +63,38 @@ describe('playClickSound —— 点击音效', () => {
 
   test('开关打开：播放一次，节流窗口内连点只响一次，audio 实例复用', () => {
     withFakeAudio((clock) => {
-      setClickSoundEnabled(true);
-      playClickSound();
+      playClickSound(true);
       assert.equal(FakeAudio.plays, 1, '第一次要响');
       clock.now += 50;
-      playClickSound();
+      playClickSound(true);
       assert.equal(FakeAudio.plays, 1, '节流窗口内连点不重复响');
       clock.now += 200;
-      playClickSound();
+      playClickSound(true);
       assert.equal(FakeAudio.plays, 2, '超过节流窗口后恢复');
       assert.equal(FakeAudio.constructed, 1, 'audio 实例复用，不重复构造');
     });
   });
 
-  test('音量走配置：缺省 0.5，配置值原样生效，越界截断到 0–1', () => {
+  test('节流跨宠物共享：另一只开着音效的宠物在窗口内也不叠音', () => {
+    withFakeAudio((clock) => {
+      playClickSound(true);
+      clock.now += 50;
+      playClickSound(true); // 另一只宠物（不同实例、同一模块单例）
+      assert.equal(FakeAudio.plays, 1);
+    });
+  });
+
+  test('音量按传入值生效：缺省 0.5，配置值原样生效，越界截断到 0–1', () => {
     withFakeAudio((clock) => {
       // 模块级节流时间戳跨用例残留：先拨快时钟越过上一次播放的节流窗口
       clock.now += 1000;
-      setClickSoundEnabled(true);
-      playClickSound();
+      playClickSound(true);
       assert.equal(FakeAudio.playedVolumes[0], 0.5, '未传音量时回退缺省 0.5');
       clock.now += 200;
-      setClickSoundEnabled(true, 0.2);
-      playClickSound();
+      playClickSound(true, 0.2);
       assert.equal(FakeAudio.playedVolumes[1], 0.2, '配置音量原样生效');
       clock.now += 200;
-      setClickSoundEnabled(true, 9);
-      playClickSound();
+      playClickSound(true, 9);
       assert.equal(FakeAudio.playedVolumes[2], 1, '超过 1 截断到 1');
     });
   });
@@ -108,12 +113,10 @@ describe('playClickSound —— 点击音效', () => {
     };
     Date.now = () => clock.now;
     try {
-      setClickSoundEnabled(true);
-      assert.doesNotThrow(() => playClickSound());
+      assert.doesNotThrow(() => playClickSound(true));
     } finally {
       (globalThis as { Audio?: unknown }).Audio = previousAudio;
       Date.now = previousNow;
-      setClickSoundEnabled(false);
     }
   });
 });

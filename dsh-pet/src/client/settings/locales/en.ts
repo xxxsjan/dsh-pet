@@ -16,7 +16,7 @@ export const en: Record<Key, string> = {
   avatarUploading: 'Uploading…',
   avatarUploaded: 'Avatar updated',
   petCardHint:
-    'Per-pet settings: name / size / display / corner / offsets / the four feature switches. Click "Save" at the bottom to apply instantly.',
+    'Per-pet settings: name / size / display / corner / offsets / feature switches (incl. click sound and its volume). Click "Save" at the bottom to apply instantly.',
   globalTitle: 'Global switches',
   globalHint:
     'Shared by every pet (a pet pack may override them in its own kind file). These switches only change local state and are written to the user config on "Save" (never written immediately); system notifications re-read right after saving, no page refresh needed.',
@@ -136,9 +136,11 @@ export const en: Record<Key, string> = {
   notifyToggle: 'System notifications',
   notifyToggleHint:
     'OS-level toasts (bottom-right of the desktop) for conversation completion, failures, permission requests, and questions — only while this window is unfocused.',
-  clickSoundToggle: 'Click sound',
-  clickSoundToggleHint:
-    'Plays the built-in click sound (assets/sound/click-duck.wav, volume 0.5) when a pet is clicked; repeated clicks within 100ms play only once, so multiple pets never stack up. Turn it off for silence. Written to the user config together with Save.',
+  clickSoundEnabled: 'Click sound',
+  clickSoundEnabledHint:
+    'Plays the built-in click sound (assets/sound/click-duck.wav) when this pet is clicked; repeated clicks within 100ms play only once, so multiple pets never stack up. Turn it off to silence this pet. Written to the user config together with Save.',
+  clickSoundVolumeLabel: 'Click sound volume (0–1)',
+  clickSoundVolumeHint: '1 = 100%, default 0.5; short cues are never gain-boosted. Applies to this pet only.',
   whisperImageToggle: 'Whisper images',
   whisperImageToggleHint:
     'Attach one random meme from the pool to each whisper line (image mapping lives in the top-level `memes` config field). Tokens: a whisper already calls the model every cycle, so the image only appends the name + description of that one meme (~100 chars / ~60 tokens) to the same request — negligible.',

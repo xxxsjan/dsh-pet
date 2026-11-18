@@ -44,7 +44,6 @@ import type { PetCollisionSlot } from '../../shared/physics.ts';
 import type { WorkStatusSnapshot } from '../../shared/work-status.ts';
 import type { PetCardProps } from './card/props.ts';
 import type { PetRuntime, RuntimePet } from './types.ts';
-import { setClickSoundEnabled } from './click-sound.ts';
 import { setSurface, setVoiceConfig } from '../../shared/voice.ts';
 import { runStatePoll } from './state-poll.ts';
 import { setMenuItems } from '../menu-service.ts';
@@ -117,11 +116,6 @@ export function createPetMulti(
         if (typeof main !== 'object' || main === null) {
           throw new Error('配置响应不是成品聚合（host 版本不匹配？）');
         }
-        // 点击音效开关与音量只读 main 条目，开关非 true 一律静音，音量非法回退 0.5。
-        setClickSoundEnabled(
-          main.clickSoundEnabled === true,
-          typeof main.clickSoundVolume === 'number' ? main.clickSoundVolume : undefined,
-        );
         // 本页就是网页端：按叶子播放时只认 voiceTo='web' 的那一句。
         setSurface('web');
         // 音色、总开关与音量同源：缺字段即「不播」，不在端上兜默认值。

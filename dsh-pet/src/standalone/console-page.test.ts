@@ -149,6 +149,16 @@ test('桌面式布局：左侧宠物头像区、右侧设置入口格，配置�
   assert.match(html, /<section class="desktop">/, '主区应为桌面容器');
   assert.match(html, /class="petDesk"/, '左侧为宠物头像区');
   assert.match(html, /class="settingsGrid"/, '右侧为设置入口格');
+  // 直播平台入口列：纵向四张卡片，位于宠物区与设置格之间，与设置格逐行对齐
+  assert.match(html, /class="liveEntryGrid"/, '应有直播平台入口列');
+  assert.ok(
+    html.indexOf('class="liveEntryGrid"') < html.indexOf('class="settingsGrid"'),
+    '平台入口列应排在设置入口格左侧',
+  );
+  assert.match(css, /\.desktop\{display:grid;grid-template-columns:1fr auto auto/, '桌面主区应为三栏');
+  assert.match(css, /\.liveEntryGrid\{display:grid;grid-template-columns:minmax\(118px,1fr\)/, '平台入口列应为纵向单列网格');
+  assert.match(css, /\.liveDeskEntry\.is-active\{border-color:var\(--primary\)/, '当前平台入口应有选中高亮');
+  assert.match(css, /\.liveEntryGrid\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/, '窄屏平台入口列应回落为一行四个');
   // 七个设置入口各自绑定一个面板
   const panels = ['pet-panel', 'global-panel', 'physics-panel', 'font-panel', 'voice-panel', 'ai-panel', 'advanced-panel'];
   for (const p of panels) {
@@ -178,7 +188,7 @@ test('主题切换按钮可用：读写 /ui-theme、按磁盘值纠正、深色�
   assert.match(consoleStyles(), /html\[data-theme=dark\]/, '缺少深色变量块，切到 dark 会没有配色');
   assert.match(consoleStyles(), /html\[data-theme=dark\] \.themeToggle \.iconSun\{display:none\}/, '深色下太阳图标应隐藏');
   assert.match(consoleStyles(), /console-bg\.webp/, '浅色 body 应引用控制台背景图');
-  assert.match(consoleStyles(), /html\[data-theme=dark\] body\{background-image:none\}/, '暗色下应移除浅色背景图');
+  assert.match(consoleStyles(), /html\[data-theme=dark\] body\{background-image:url\('\/standalone-console\/console-bg-dark\.webp'\)\}/, '暗色下应引用暗色背景图');
 });
 
 test('板块与旧设置页对齐：宠物、全局开关、字体、物理、模型、语音、高级', () => {
@@ -309,12 +319,21 @@ test('控制台三件套经本机服务公开只读可访问；页面不回显�
       '背景图要么缺失 404，要么是 WebP',
     );
     await background.arrayBuffer();
+    // 暗色背景图与浅色同口径：公开只读，缺失时回 404。
+    const backgroundDark = await fetch(base + '/standalone-console/console-bg-dark.webp');
+    assert.notEqual(backgroundDark.status, 403, '暗色背景图不得要求令牌');
+    assert.ok(
+      backgroundDark.status === 404 || backgroundDark.headers.get('content-type') === 'image/webp',
+      '暗色背景图要么缺失 404，要么是 WebP',
+    );
+    await backgroundDark.arrayBuffer();
     // 静态资源只接受 GET/HEAD：鉴权先于方法判定，未带令牌的写方法一律 403（与旧设置壳口径一致）。
     for (const path of [
       '/standalone-console/',
       '/standalone-console/console.js',
       '/standalone-console/console.css',
       '/standalone-console/console-bg.webp',
+      '/standalone-console/console-bg-dark.webp',
     ]) {
       const rejected = await fetch(base + path, { method: 'POST' });
       assert.equal(rejected.status, 403, path);
@@ -363,7 +382,7 @@ test('对话入口：底部 Dock 里的图标按钮 + 弹窗即对话窗口，�
   assert.match(styles, /body\.live-standalone \.dockBar\{display:none/, '独立直播间模式应隐藏 Dock');
 });
 
-test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 logo、右侧配置抽屉；各平台面板与接口齐备', () => {
+test('统一直播间弹窗：控制台平台入口按平台打开、窗内不切平台、弹幕铺满主区；各平台面板与接口齐备', () => {
   const html = consolePage();
   const styles = consoleStyles();
   const script = consoleScript;
@@ -376,11 +395,12 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
     '直播间入口应排在对话 icon 右侧',
   );
 
-  // 弹窗骨架：遮罩、标题「直播间」、右上角 logo 行、关闭按钮、内联配置区、底部操作条
+  // 弹窗骨架：遮罩、标题「直播间 · 平台」、关闭按钮、内联配置区、底部操作条；头部不再有平台 Tab
   assert.match(html, /id="live-dialog"/, '缺少直播间弹窗遮罩');
   assert.match(html, /id="live-dialog-title"[^>]*>[\s\S]*?直播间/, '弹窗标题应是「直播间」');
+  assert.match(html, /id="live-title-plat"/, '标题应带当前平台名占位');
   assert.match(html, /id="live-close"/, '弹窗应有关闭按钮');
-  assert.match(html, /id="live-logos"/, '右上角应有平台 logo 行');
+  assert.doesNotMatch(html, /id="live-logos"|liveLogoRow|data-select=/, '弹窗头部不应再有平台 logo Tab 行');
   assert.match(html, /id="live-config-pane"/, '配置区应内联在弹窗主区');
   assert.doesNotMatch(html, /id="live-config-mask"/, '配置不该再是从右侧滑出的抽屉');
   assert.doesNotMatch(html, /id="live-config-close"/, '配置区不再是独立模态，没有自己的关闭钮');
@@ -390,20 +410,24 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
     '底部应有唯一的「开始监听」按钮',
   );
 
-  // 右上角四枚平台 logo 当 Tab：可点选、配置面板随平台切换、监听徽标；弹幕面板留给小窗
+  // 控制台四张平台入口卡：可点开对应平台配置、监听徽标挂在入口卡上；弹幕面板留给小窗
   for (const p of ['dm', 'xs', 'ks', 'bl']) {
     assert.match(html, new RegExp(`data-platform="${p}"`), `应有平台项 ${p}`);
-    assert.match(html, new RegExp(`data-select="${p}"`), `平台 logo 应可点选 ${p}`);
+    assert.match(html, new RegExp(`data-live="${p}"`), `平台入口应可点开 ${p}`);
     assert.match(html, new RegExp(`data-panel="${p}"`), `配置区内应含设置面板 ${p}`);
-    assert.match(html, new RegExp(`data-pill="${p}"`), `平台 logo 应有监听徽标 ${p}`);
+    assert.match(html, new RegExp(`data-pill="${p}"`), `平台入口应有监听徽标 ${p}`);
     assert.match(html, new RegExp(`data-feed="${p}"`), `弹幕面板仍需保留给弹幕小窗 ${p}`);
   }
-  // 头部平台 Tab 顺序按用户要求：抖音 → 快手 → 小红书 → B站
+  // 入口顺序按用户要求：抖音 → 快手 → 小红书 → B站
   assert.match(
     html,
-    /data-select="dm"[\s\S]*?data-select="ks"[\s\S]*?data-select="xs"[\s\S]*?data-select="bl"/,
-    '平台 Tab 顺序应为 抖音/快手/小红书/B站',
+    /data-live="dm"[\s\S]*?data-live="ks"[\s\S]*?data-live="xs"[\s\S]*?data-live="bl"/,
+    '平台入口顺序应为 抖音/快手/小红书/B站',
   );
+  // 抖音 logo 按用户选定改为官方黑底方块样式：黑圆角方块 + 白音符青红错位，与其余平台方块图标同规格
+  assert.match(html, /data-live="dm"[\s\S]*?<rect width="24" height="24" rx="6" fill="#161823"\/>[\s\S]*?fill="#25F4EE"[\s\S]*?fill="#FE2C55"[\s\S]*?fill="#FFFFFF"/, '抖音 logo 应为黑底方块 + 白音符青红错位');
+  assert.doesNotMatch(html, /dmIcon/, '旧的白底抖音图标类应移除');
+  assert.doesNotMatch(styles, /\.dmIcon/, '旧的白底抖音图标样式应移除');
 
   // 各平台原面板字段仍保留在配置区里；启动/停止改由底部统一按钮驱动，卡片里不再各放一套
   const dmIds = ['dm-url', 'dm-cookie', 'dm-reply-chat', 'dm-thank-gift', 'dm-msg', 'dm-status', 'dm-feed'];
@@ -441,7 +465,9 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.doesNotMatch(html, /feed-meta/, '弹幕区不应再有计数徽章');
   assert.doesNotMatch(script, /feed-meta/, '脚本不应再更新弹幕计数徽章');
   assert.match(html, /id="dm-gift-meta"/, '礼物计数徽章保留');
-  assert.match(html, /id="live-open-mini"/, '底部应能重新打开弹幕小窗');
+  // 「打开弹幕小窗」底栏按钮按用户要求移除：入口改为主页监听状态卡的「弹幕小窗」文字链接
+  assert.doesNotMatch(html, /id="live-open-mini"/, '底栏不应再有打开弹幕小窗按钮');
+  assert.doesNotMatch(script, /live-open-mini/, '脚本不应再绑定底栏弹幕小窗按钮');
   // 「刷新状态」不再是底栏按钮，改为状态行右侧的纯文本动作（四平台各一）
   assert.doesNotMatch(html, /id="live-refresh"/, '底栏不应再有刷新状态按钮');
   for (const p of ['dm', 'xs', 'ks', 'bl']) {
@@ -451,7 +477,7 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   // 底栏布局：左侧当前平台的回复/感谢开关，右侧按钮且「开始监听」在最右
   assert.match(
     html,
-    /class="liveFootLeft"[\s\S]*?data-foot-switches="dm"[\s\S]*?data-foot-switches="bl"[\s\S]*?class="liveFootRight"><button[^>]*id="live-open-mini"[\s\S]*?id="live-start">开始监听</,
+    /class="liveFootLeft"[\s\S]*?data-foot-switches="dm"[\s\S]*?data-foot-switches="bl"[\s\S]*?class="liveFootRight"><button[^>]*id="live-start">开始监听</,
     '底栏应为左开关右按钮，开始监听在最右',
   );
   assert.doesNotMatch(html, /class="dmSwitches"/, '开关不应再留在配置卡里');
@@ -459,6 +485,21 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.match(html, /id="dm-url"[\s\S]*?placeholder="粘贴直播间链接，或直接填纯数字房间号"/, '直播间输入框占位符应与旧页一致');
   assert.match(html, /id="dm-cookie"[\s\S]*?placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里"/, 'Cookie 占位符应说明不填走弹窗扫码');
   assert.doesNotMatch(html, /id="panel-danmaku"/, '控制台里不该出现旧页的面板容器');
+
+  // 主页监听状态卡：监听中显示，无监听整块隐藏
+  assert.match(html, /id="live-monitor-card"[^>]*hidden/, '主页应有默认隐藏的监听状态卡容器');
+  assert.match(html, /id="lm-stop"[^>]*>停止监听/, '状态卡应有停止监听快捷按钮');
+  assert.match(html, /id="lm-mini"[^>]*>弹幕小窗/, '状态卡应有弹幕小窗文字链接');
+  assert.match(html, /id="lm-mini"[\s\S]*?id="lm-open"[^>]*>打开直播间/, '弹幕小窗应排在打开直播间左侧');
+  assert.match(html, /id="lm-open"[^>]*>打开直播间/, '状态卡应有打开直播间链接');
+  assert.match(html, /id="lm-title"[\s\S]*?id="lm-anchor"[\s\S]*?id="lm-room"[\s\S]*?id="lm-chat"[\s\S]*?id="lm-gift"[\s\S]*?id="lm-url"/, '状态卡应含标题/主播/房间/计数/地址字段');
+  assert.match(script, /function renderLiveMonitorCard\(\)/, '应有状态卡渲染收口');
+  assert.match(script, /liveMonitorSnapshots/, '状态卡应读取各平台最近状态快照');
+  assert.match(script, /card\.hidden = true/, '无监听时状态卡整块隐藏');
+  assert.match(script, /liveStoppers\[liveMonitorPlatform\]/, '停止按钮应停掉当前监听平台');
+  assert.match(script, /liveOpenRoom\(liveMonitorPlatform\)/, '打开链接应复用现有直播间跳转');
+  assert.match(script, /liveOpenMini\(liveMonitorPlatform\)/, '弹幕小窗链接应打开当前监听平台的小窗');
+  assert.match(styles, /\.liveMonitorCard\{/, '状态卡应有独立卡片样式');
 
   // 旧四枚平台入口与旧四套遮罩已拆除，统一进 #live-dialog
   for (const gone of ['dm-open', 'xs-open', 'ks-open', 'bl-open', 'dm-dialog', 'xs-dialog', 'ks-dialog', 'bl-dialog', 'dm-close', 'xs-close', 'ks-close', 'bl-close']) {
@@ -469,13 +510,14 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.match(styles, /\.liveConfigPane\{[^}]*overflow-y:auto/, '配置区应自己滚动，不撑破弹窗');
   assert.match(styles, /body:not\(\.live-mini\) \.liveMain\{display:none\}/, '大窗不再显示弹幕区');
   assert.match(styles, /body\.live-mini \.liveConfigPane\{display:none!important\}/, '小窗不显示配置区');
-  assert.match(styles, /body\.live-mini \.liveLogoRow\{display:none!important\}/, '小窗内不能切平台');
+  assert.doesNotMatch(html, /liveLogoRow|data-select=/, '平台 Tab 已移除，窗内不能切平台');
   assert.match(styles, /\.liveConfigPanel\{display:none/, '非当前平台配置面板隐藏');
   assert.match(styles, /\.liveConfigPanel\.is-active\{display:flex\}/, '只有当前平台配置面板显示');
   assert.match(styles, /\.liveFoot\{[^}]*border-top/, '底部应有独立操作条');
   assert.match(styles, /\.liveFeedPanel\.is-active\{display:flex/, '只有当前选中平台的弹幕面板显示');
   assert.match(styles, /\.dmFeedItem\.gift\{/, '礼物弹幕应有单独配色');
   assert.match(styles, /\.btn\.danger\{background:color-mix/, '停止监听需要红色按钮');
+  assert.match(styles, /\.status\[data-error="true"\]\{[^}]*color:var\(--danger\)/, '报错提示应为红色并带红底/边框，不能与普通提示同灰度');
   assert.match(styles, /\.petFields\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:10px 16px\}/, '宠物字段区应为可收缩的两列网格');
   assert.match(styles, /\.petFields \.fieldInput\{height:32px\}/, '宠物区输入框应收窄高度');
   assert.match(styles, /\.petFields \.corner\{height:30px\}/, '宠物区角落按钮应收窄高度');
@@ -506,21 +548,52 @@ test('统一直播间弹窗：单一入口、弹幕铺满主区、右上角四 l
   assert.doesNotMatch(html, /liveConfigHint|liveHintKbd/, '操作提示元素应移除');
   assert.doesNotMatch(styles, /\.liveConfigHint|\.liveHintKbd|\.liveConfigHead/, '操作提示专属样式应一并移除');
   assert.match(html, /id="live-config-title"/, '隐藏标题保留（无障碍 labeling 与脚本更新仍引用）');
-  // 页内弹窗尺寸按用户要求小幅收窄收矮，且定高：切平台时高度不随内容跳动（独立大窗/小窗的铺满覆盖不受影响）
+  // 页内弹窗尺寸按用户要求收矮：定高 70vh/540px，切平台时高度不随内容跳动（独立大窗/小窗的铺满覆盖不受影响）
   assert.match(
     styles,
-    /\.liveDialog\{width:min\(900px,100%\);height:min\(88vh,860px\)/,
-    '页内直播间弹窗应为 900px 宽、定高 88vh/860px',
+    /\.liveDialog\{width:min\(900px,100%\);height:min\(70vh,540px\)/,
+    '页内直播间弹窗应为 900px 宽、定高 70vh/540px',
   );
   assert.doesNotMatch(styles, /\.liveDialog\{[^}]*height:auto/, '页内弹窗不应再按内容自适应高度');
-  assert.match(script, /function selectLive\(/, '平台 Tab 切换应换当前平台');
+  // 垂直节奏收紧 + 去掉同色嵌套卡：内容在定高内放得下，不靠滚动
+  assert.match(styles, /\.liveConfigPanel \.dmCard\{border:0;background:transparent;border-radius:0;padding:0\}/, '配置区不应再套带边框的同色嵌套卡片');
+  assert.match(styles, /\.liveConfigPanel \.fieldInput\{height:44px/, '配置输入框应收矮到 44px');
+  assert.match(styles, /\.liveConfigPanel \.fieldInput\.area\{height:auto;min-height:88px/, 'Cookie 文本域应收矮到 88px');
+  assert.match(styles, /\.liveConfigPanel \.fieldInput\{[^}]*background:color-mix\(in srgb,var\(--label-primary\) 4%,var\(--bg-card\)\)/, '平铺后输入框靠内凹底色识别');
+  assert.match(styles, /\.liveFoot \.btn\{height:44px/, '底栏按钮应收矮到 44px');
+  assert.match(styles, /\.liveDialog \.chatHead\{padding:16px 26px 14px/, '头部上下间隔应收紧');
+  assert.match(styles, /\.liveBody\{[^}]*padding:16px 26px 14px/, '内容区上下间隔应收紧');
+  assert.match(script, /function openLiveFor\(platform\)/, '平台入口应先切平台再开弹窗');
+  assert.match(script, /entry\.addEventListener\('click', function \(\) \{ openLiveFor\(p\); \}\)/, '四张入口卡应各自接线打开对应平台');
+  assert.match(script, /\[data-live="' \+ p \+ '"\]/, '选中态应同步到控制台平台入口卡');
+  assert.match(script, /titlePlat\.textContent = ' · ' \+ liveNames\[liveCurrent\]/, '弹窗标题应跟随当前平台名');
+  assert.doesNotMatch(script, /function selectLive\(/, '窗内切平台函数应随 Tab 一起拆除');
+  assert.doesNotMatch(styles, /\.liveLogo/, '平台 Tab 样式应一并移除');
   assert.match(script, /function setLiveDialog\(open\)/, '统一弹窗开关应是单一入口函数');
+  assert.match(script, /function liveRefreshAll\(\)/, '应有全量刷新四平台状态的函数');
+  assert.match(script, /LIVE_PLATFORMS\.forEach\(function \(p\) \{/, '全量刷新应遍历四个平台');
+  assert.match(script, /liveRefreshAll\(\)/, '打开弹窗时应全量刷新四平台状态，重开后绿点不丢');
   assert.match(script, /function liveToggleCurrent\(\)/, '底部开始监听应是单一收口函数');
   assert.match(script, /liveStarters = \{ dm: dmStart, xs: xsStart, ks: ksStart, bl: blStart \}/, '四平台启动函数应统一登记');
   assert.match(script, /liveStoppers = \{ dm: dmStop, xs: xsStop, ks: ksStop, bl: blStop \}/, '四平台停止函数应统一登记');
   assert.match(script, /function liveOpenMini\(platform\)/, '开小窗应带上当前平台');
   assert.match(script, /window\.petBridge\.openLiveMini\(target\)/, '开小窗走主进程桥');
-  assert.match(script, /if \(liveReadingPlatform\(platform\)\) liveOpenMini\(platform\)/, '只有真起来才开小窗（失败不假装开窗）');
+  assert.match(script, /if \(liveReadingPlatform\(platform\) && liveOpenMini\(platform\)\)/, '只有真起来才开小窗（失败不假装开窗）');
+  assert.match(script, /function liveCloseMini\(platform\)/, '停止监听后应有同步关小窗的收口函数');
+  assert.match(script, /window\.petBridge\.closeLiveMini\(platform\)/, '关小窗走主进程桥');
+  for (const p of ['dm', 'xs', 'ks', 'bl']) {
+    assert.match(script, new RegExp("liveCloseMini\\('" + p + "'\\)"), `停止 ${p} 监听成功后应同步关该平台小窗`);
+  }
+  assert.match(
+    script,
+    /showToast\('已开始监听', 'ok'\);\s*\/\/ 平台互斥：启动本平台会顶掉其余平台的监听；全量拉一遍，纠正它们的绿点与主页状态卡。\s*void refreshLiveMonitorCard\(\);/,
+    '启动成功后应全量刷新，纠正被顶掉平台的绿点与状态卡',
+  );
+  assert.match(
+    script,
+    /liveOpenMini\(platform\)\) \{\s*if \(LIVE_STANDALONE\) closeLiveWindow\(\);\s*else setLiveDialog\(false\);/,
+    '小窗开出来后应自动关掉直播间弹窗（独立窗口模式关窗）',
+  );
   assert.doesNotMatch(script, /function setLiveConfig\(open\)/, '配置不再是模态，开关函数应删除');
   assert.doesNotMatch(script, /liveConfigOpen/, '不再记录配置模态显隐状态');
   assert.match(script, /liveIsOpen\(\) \|\| liveCurrent !== 'dm'/, '抖音轮询只在弹窗打开且选中抖音时发请求');
@@ -581,17 +654,43 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   assert.match(script, /window\.petBridge\.openLiveMini\(target\)/, '有桥时带平台开小窗');
   assert.match(script, /弹幕小窗要在桌面端（独立模式）里才能开/, '无桥时应提示只能在桌面端开小窗');
 
-  // 小窗形态：固定暗色、body 打模式类、标题改成「弹幕」、按传入平台选中、不显示配置也不能切平台
+  // 小窗形态：固定暗色、body 打模式类、标题对齐参考图「互动消息区」、按传入平台选中、不显示配置也不能切平台
   assert.match(script, /document\.body\.classList\.add\('live-mini'\)/, '小窗模式应给 body 打模式类');
+  assert.match(script, /miniTitle\.textContent = '互动消息区'/, '小窗标题对齐参考图「互动消息区」');
+  assert.match(script, /function dmIsEntryText\(text\)/, '进场消息应有判定函数，用于小窗进场行区分');
+  assert.ok(
+    script.includes("dmIsEntryText(item.text) ? ' entry' : ''"),
+    '弹幕行应按进场判定挂 entry 类',
+  );
   assert.match(script, /if \(!LIVE_MINI\) wireTheme\(\)/, '小窗不读不写主题，避免把控制台主题带跑');
   assert.match(script, /if \(LIVE_PLATFORMS\.indexOf\(LIVE_MINI_PLATFORM\) >= 0\) liveCurrent = LIVE_MINI_PLATFORM/, '小窗应直接锁定传入的平台');
   assert.match(styles, /body\.live-mini \.liveConfigPane\{display:none!important\}/, '小窗不显示配置区');
-  assert.match(styles, /body\.live-mini \.liveLogoRow\{display:none!important\}/, '小窗内不能切平台');
+  assert.doesNotMatch(html, /liveLogoRow|data-select=/, '平台 Tab 已移除，窗内不能切平台');
   assert.match(styles, /body\.live-mini \.liveFoot\{display:none!important\}/, '小窗不显示底部操作条');
   assert.match(styles, /body\.live-mini \.dmFeedTime\{display:none\}/, '小窗窄，弹幕行不显示时间');
-  assert.match(styles, /body\.live-mini \.dmFeedAva\{width:24px/, '小窗应压缩头像与字号');
-  assert.match(styles, /body\.live-mini #live-dialog\{padding:0;align-items:stretch;justify-content:stretch;background:#070d18\}/, '小窗整窗铺满、固定深蓝底');
+  assert.match(styles, /body\.live-mini \.dmFeedItem\{[^}]*border:0;background:transparent/, '小窗消息行扁平，不带卡片边框/底色');
+  assert.match(styles, /body\.live-mini \.dmFeedAva\{display:none\}/, '小窗弹幕行对齐设计稿：无左侧头像');
+  assert.match(styles, /body\.live-mini \.dmFeedItem\.chat \.dmFeedNick\{[^}]*color:#4fc3f7/, '小窗弹幕昵称统一设计稿青色');
+  assert.match(styles, /body\.live-mini \.dmFeedItem\.entry \.dmFeedNick\{color:#4fc3f7\}/, '进场行昵称与弹幕行同青色，不再置灰');
+  assert.doesNotMatch(html, /说点什么|composer|reply-box/, '小窗不带底部输入框');
+  assert.doesNotMatch(html, /延迟:|码率|推流帧率/, '小窗不带延迟/码率/帧率状态条');
+  assert.match(styles, /body\.live-mini\{background:transparent/, '小窗 body 本身透明，不铺底色');
+  assert.match(styles, /body\.live-mini,html\[data-theme=dark\] body\.live-mini\{background-image:none\}/, '小窗必须关掉控制台背景图，只留暗色半透明图层');
+  assert.match(styles, /body\.live-mini #live-dialog\{[^}]*background:rgba\(32,33,36,\.4\)[^}]*border-radius:16px;overflow:hidden/, '小窗半透明底色落在铺满窗口的容器上并带圆角裁剪');
   assert.match(styles, /body\.live-mini \.liveDialog\{width:100%;height:100%/, '小窗内容铺满整个窗口，不再内嵌卡片');
+  // 对齐设计稿：真实统计行 + 礼物行解剖 + 空态文案 + 发丝分隔 + 细灰滚动条
+  assert.match(html, /id="mini-stats"[\s\S]*?id="mini-stat-chat"[\s\S]*?id="mini-stat-gift"/, '小窗统计行只放真实口径：弹幕/礼物');
+  assert.match(styles, /\.miniStats\{display:none\}/, '统计行在大窗默认隐藏');
+  assert.match(styles, /body\.live-mini \.miniStats\{display:flex/, '统计行仅小窗显示');
+  assert.match(script, /function miniSyncStats\(platform, status\)/, '统计行应有真实口径同步函数');
+  assert.match(script, /miniSyncStats\('dm', status\)/, '抖音状态回包应同步小窗统计');
+  assert.match(script, /miniSyncStats\('bl', status\)/, 'B站状态回包应同步小窗统计');
+  assert.match(script, /dmNode\('span', 'dmFeedVerb', '送了'\)/, '小窗礼物行对齐设计稿：昵称+送了+礼物名+数量');
+  assert.match(script, /dmNode\('span', 'dmFeedCount', '×' \+ Math\.max\(1, Number\(item\.count\) \|\| 1\)\)/, '礼物数量胶囊消费真实 count');
+  assert.match(styles, /body\.live-mini \.dmFeedItem\.gift\{[^}]*border:1px solid rgba\(255,179,64,\.45\)/, '小窗礼物行为金色描边暖底卡片');
+  assert.match(styles, /body\.live-mini \.dmGift:empty::before\{content:"展示本场直播的礼物消息"/, '礼物空态对齐设计稿文案');
+  assert.match(styles, /body\.live-mini \.liveFeedPanel \.dmFeedCard\{border-top:1px solid rgba\(255,255,255,\.08\)/, '礼物区与弹幕区发丝分隔线');
+  assert.match(styles, /body\.live-mini \.dmFeed::-webkit-scrollbar-thumb,body\.live-mini \.dmGift::-webkit-scrollbar-thumb\{background:#5a5f66/, '小窗细灰滚动条');
   // 独立模式 align-items:center 会把 .liveMain 缩成内容宽并居中；小窗必须显式补满整窗宽度
   assert.match(
     styles,
@@ -620,4 +719,79 @@ test('保存结果气泡：保存成功 / 失败都弹出底部气泡，统一�
   assert.match(styles, /\.toastRoot\{/, '气泡浮层应有定位容器');
   assert.match(styles, /\.toastOk::before\{background:var\(--primary\)\}/, '成功气泡用主色点');
   assert.match(styles, /\.toastError::before\{background:var\(--danger\)\}/, '失败气泡用红色点');
+});
+
+test('直播间 ID 历史：三平台输入框下有快捷行，开始监听成功才缓存，最多 3 条点击填入', () => {
+  const html = consolePage();
+  const styles = consoleStyles();
+  const script = consoleScript;
+
+  // 容器：抖音/快手/B站输入框之后各挂一个历史行；小红书没有链接输入，不该有
+  for (const p of ['dm', 'ks', 'bl']) {
+    assert.match(
+      html,
+      new RegExp(`id="${p}-url"[\\s\\S]*?id="${p}-url-history"`),
+      `${p} 输入框后应有历史快捷行容器`,
+    );
+  }
+  assert.doesNotMatch(html, /id="xs-url-history"/, '小红书不该有历史快捷行');
+
+  // 样式：空行隐藏、chip 可点、键盘焦点可见
+  assert.match(styles, /\.liveIdHistory:empty\{display:none\}/, '没有历史时快捷行应隐藏');
+  assert.match(styles, /\.liveIdHistoryBtn\{[^}]*cursor:pointer/, '历史 chip 应是可点按钮');
+  assert.match(styles, /\.liveIdHistoryBtn:focus-visible\{/, '历史 chip 应有可见键盘焦点');
+
+  // 存储与上限：独立 key、每平台最多 3 条
+  assert.match(script, /LIVE_ID_HISTORY_KEY = 'blue_fish_live_id_history_v1'/, '历史应存独立 localStorage key');
+  assert.match(script, /LIVE_ID_HISTORY_MAX = 3/, '每平台最多缓存 3 条');
+  assert.match(script, /liveIdHistoryLoad\(\);\s*liveIdHistoryRenderAll\(\);/, '初始化应读缓存并渲染三平台快捷行');
+
+  // 缓存时机：三个 start 的成功路径与「超时但已提交」路径各记一次；错误路径不记
+  for (const [fn, p] of [['dmStart', 'dm'], ['ksStart', 'ks'], ['blStart', 'bl']] as const) {
+    const body = script.match(new RegExp(`async function ${fn}\\(\\) \\{([\\s\\S]*?)\\n  \\}`));
+    assert.ok(body, `应能取到 ${fn} 函数体`);
+    const hits = (body![1].match(new RegExp(`liveIdHistoryRemember\\('${p}'`, 'g')) || []).length;
+    assert.equal(hits, 2, `${fn} 应在成功与超时已提交两条路径缓存，错误路径不缓存`);
+  }
+  const xsBody = script.match(/async function xsStart\(\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(xsBody && !/liveIdHistoryRemember/.test(xsBody[1]), '小红书启动不该写 ID 历史');
+
+  // 点击填入：chip 点击把 ID 写回输入框并聚焦
+  assert.match(script, /input\.value = id;\s*input\.focus\(\);/, '点击历史 chip 应填入输入框并聚焦');
+  assert.match(script, /btn\.textContent = id/, 'chip 只展示房间 ID 文本');
+});
+
+test('直播间 ID 历史纯函数：MRU 去重截断与三平台 ID 提取', () => {
+  const script = consoleScript;
+  const pick = (name: string, args: string): string => {
+    const m = script.match(new RegExp(`function ${name}\\(${args}\\) \\{[\\s\\S]*?\\n  \\}`));
+    assert.ok(m, `应能取到纯函数 ${name}`);
+    return m![0];
+  };
+  const factory = new Function(
+    pick('dmExtractWebRid', 'raw') + '\n' +
+    pick('liveIdHistoryMerge', 'list, id, max') + '\n' +
+    pick('liveIdHistoryExtract', 'platform, raw') + '\n' +
+    'return { liveIdHistoryMerge: liveIdHistoryMerge, liveIdHistoryExtract: liveIdHistoryExtract };',
+  );
+  const { liveIdHistoryMerge, liveIdHistoryExtract } = factory() as {
+    liveIdHistoryMerge: (list: unknown, id: unknown, max: number) => string[];
+    liveIdHistoryExtract: (platform: string, raw: string) => string;
+  };
+
+  // MRU：新 ID 提最前、重复去重、超出 3 条丢最旧、空 ID 不写
+  assert.deepEqual(liveIdHistoryMerge([], '12345', 3), ['12345']);
+  assert.deepEqual(liveIdHistoryMerge(['a', 'b', 'c'], 'd', 3), ['d', 'a', 'b']);
+  assert.deepEqual(liveIdHistoryMerge(['a', 'b', 'c'], 'b', 3), ['b', 'a', 'c']);
+  assert.deepEqual(liveIdHistoryMerge(['a'], '   ', 3), ['a']);
+  assert.deepEqual(liveIdHistoryMerge(null, 'x', 3), ['x']);
+
+  // 提取：链接取房间号、纯数字原样、快手取短链尾段
+  assert.equal(liveIdHistoryExtract('dm', 'https://live.douyin.com/123456?from=web'), '123456');
+  assert.equal(liveIdHistoryExtract('dm', '741852963'), '741852963');
+  assert.equal(liveIdHistoryExtract('bl', 'https://live.bilibili.com/23058?foo=1'), '23058');
+  assert.equal(liveIdHistoryExtract('bl', '23058'), '23058');
+  assert.equal(liveIdHistoryExtract('ks', 'https://live.kuaishou.com/u/abc123'), 'abc123');
+  assert.equal(liveIdHistoryExtract('ks', 'abc123'), 'abc123');
+  assert.equal(liveIdHistoryExtract('dm', ''), '');
 });

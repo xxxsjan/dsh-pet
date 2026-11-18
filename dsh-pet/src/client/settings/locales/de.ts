@@ -16,7 +16,7 @@ export const de: Record<Key, string> = {
   avatarUploading: 'Wird hochgeladen…',
   avatarUploaded: 'Avatar aktualisiert',
   petCardHint:
-    'Einstellungen pro Pet: Name / Größe / Anzeige / Position / Offsets / die vier Funktionsschalter. Nach dem Ändern unten auf „Speichern" klicken – gilt sofort.',
+    'Einstellungen pro Pet: Name / Größe / Anzeige / Position / Offsets / Funktionsschalter (inkl. Klick-Sound und Lautstärke). Nach dem Ändern unten auf „Speichern" klicken – gilt sofort.',
   globalTitle: 'Globale Schalter',
   globalHint:
     'Gilt für alle Pets (ein Pet-Pack kann dies in seiner Art-Datei überschreiben). Diese Schalter ändern nur den lokalen Zustand und werden beim „Speichern" mit in die Benutzerkonfiguration geschrieben (kein sofortiges Schreiben); Systembenachrichtigungen werden nach dem Speichern sofort neu eingelesen, ohne Neuladen der Seite.',
@@ -137,9 +137,11 @@ export const de: Record<Key, string> = {
   notifyToggle: 'Systembenachrichtigungen',
   notifyToggleHint:
     'System-Toasts (unten rechts auf dem Desktop) bei Abschluss einer Konversation, Fehlern, Berechtigungsanfragen und Rückfragen – nur wenn das Fenster nicht fokussiert ist.',
-  clickSoundToggle: 'Klick-Sound',
-  clickSoundToggleHint:
-    'Beim Klick auf ein Pet ertönt der integrierte Klick-Sound (assets/sound/click-duck.wav, Lautstärke 0.5); Klicks innerhalb von 100 ms werden nur einmal abgespielt, auch bei mehreren Pets überlagert sich nichts. Aus = völlig stumm. Wird beim „Speichern" in die Benutzerkonfiguration geschrieben.',
+  clickSoundEnabled: 'Klick-Sound',
+  clickSoundEnabledHint:
+    'Beim Klick auf dieses Pet ertönt der integrierte Klick-Sound (assets/sound/click-duck.wav); Klicks innerhalb von 100 ms werden nur einmal abgespielt, auch bei mehreren Pets überlagert sich nichts. Aus = dieses Pet ist völlig stumm. Wird beim „Speichern" in die Benutzerkonfiguration geschrieben.',
+  clickSoundVolumeLabel: 'Klick-Sound-Lautstärke (0–1)',
+  clickSoundVolumeHint: '1 = 100 %, Standard 0.5; kurze Signaltöne werden nicht verstärkt. Gilt nur für dieses Pet.',
   whisperImageToggle: 'Flüstern-Bilder',
   whisperImageToggleHint:
     'Hängt an jede Flüstern-Zeile ein zufälliges Meme aus dem Pool (Bildzuordnung im Top-Level-Feld `memes` der Konfiguration). Token: Flüstern ruft ohnehin pro Zyklus das Modell auf, das Bild fügt nur Name + Beschreibung des gezogenen Memes (ca. 100 Zeichen / ≈60 Token) an dieselbe Anfrage an – vernachlässigbar.',

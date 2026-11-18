@@ -11,7 +11,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { readSettingsAssets } from '../settings-assets.ts';
 import { readChatPanelScript } from '../chat-panel-asset.ts';
 import { readSettingsIcon } from '../icon.ts';
-import { readConsoleBackground } from '../console-bg.ts';
+import { readConsoleBackground, readConsoleBackgroundDark } from '../console-bg.ts';
 import { consolePage, consoleScript, consoleStyle } from '../console-page.ts';
 import { MAX_REQUEST_BYTES, MAX_SETTINGS_BYTES, boundedRequest } from '../request-body.ts';
 import { type StandaloneLogger } from '../context.ts';
@@ -88,6 +88,19 @@ function dispatch(
         return;
       }
       sendIcon(res, background, 'image/webp');
+      return;
+    }
+    if (pathname === '/standalone-console/console-bg-dark.webp') {
+      if (method !== 'GET' && method !== 'HEAD') {
+        rejectRequest(res, 405, '仅支持 GET');
+        return;
+      }
+      const backgroundDark = readConsoleBackgroundDark();
+      if (!backgroundDark) {
+        rejectRequest(res, 404, '背景图缺失');
+        return;
+      }
+      sendIcon(res, backgroundDark, 'image/webp');
       return;
     }
     if (pathname === '/standalone-ai/chat-panel.js' || pathname === '/standalone-console/chat-panel.js') {

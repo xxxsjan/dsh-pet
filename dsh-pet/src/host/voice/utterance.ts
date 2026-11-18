@@ -143,6 +143,19 @@ export class VoiceUtteranceStore {
     });
   }
 
+  /**
+   * 宿主主动取消一句朗读（弹幕开关关闭时掐断在播的那条）：标 skipped 并唤醒等待者。
+   * 渲染端的停播由调用方另写 say `{ clear: true, stopVoice: true }` 通知；这里只管回执表。
+   * @returns true = 命中并取消；false = 编号不存在或已终态。
+   */
+  cancel(utteranceId: string, reason?: string): boolean {
+    this.sweep();
+    const record = this.records.get(utteranceId);
+    if (!record || isTerminal(record.status)) return false;
+    this.finish(utteranceId, 'skipped', reason ?? 'cancelled');
+    return true;
+  }
+
   /** 插件卸载：唤醒全部等待者（matched 由调用方用终态与否自判；这里直接让 Promise resolve）。 */
   cancelAll(): void {
     for (const [id, set] of [...this.waiters]) {

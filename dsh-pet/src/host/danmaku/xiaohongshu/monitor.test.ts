@@ -144,6 +144,109 @@ describe('xiaohongshu monitor CDP 链路', () => {
   });
 });
 
+describe('xiaohongshu 开关与回复队列', () => {
+  const chatFrame = (id: string, text: string) =>
+    frameOf({ body: { customData: { type: 'text', desc: text, profile: { nickname: '观众' }, commentId: id } } });
+  const giftFrame = (id: string) =>
+    frameOf({
+      body: {
+        customData: {
+          type: 'gift_comment',
+          send_user_info: { nick_name: '大哥' },
+          base_gift_info: { name: '小心心' },
+          gift_action_info: { count: 1 },
+          commentId: id,
+        },
+      },
+    });
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  /** 第一条卡住不放（模拟正在生成/朗读），其余立即完成；记录每次调用的 kind。 */
+  function makeGatedChat() {
+    const calls: Array<{ kind: string }> = [];
+    let release: (() => void) | null = null;
+    const fn = async (_petId: string, _text: string, kind: 'chat' | 'gift') => {
+      calls.push({ kind });
+      if (calls.length === 1) await new Promise<void>((resolve) => (release = resolve));
+      return { ok: true };
+    };
+    return { calls, fn, releaseFirst: () => release?.() };
+  }
+
+  test('关回复弹幕：清掉排队弹幕、保留礼物感谢，并掐断在途弹幕语音', async () => {
+    const bridge = makeBridge();
+    const chat = makeGatedChat();
+    const cancelled: string[] = [];
+    const mon = createXhsMonitor({
+      log: { info: noop, warn: noop, debug: noop },
+      getCdpBridge: () => bridge,
+      resolvePetId: () => 'main',
+      chatWithPet: chat.fn,
+      cancelVoice: (kind) => cancelled.push(kind),
+    });
+    await mon.start({ replyChat: true, thankGift: true });
+    bridge.subs.frame?.(chatFrame('c1', '第一条')); // 进入在途并卡住
+    bridge.subs.frame?.(chatFrame('c2', '第二条')); // 排队
+    bridge.subs.frame?.(chatFrame('c3', '第三条')); // 排队
+    bridge.subs.frame?.(giftFrame('g1')); // 排队
+    mon.setOptions({ replyChat: false });
+    assert.deepEqual(cancelled, ['chat'], '在途那条是弹幕：应通知宿主掐断 chat 语音');
+    chat.releaseFirst();
+    await tick();
+    await tick();
+    assert.deepEqual(
+      chat.calls.map((c) => c.kind),
+      ['chat', 'gift'],
+      '排队的 c2/c3 应被清掉，礼物感谢不受影响',
+    );
+    mon.stop();
+  });
+
+  test('关感谢礼物：清掉排队礼物、保留弹幕回复，并掐断在途礼物语音', async () => {
+    const bridge = makeBridge();
+    const chat = makeGatedChat();
+    const cancelled: string[] = [];
+    const mon = createXhsMonitor({
+      log: { info: noop, warn: noop, debug: noop },
+      getCdpBridge: () => bridge,
+      resolvePetId: () => 'main',
+      chatWithPet: chat.fn,
+      cancelVoice: (kind) => cancelled.push(kind),
+    });
+    await mon.start({ replyChat: true, thankGift: true });
+    bridge.subs.frame?.(giftFrame('g1')); // 在途卡住
+    bridge.subs.frame?.(giftFrame('g2')); // 排队
+    bridge.subs.frame?.(chatFrame('c1', '一条弹幕')); // 排队
+    mon.setOptions({ thankGift: false });
+    assert.deepEqual(cancelled, ['gift'], '在途那条是礼物：应通知宿主掐断 gift 语音');
+    chat.releaseFirst();
+    await tick();
+    await tick();
+    assert.deepEqual(
+      chat.calls.map((c) => c.kind),
+      ['gift', 'chat'],
+      '排队的 g2 应被清掉，弹幕回复不受影响',
+    );
+    mon.stop();
+  });
+
+  test('没有在途任务时关开关：不触发掐断，只清队列', async () => {
+    const bridge = makeBridge();
+    const cancelled: string[] = [];
+    const mon = createXhsMonitor({
+      log: { info: noop, warn: noop, debug: noop },
+      getCdpBridge: () => bridge,
+      resolvePetId: () => 'main',
+      chatWithPet: async () => ({ ok: true }),
+      cancelVoice: (kind) => cancelled.push(kind),
+    });
+    await mon.start({ replyChat: true, thankGift: true });
+    mon.setOptions({ replyChat: false, thankGift: false });
+    assert.deepEqual(cancelled, [], '空闲时关开关不应触发语音掐断');
+    mon.stop();
+  });
+});
+
 describe('xiaohongshu 帧解码', () => {
   test('body.customData 形态解析弹幕与礼物', () => {
     const seen = new Set<string>();

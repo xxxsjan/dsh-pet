@@ -38,6 +38,32 @@ export function consolePage(): string {
 <div class="deskSectionHead"><span class="petListTitle">我的宠物</span></div>
 <div class="avatars" id="pet-avatars"></div>
 <span class="voiceStatus" id="pet-list-status" role="status" aria-live="polite"></span>
+<div class="liveMonitorCard" id="live-monitor-card" hidden>
+  <div class="lmHead">
+    <span class="lmDot" aria-hidden="true"></span>
+    <span class="lmState">监听中</span>
+    <span class="lmPlat" id="lm-plat"></span>
+    <button type="button" class="lmStop" id="lm-stop">停止监听</button>
+  </div>
+  <div class="lmTitle" id="lm-title"></div>
+  <div class="lmMeta">
+    <span>主播 <b id="lm-anchor"></b></span>
+    <span>房间 <b id="lm-room"></b></span>
+    <span>弹幕 <b id="lm-chat"></b> / 礼物 <b id="lm-gift"></b></span>
+  </div>
+  <div class="lmUrl">
+    <svg class="lmUrlIco" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.6 9.4a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1.2 1.2"/><path d="M9.4 6.6a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1.2-1.2"/></svg>
+    <span class="lmUrlText" id="lm-url"></span>
+    <a class="lmOpen" id="lm-mini" href="#">弹幕小窗 ›</a>
+    <a class="lmOpen" id="lm-open" href="#">打开直播间 ›</a>
+  </div>
+</div>
+</div>
+<div class="liveEntryGrid" role="group" aria-label="直播平台入口">
+<button type="button" class="deskEntry liveDeskEntry" data-live="dm" title="抖音直播间配置" aria-label="打开抖音直播间配置"><span class="deskEntryIcon"><svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#161823"/><g transform="translate(3.9 3.2) scale(0.74)"><path d="M14.2 6.2c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S5.1 16.95 5.1 14.4s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V6.2h2.15z" fill="#25F4EE"/><path d="M13.85 5.85c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.75 16.6 4.75 14.05s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.85h2.15z" fill="#FE2C55"/><path d="M13.5 5.5c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.4 16.25 4.4 13.7s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.5H13.5z" fill="#FFFFFF"/></g></svg></span><span class="deskEntryLabel">抖音</span><span class="livePill off" data-pill="dm" aria-hidden="true"></span></button>
+<button type="button" class="deskEntry liveDeskEntry" data-live="ks" title="快手直播间配置" aria-label="打开快手直播间配置"><span class="deskEntryIcon"><svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF4906"/><path d="M9.2 7.4c0-.55.45-.9.95-.65l7.1 4.1c.5.28.5 1.02 0 1.3l-7.1 4.1c-.5.28-.95-.1-.95-.65V7.4z" fill="#fff"/></svg></span><span class="deskEntryLabel">快手</span><span class="livePill off" data-pill="ks" aria-hidden="true"></span></button>
+<button type="button" class="deskEntry liveDeskEntry" data-live="xs" title="小红书直播间配置" aria-label="打开小红书直播间配置"><span class="deskEntryIcon"><svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF2442"/><text x="12" y="12.8" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="6.2" font-weight="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans SC, sans-serif" letter-spacing="-0.35">小红书</text></svg></span><span class="deskEntryLabel">小红书</span><span class="livePill off" data-pill="xs" aria-hidden="true"></span></button>
+<button type="button" class="deskEntry liveDeskEntry" data-live="bl" title="B站直播间配置" aria-label="打开B站直播间配置"><span class="deskEntryIcon"><svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FB7299"/><path fill="#fff" d="M7.2 7.1 5.5 5.4l1.1-1.1 2.1 2.1h6.6l2.1-2.1 1.1 1.1-1.7 1.7H18c.7 0 1.2.5 1.2 1.2v8.2c0 .7-.5 1.2-1.2 1.2H6c-.7 0-1.2-.5-1.2-1.2V8.3c0-.7.5-1.2 1.2-1.2h1.2zm1.3 2.4c-.5 0-.9.4-.9.9v4.2c0 .5.4.9.9.9h7c.5 0 .9-.4.9-.9V10.4c0-.5-.4-.9-.9-.9h-7zm1.2 1.5h1.5v2.8H9.7v-2.8zm3.4 0h1.5v2.8h-1.5v-2.8z"/></svg></span><span class="deskEntryLabel">B站</span><span class="livePill off" data-pill="bl" aria-hidden="true"></span></button>
 </div>
 <div class="settingsGrid" role="group" aria-label="设置入口">
 <button type="button" class="deskEntry" data-panel="pet-panel" title="宠物配置"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="1.6"/><circle cx="11" cy="6" r="1.6"/><circle cx="3.6" cy="9.6" r="1.6"/><circle cx="12.4" cy="9.6" r="1.6"/><path d="M8 8.6c-1.9 0-3.2 1.4-3.2 2.7 0 .9.7 1.5 1.6 1.5 1 0 1.1-.4 1.6-.4s.6.4 1.6.4c.9 0 1.6-.6 1.6-1.5C11.2 10 9.9 8.6 8 8.6Z"/></svg></span><span class="deskEntryLabel">宠物</span></button>
@@ -80,6 +106,8 @@ export function consolePage(): string {
 <div class="fieldRow"><div class="switchLine"><span>碎碎念</span><button type="button" class="switch" data-switch="pet-whisper" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>工作状态联动</span><button type="button" class="switch" data-switch="pet-work" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>固定不动</span><button type="button" class="switch" data-switch="pet-fixed" aria-checked="false"></button></div></div>
+<div class="fieldRow"><div class="switchLine"><span>点击音效</span><button type="button" class="switch" data-switch="pet-click" aria-checked="false"></button></div></div>
+<div class="fieldRow"><label class="fieldLabel" for="pet-click-volume">点击音效音量（0–1）</label><input class="fieldInput" id="pet-click-volume" type="number" min="0" max="1" step="0.05"><span class="fieldHint">1 = 100%；短提示音不做增益放大。只影响这只宠物。</span></div>
 </div>
 </div>
 <div class="personaBlock">
@@ -104,16 +132,12 @@ export function consolePage(): string {
 <p class="cardHint">对所有宠物生效；保存后立即写盘。</p>
 <div class="switchGrid">
 <div class="switchLine"><span>系统通知</span><button type="button" class="switch" data-switch="g-notify" aria-checked="false"></button></div>
-<div class="switchLine"><span>点击音效</span><button type="button" class="switch" data-switch="g-click" aria-checked="false"></button></div>
 <div class="switchLine"><span>碎碎念配图</span><button type="button" class="switch" data-switch="g-whisper-image" aria-checked="false"></button></div>
 <div class="switchLine"><span>对话配图</span><button type="button" class="switch" data-switch="g-chat-image" aria-checked="false"></button></div>
 <div class="switchLine"><span>对话动作联动</span><button type="button" class="switch" data-switch="g-chat-anim" aria-checked="false"></button></div>
 <div class="switchLine"><span>锁定在当前屏幕</span><button type="button" class="switch" data-switch="g-confine" aria-checked="false"></button></div>
 <div class="switchLine"><span>系统托盘图标</span><button type="button" class="switch" data-switch="g-tray" aria-checked="false"></button></div>
 <div class="switchLine"><span>窗口模式</span><button type="button" class="switch" data-switch="g-obs" aria-checked="false"></button></div>
-</div>
-<div class="fields fieldGap">
-<div class="fieldRow"><label class="fieldLabel" for="g-click-volume">点击音效音量（0–1）</label><input class="fieldInput" id="g-click-volume" type="number" min="0" max="1" step="0.05"><span class="fieldHint">1 = 100%；短提示音不做增益放大。</span></div>
 </div>
 <div class="cardFoot"><button type="button" class="btn primary" id="global-save">保存</button><span class="voiceStatus" id="global-status" role="status" aria-live="polite"></span></div>
 </div>
@@ -285,13 +309,14 @@ export function consolePage(): string {
 </div>
 <div class="chatMask" id="live-dialog" hidden>
 <div class="chatDialog liveDialog" role="dialog" aria-modal="true" aria-labelledby="live-dialog-title">
-<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间</h2><div class="liveHeadRight"><div class="liveLogoRow" id="live-logos"><button type="button" class="liveLogo is-active" data-select="dm" data-platform="dm" title="抖音" aria-label="抖音配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.2 6.2c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S5.1 16.95 5.1 14.4s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V6.2h2.15z" fill="#25F4EE"/><path d="M13.85 5.85c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.75 16.6 4.75 14.05s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.85h2.15z" fill="#FE2C55"/><path d="M13.5 5.5c.55 1.35 1.7 2.35 3.15 2.7v2.15c-1.15-.1-2.2-.5-3.05-1.15v4.55c0 2.55-2.05 4.6-4.6 4.6S4.4 16.25 4.4 13.7s2.05-4.6 4.6-4.6c.25 0 .5.02.75.07v2.25a2.4 2.4 0 0 0-.75-.12c-1.3 0-2.35 1.05-2.35 2.35s1.05 2.35 2.35 2.35 2.35-1.05 2.35-2.35V5.5H13.5z" fill="#18191C"/></svg></span><span class="liveLogoName">抖音</span><span class="livePill off" data-pill="dm" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="ks" data-platform="ks" title="快手" aria-label="快手配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF4906"/><path d="M9.2 7.4c0-.55.45-.9.95-.65l7.1 4.1c.5.28.5 1.02 0 1.3l-7.1 4.1c-.5.28-.95-.1-.95-.65V7.4z" fill="#fff"/></svg></span><span class="liveLogoName">快手</span><span class="livePill off" data-pill="ks" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="xs" data-platform="xs" title="小红书" aria-label="小红书配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FF2442"/><text x="12" y="12.8" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="6.2" font-weight="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans SC, sans-serif" letter-spacing="-0.35">小红书</text></svg></span><span class="liveLogoName">小红书</span><span class="livePill off" data-pill="xs" aria-hidden="true"></span></button><button type="button" class="liveLogo" data-select="bl" data-platform="bl" title="B站" aria-label="B站配置"><span class="liveLogoIcon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#FB7299"/><path fill="#fff" d="M7.2 7.1 5.5 5.4l1.1-1.1 2.1 2.1h6.6l2.1-2.1 1.1 1.1-1.7 1.7H18c.7 0 1.2.5 1.2 1.2v8.2c0 .7-.5 1.2-1.2 1.2H6c-.7 0-1.2-.5-1.2-1.2V8.3c0-.7.5-1.2 1.2-1.2h1.2zm1.3 2.4c-.5 0-.9.4-.9.9v4.2c0 .5.4.9.9.9h7c.5 0 .9-.4.9-.9V10.4c0-.5-.4-.9-.9-.9h-7zm1.2 1.5h1.5v2.8H9.7v-2.8zm3.4 0h1.5v2.8h-1.5v-2.8z"/></svg></span><span class="liveLogoName">B站</span><span class="livePill off" data-pill="bl" aria-hidden="true"></span></button></div><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间<span class="liveTitlePlat" id="live-title-plat"></span></h2><div class="liveHeadRight"><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="miniStats" id="mini-stats"><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><b id="mini-stat-chat">0</b></span><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg><b id="mini-stat-gift">0</b></span></div>
 <div class="liveBody">
 <div class="liveConfigPane" id="live-config-pane"><div class="liveConfig" role="region" aria-labelledby="live-config-title"><span class="liveConfigTitle" id="live-config-title">抖音</span><div class="liveConfigBody">
 <div class="livePlatform" data-platform="dm">
 <div class="liveConfigPanel" data-panel="dm">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div></div>
+<div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="dm-url-history" role="group" aria-label="最近使用的房间号"></div></div>
 <div class="dmField"><label class="dmLabel" for="dm-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="dm-cookie" placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里" spellcheck="false"></textarea></div>
 <p class="status" id="dm-msg" role="status" aria-live="polite"></p>
 </div>
@@ -311,7 +336,7 @@ export function consolePage(): string {
 <div class="livePlatform" data-platform="ks">
 <div class="liveConfigPanel" data-panel="ks">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"></div></div>
+<div class="dmField"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="ks-url-history" role="group" aria-label="最近使用的房间号"></div></div>
 <div class="dmField"><label class="dmLabel" for="ks-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="ks-cookie" placeholder="直连需登录 Cookie（userId + passToken/web_st/webday7_st）；有就粘贴，没有可留空尝试" spellcheck="false"></textarea></div>
 <p class="status" id="ks-msg" role="status" aria-live="polite"></p>
 </div>
@@ -322,7 +347,7 @@ export function consolePage(): string {
 <div class="livePlatform" data-platform="bl">
 <div class="liveConfigPanel" data-panel="bl">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"></div></div>
+<div class="dmField"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="bl-url-history" role="group" aria-label="最近使用的房间号"></div></div>
 <div class="dmField"><label class="dmLabel" for="bl-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="bl-cookie" placeholder="不填走访客匿名；登录可粘贴 SESSDATA，失效会自动回落访客" spellcheck="false"></textarea></div>
 <p class="status" id="bl-msg" role="status" aria-live="polite"></p>
 </div>
@@ -334,7 +359,7 @@ export function consolePage(): string {
 </div>
 </div>
 </div>
-<div class="liveFoot"><div class="liveFootLeft"><div class="liveFootSwitches is-active" data-foot-switches="dm"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="xs"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="ks"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="bl"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div></div><div class="liveFootRight"><button type="button" class="btn ghost" id="live-open-mini">打开弹幕小窗</button><button type="button" class="btn primary" id="live-start">开始监听</button></div></div>
+<div class="liveFoot"><div class="liveFootLeft"><div class="liveFootSwitches is-active" data-foot-switches="dm"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="xs"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="ks"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="bl"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div></div><div class="liveFootRight"><button type="button" class="btn primary" id="live-start">开始监听</button></div></div>
 <section class="liveMain">
 <div class="liveFeedPanel is-active" data-feed="dm">
 <div class="dmCard dmGiftCard">
@@ -500,29 +525,60 @@ export const consoleScript = `
   function anyPanelOpen() { return panelMasks().some(function (m) { return !m.hasAttribute('hidden'); }); }
   // 统一直播间弹窗的共享状态：各平台渲染/轮询回调在顶层闭包内引用，必须定义在本层。
   var liveCurrent = 'dm';
+  /** 底部按钮的启动/停止请求还没回包（'start' / 'stop'）：期间按钮保持 loading 动效，轮询不许翻文案。 */
+  var liveStartBusy = '';
   function liveDialogEl() { return byId('live-dialog'); }
   function liveIsOpen() { var d = liveDialogEl(); return !!d && !d.hasAttribute('hidden'); }
-  /** 某平台是否在监听：logo 角上的小圆点是唯一事实来源，四平台的状态渲染与底部按钮都读它。 */
+  /** 某平台是否在监听：控制台平台入口卡角上的小圆点是唯一事实来源，四平台的状态渲染与底部按钮都读它。 */
   function liveReadingPlatform(platform) {
     var pill = document.querySelector('[data-pill="' + platform + '"]');
     return !!(pill && pill.classList.contains('on'));
   }
-  /** 底部「开始/停止监听」：未监听显示开始（主色），已监听显示停止（危险色）。 */
+  /** 底部「开始/停止监听」：未监听显示开始（主色），已监听显示停止（危险色）；请求在途时切 loading 动效。 */
   function liveSyncStartBtn(listening) {
     var button = byId('live-start');
     var running = typeof listening === 'boolean' ? listening : liveReadingPlatform(liveCurrent);
     var light = byId('live-status-light');
     if (light) light.classList.toggle('on', !!running);
     if (!button) return;
+    // 启动/停止还没回包：锁定按钮并转圈，别被 3s 状态轮询把文案翻回去。
+    if (liveStartBusy) {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.textContent = liveStartBusy === 'stop' ? '停止中…' : '连接中…';
+      button.className = (running ? 'btn danger' : 'btn primary') + ' is-busy';
+      return;
+    }
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
     button.textContent = running ? '停止监听' : '开始监听';
     button.className = running ? 'btn danger' : 'btn primary';
-    button.disabled = false;
   }
   function liveSyncPill(platform, listening) {
     var pill = document.querySelector('[data-pill="' + platform + '"]');
     if (pill) pill.className = 'livePill ' + (listening ? 'on' : 'off');
     // 底部「开始/停止监听」跟随当前平台的真实状态一起翻，避免两处口径不一致。
     if (platform === liveCurrent) liveSyncStartBtn(listening);
+  }
+  /** 停止监听成功后同步关弹幕小窗：只关展示该平台的小窗；网页/预览没有桥，静默跳过。 */
+  function liveCloseMini(platform) {
+    if (window.petBridge && typeof window.petBridge.closeLiveMini === 'function') {
+      window.petBridge.closeLiveMini(platform);
+    }
+  }
+  // 弹幕小窗统计行：只消费真实口径 chatCount/giftCount；点赞/观众/等级无数据源，不放死槽。
+  function miniSyncStats(platform, status) {
+    if (!LIVE_MINI || platform !== liveCurrent) return;
+    var chatNode = byId('mini-stat-chat');
+    var giftNode = byId('mini-stat-gift');
+    if (chatNode) chatNode.textContent = String(Number(status && status.chatCount) || 0);
+    if (giftNode) giftNode.textContent = String(Number(status && status.giftCount) || 0);
+  }
+  // 小窗礼物行的金色礼物托：静态 SVG，不含用户数据。
+  function dmGiftTile() {
+    var tile = dmNode('span', 'dmGiftTile');
+    tile.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+    return tile;
   }
   function setStatus(node, text, kind) {
     if (!node) return;
@@ -649,6 +705,13 @@ export const consoleScript = `
     for (var i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) % 100003;
     return (hash % 5) + 1;
   }
+  /** 进场消息（来了/加入/进入…）：小窗里置灰，不跟普通弹幕抢视觉。 */
+  function dmIsEntryText(text) {
+    var t = String(text || '').trim();
+    if (!t) return false;
+    return /^(来了|加入|进入|进来了?|光临|进房|抵达|进入直播间)/.test(t) ||
+      /[ \u3000]+(来了|加入|进入|进来了?|光临|进房|抵达|进入直播间)/.test(t);
+  }
   /** 礼物行头像里的礼盒图标：用 SVG 命名空间逐个建节点，不拼 innerHTML。 */
   function dmFeedGiftIcon() {
     var NS = 'http://www.w3.org/2000/svg';
@@ -759,23 +822,31 @@ export const consoleScript = `
     feedBox.textContent = '';
     giftBox.textContent = '';
     gifts.forEach(function (item) {
-      var body = String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1);
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'gift'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', body));
+      if (LIVE_MINI) {
+        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile());
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
+        bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
+      } else {
+        row.appendChild(dmFeedAvatar(nickText, 'gift'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
+      }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
       giftBox.appendChild(row);
     });
     chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem chat' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'chat'));
+      var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+      bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
@@ -790,6 +861,9 @@ export const consoleScript = `
     var status = data || {};
     dmListening = !!status.listening;
     liveSyncPill('dm', dmListening);
+    liveMonitorSnapshots.dm = status;
+    miniSyncStats('dm', status);
+    renderLiveMonitorCard();
     dmSyncToggle();
     if (typeof status.url === 'string' && status.url.trim()) dmLastStatusUrl = status.url.trim();
     var box = byId('dm-status');
@@ -841,13 +915,18 @@ export const consoleScript = `
       }
       dmSaveCache();
       dmRenderStatus(data, true);
+      liveIdHistoryRemember('dm', (data && data.url) || dmInputValue('dm-url'));
       setStatus(byId('dm-msg'), '');
       showToast('已开始监听', 'ok');
+      // 平台互斥：启动本平台会顶掉其余平台的监听；全量拉一遍，纠正它们的绿点与主页状态卡。
+      void refreshLiveMonitorCard();
     } catch (error) {
       if (error && error.isTimeout) {
         setStatus(byId('dm-msg'), '连接超时，后台可能仍在启动…');
         try { dmRenderStatus(await dmRefresh(), false); } catch (_) { dmRenderStatus(null, false); }
         showToast(dmListening ? '已开始监听' : '已提交，后台仍在连接', 'ok');
+        liveIdHistoryRemember('dm', dmInputValue('dm-url'));
+        void refreshLiveMonitorCard();
         return;
       }
       setStatus(byId('dm-msg'), (error && error.message) || String(error), 'error');
@@ -868,6 +947,7 @@ export const consoleScript = `
       dmRenderStatus(data, false);
       setStatus(byId('dm-msg'), '');
       setStatus(byId('dm-msg'), '已停止', 'ok');
+      liveCloseMini('dm');
     } catch (error) {
       setStatus(byId('dm-msg'), (error && error.message) || String(error), 'error');
     } finally {
@@ -998,23 +1078,31 @@ export const consoleScript = `
     feedBox.textContent = '';
     giftBox.textContent = '';
     gifts.forEach(function (item) {
-      var body = String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1);
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'gift'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', body));
+      if (LIVE_MINI) {
+        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile());
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
+        bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
+      } else {
+        row.appendChild(dmFeedAvatar(nickText, 'gift'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
+      }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
       giftBox.appendChild(row);
     });
     chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem chat' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'chat'));
+      var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+      bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
@@ -1029,6 +1117,9 @@ export const consoleScript = `
     var status = data || {};
     xsListening = !!status.listening;
     liveSyncPill('xs', xsListening);
+    liveMonitorSnapshots.xs = status;
+    miniSyncStats('xs', status);
+    renderLiveMonitorCard();
     xsSyncToggle();
     var box = byId('xs-status');
     if (box) {
@@ -1073,11 +1164,14 @@ export const consoleScript = `
       xsRenderStatus(data, true);
       setStatus(byId('xs-msg'), '');
       showToast('已开始监听', 'ok');
+      // 平台互斥：启动本平台会顶掉其余平台的监听；全量拉一遍，纠正它们的绿点与主页状态卡。
+      void refreshLiveMonitorCard();
     } catch (error) {
       if (error && error.isTimeout) {
         setStatus(byId('xs-msg'), '连接超时，后台可能仍在启动…');
         try { xsRenderStatus(await xsRefresh(), false); } catch (_) { xsRenderStatus(null, false); }
         showToast(xsListening ? '已开始监听' : '已提交，后台仍在连接', 'ok');
+        void refreshLiveMonitorCard();
         return;
       }
       setStatus(byId('xs-msg'), (error && error.message) || String(error), 'error');
@@ -1098,6 +1192,7 @@ export const consoleScript = `
       xsRenderStatus(data, false);
       setStatus(byId('xs-msg'), '');
       setStatus(byId('xs-msg'), '已停止', 'ok');
+      liveCloseMini('xs');
     } catch (error) {
       setStatus(byId('xs-msg'), (error && error.message) || String(error), 'error');
     } finally {
@@ -1226,23 +1321,31 @@ export const consoleScript = `
     feedBox.textContent = '';
     giftBox.textContent = '';
     gifts.forEach(function (item) {
-      var body = String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1);
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'gift'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', body));
+      if (LIVE_MINI) {
+        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile());
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
+        bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
+      } else {
+        row.appendChild(dmFeedAvatar(nickText, 'gift'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
+      }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
       giftBox.appendChild(row);
     });
     chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem chat' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'chat'));
+      var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+      bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
@@ -1257,6 +1360,9 @@ export const consoleScript = `
     var status = data || {};
     ksListening = !!status.listening;
     liveSyncPill('ks', ksListening);
+    liveMonitorSnapshots.ks = status;
+    miniSyncStats('ks', status);
+    renderLiveMonitorCard();
     ksSyncToggle();
     var box = byId('ks-status');
     if (box) {
@@ -1304,13 +1410,18 @@ export const consoleScript = `
       if (!data || data.ok === false) throw new Error((data && (data.message || data.error)) || '启动失败');
       ksSaveCache();
       ksRenderStatus(data, true);
+      liveIdHistoryRemember('ks', ksInputValue('ks-url'));
       setStatus(byId('ks-msg'), '');
       showToast('已开始监听', 'ok');
+      // 平台互斥：启动本平台会顶掉其余平台的监听；全量拉一遍，纠正它们的绿点与主页状态卡。
+      void refreshLiveMonitorCard();
     } catch (error) {
       if (error && error.isTimeout) {
         setStatus(byId('ks-msg'), '连接超时，后台可能仍在启动…');
         try { ksRenderStatus(await ksRefresh(), false); } catch (_) { ksRenderStatus(null, false); }
         showToast(ksListening ? '已开始监听' : '已提交，后台仍在连接', 'ok');
+        liveIdHistoryRemember('ks', ksInputValue('ks-url'));
+        void refreshLiveMonitorCard();
         return;
       }
       setStatus(byId('ks-msg'), (error && error.message) || String(error), 'error');
@@ -1331,6 +1442,7 @@ export const consoleScript = `
       ksRenderStatus(data, false);
       setStatus(byId('ks-msg'), '');
       setStatus(byId('ks-msg'), '已停止', 'ok');
+      liveCloseMini('ks');
     } catch (error) {
       setStatus(byId('ks-msg'), (error && error.message) || String(error), 'error');
     } finally {
@@ -1470,23 +1582,31 @@ export const consoleScript = `
     feedBox.textContent = '';
     giftBox.textContent = '';
     gifts.forEach(function (item) {
-      var body = String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1);
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'gift'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', body));
+      if (LIVE_MINI) {
+        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile());
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
+        bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
+      } else {
+        row.appendChild(dmFeedAvatar(nickText, 'gift'));
+        bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+        bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
+      }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', blFormatTime(item.at)));
       giftBox.appendChild(row);
     });
     chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem chat' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      row.appendChild(dmFeedAvatar(nickText, 'chat'));
+      var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+      bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', blFormatTime(item.at)));
@@ -1501,6 +1621,9 @@ export const consoleScript = `
     var status = data || {};
     blListening = !!status.listening;
     liveSyncPill('bl', blListening);
+    liveMonitorSnapshots.bl = status;
+    miniSyncStats('bl', status);
+    renderLiveMonitorCard();
     blSyncToggle();
     var box = byId('bl-status');
     if (box) {
@@ -1523,6 +1646,48 @@ export const consoleScript = `
     if (!data || data.ok === false) throw new Error((data && (data.message || data.error)) || '读取状态失败');
     blRenderStatus(data, false);
     return data;
+  }
+  /** 主页监听状态卡：各平台最近一次状态快照与当前展示平台（顶层作用域，供四个 renderStatus 与 load 共用）。 */
+  var liveMonitorSnapshots = { dm: null, xs: null, ks: null, bl: null };
+  var liveMonitorPlatform = '';
+  var liveMonitorNames = { dm: '抖音', xs: '小红书', ks: '快手', bl: 'B站' };
+  var liveMonitorPlatforms = ['dm', 'xs', 'ks', 'bl'];
+  var liveMonitorRefreshers = { dm: dmRefresh, xs: xsRefresh, ks: ksRefresh, bl: blRefresh };
+
+  /** 主页状态卡：从最近快照里找正在监听的平台；没有就整块隐藏。 */
+  function renderLiveMonitorCard() {
+    var card = byId('live-monitor-card');
+    if (!card) return;
+    var active = null;
+    liveMonitorPlatforms.forEach(function (p) {
+      var snap = liveMonitorSnapshots[p];
+      if (snap && snap.listening && !active) active = { p: p, snap: snap };
+    });
+    if (!active) {
+      card.hidden = true;
+      liveMonitorPlatform = '';
+      return;
+    }
+    liveMonitorPlatform = active.p;
+    var snap = active.snap;
+    var setText = function (id, text) { var node = byId(id); if (node) node.textContent = text; };
+    setText('lm-plat', liveMonitorNames[active.p] || active.p);
+    setText('lm-title', String(snap.title || '未知直播间'));
+    setText('lm-anchor', String(snap.anchor || '未知'));
+    setText('lm-room', String(snap.roomId || dmExtractWebRid(snap.url) || '—'));
+    setText('lm-chat', String(Number(snap.chatCount) || 0));
+    setText('lm-gift', String(Number(snap.giftCount) || 0));
+    setText('lm-url', String(snap.url || ''));
+    card.hidden = false;
+  }
+
+  /** 拉一遍四平台状态刷新主页状态卡；各 refresher 写快照后由 renderLiveMonitorCard 收口。 */
+  function refreshLiveMonitorCard() {
+    Promise.all(liveMonitorPlatforms.map(function (p) {
+      var refresher = liveMonitorRefreshers[p];
+      if (!refresher) return Promise.resolve(null);
+      return refresher().catch(function () { return null; });
+    })).then(renderLiveMonitorCard);
   }
   async function blPushOptions() {
     blSaveCache();
@@ -1549,13 +1714,18 @@ export const consoleScript = `
       if (!data || data.ok === false) throw new Error((data && (data.message || data.error)) || '启动失败');
       blSaveCache();
       blRenderStatus(data, true);
+      liveIdHistoryRemember('bl', blInputValue('bl-url'));
       setStatus(byId('bl-msg'), '');
       showToast('已开始监听', 'ok');
+      // 平台互斥：启动本平台会顶掉其余平台的监听；全量拉一遍，纠正它们的绿点与主页状态卡。
+      void refreshLiveMonitorCard();
     } catch (error) {
       if (error && error.isTimeout) {
         setStatus(byId('bl-msg'), '连接超时，后台可能仍在启动…');
         try { blRenderStatus(await blRefresh(), false); } catch (_) { blRenderStatus(null, false); }
         showToast(blListening ? '已开始监听' : '已提交，后台仍在连接', 'ok');
+        liveIdHistoryRemember('bl', blInputValue('bl-url'));
+        void refreshLiveMonitorCard();
         return;
       }
       setStatus(byId('bl-msg'), (error && error.message) || String(error), 'error');
@@ -1576,6 +1746,7 @@ export const consoleScript = `
       blRenderStatus(data, false);
       setStatus(byId('bl-msg'), '');
       setStatus(byId('bl-msg'), '已停止', 'ok');
+      liveCloseMini('bl');
     } catch (error) {
       setStatus(byId('bl-msg'), (error && error.message) || String(error), 'error');
     } finally {
@@ -1583,6 +1754,82 @@ export const consoleScript = `
       blSyncToggle();
     }
   }
+  // ===== 直播间 ID 历史：开始监听成功后缓存房间 ID，每平台最多 3 条（最近优先），输入框下方点击快速填入 =====
+  var LIVE_ID_HISTORY_KEY = 'blue_fish_live_id_history_v1';
+  var LIVE_ID_HISTORY_MAX = 3;
+  var LIVE_ID_HISTORY_PLATFORMS = ['dm', 'ks', 'bl'];
+  var liveIdHistory = { dm: [], ks: [], bl: [] };
+
+  /** 纯合并：去重 + 提到最前 + 截断到 max；不碰 DOM/存储，便于单测。 */
+  function liveIdHistoryMerge(list, id, max) {
+    var text = String(id || '').trim();
+    var base = Array.isArray(list) ? list : [];
+    if (!text) return base.slice(0, max);
+    var rest = base.filter(function (item) { return item !== text; });
+    return [text].concat(rest).slice(0, max);
+  }
+  /** 从输入里取出要展示/缓存的 ID：抖音复用 web rid 提取；B站取纯数字或链接尾段数字；快手取裸 id / 短链尾段。 */
+  function liveIdHistoryExtract(platform, raw) {
+    var text = String(raw || '').trim();
+    if (!text) return '';
+    if (platform === 'dm') return dmExtractWebRid(text) || text;
+    if (/^[0-9]{3,}$/.test(text)) return text;
+    var tail = text.split('?')[0].split('#')[0].split('/').filter(Boolean).pop() || '';
+    if (platform === 'bl') return /^[0-9]{3,}$/.test(tail) ? tail : text;
+    return tail || text;
+  }
+  function liveIdHistoryLoad() {
+    try {
+      var raw = localStorage.getItem(LIVE_ID_HISTORY_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      LIVE_ID_HISTORY_PLATFORMS.forEach(function (p) {
+        var arr = Array.isArray(parsed[p]) ? parsed[p] : [];
+        liveIdHistory[p] = arr.filter(function (item) { return typeof item === 'string' && item.trim(); }).slice(0, LIVE_ID_HISTORY_MAX);
+      });
+    } catch (_) { /* 缓存坏了就当没监听过 */ }
+  }
+  function liveIdHistorySave() {
+    try {
+      localStorage.setItem(LIVE_ID_HISTORY_KEY, JSON.stringify(liveIdHistory));
+    } catch (_) { /* 隐私模式写不进去也不影响使用 */ }
+  }
+  function liveIdHistoryRender(platform) {
+    var box = byId(platform + '-url-history');
+    var input = byId(platform + '-url');
+    if (!box) return;
+    box.textContent = '';
+    (liveIdHistory[platform] || []).forEach(function (id) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'liveIdHistoryBtn';
+      btn.textContent = id;
+      btn.title = '点击填入 ' + id;
+      btn.setAttribute('aria-label', '填入房间号 ' + id);
+      btn.addEventListener('click', function () {
+        if (!input) return;
+        input.value = id;
+        input.focus();
+      });
+      box.appendChild(btn);
+    });
+  }
+  function liveIdHistoryRenderAll() {
+    LIVE_ID_HISTORY_PLATFORMS.forEach(liveIdHistoryRender);
+  }
+  /** 开始监听被接受后调用：缓存当前房间 ID 并刷新快捷行。 */
+  function liveIdHistoryRemember(platform, raw) {
+    if (LIVE_ID_HISTORY_PLATFORMS.indexOf(platform) < 0) return;
+    var id = liveIdHistoryExtract(platform, raw);
+    if (!id) return;
+    liveIdHistory[platform] = liveIdHistoryMerge(liveIdHistory[platform], id, LIVE_ID_HISTORY_MAX);
+    liveIdHistorySave();
+    liveIdHistoryRender(platform);
+  }
+  liveIdHistoryLoad();
+  liveIdHistoryRenderAll();
+
   /** B 站表单缓存、开关与 3s 轮询接线（轮询只在统一直播间弹窗打开且选中 B 站时发请求）。 */
   function wireBiliDialog() {
     blLoadCache();
@@ -1748,8 +1995,6 @@ export const consoleScript = `
       breezeCustomId: '',
       breezeCustomLabel: '',
       notificationsEnabled: src.notificationsEnabled !== false,
-      clickSoundEnabled: src.clickSoundEnabled !== false,
-      clickSoundVolume: clamp(src.clickSoundVolume, 0, 1, 0.5),
       whisperImageEnabled: src.whisperImageEnabled === true,
       chatImageEnabled: src.chatImageEnabled === true,
       chatAnimationEnabled: src.chatAnimationEnabled === true,
@@ -1878,6 +2123,11 @@ export const consoleScript = `
     setSwitchByKey('pet-whisper', pet.whisperEnabled !== false);
     setSwitchByKey('pet-work', pet.workStatusEnabled !== false);
     setSwitchByKey('pet-fixed', pet.fixedEnabled === true);
+    setSwitchByKey('pet-click', pet.clickSoundEnabled !== false);
+    var clickVol = byId('pet-click-volume');
+    if (clickVol && document.activeElement !== clickVol) {
+      clickVol.value = String(typeof pet.clickSoundVolume === 'number' ? pet.clickSoundVolume : 0.5);
+    }
     var area = byId('pet-persona');
     if (area && document.activeElement !== area) {
       area.value = typeof pet.whisperPrompt === 'string' ? pet.whisperPrompt : '';
@@ -1940,6 +2190,8 @@ export const consoleScript = `
       whisperEnabled: true,
       workStatusEnabled: true,
       fixedEnabled: false,
+      clickSoundEnabled: true,
+      clickSoundVolume: 0.5,
       position: { corner: 'bottom-right', marginX: 40, marginY: 40 }
     });
     state.petIndex = state.pets.length - 1;
@@ -1991,15 +2243,12 @@ export const consoleScript = `
     var g = state.globals;
     if (!g) return;
     setSwitchByKey('g-notify', g.notificationsEnabled);
-    setSwitchByKey('g-click', g.clickSoundEnabled);
     setSwitchByKey('g-confine', g.confineToScreen);
     setSwitchByKey('g-tray', g.trayEnabled);
     setSwitchByKey('g-obs', g.obsCaptureEnabled);
     setSwitchByKey('g-whisper-image', g.whisperImageEnabled);
     setSwitchByKey('g-chat-image', g.chatImageEnabled);
     setSwitchByKey('g-chat-anim', g.chatAnimationEnabled);
-    var vol = byId('g-click-volume');
-    if (vol && document.activeElement !== vol) vol.value = String(g.clickSoundVolume);
   }
 
   function renderPhysics() {
@@ -2239,8 +2488,6 @@ export const consoleScript = `
     var g = state.globals;
     return {
       notificationsEnabled: g.notificationsEnabled,
-      clickSoundEnabled: g.clickSoundEnabled,
-      clickSoundVolume: g.clickSoundVolume,
       whisperImageEnabled: g.whisperImageEnabled,
       chatImageEnabled: g.chatImageEnabled,
       chatAnimationEnabled: g.chatAnimationEnabled,
@@ -2309,8 +2556,6 @@ export const consoleScript = `
     if (section === 'global') {
       var fresh = draftFrom(main);
       g.notificationsEnabled = fresh.notificationsEnabled;
-      g.clickSoundEnabled = fresh.clickSoundEnabled;
-      g.clickSoundVolume = fresh.clickSoundVolume;
       g.whisperImageEnabled = fresh.whisperImageEnabled;
       g.chatImageEnabled = fresh.chatImageEnabled;
       g.chatAnimationEnabled = fresh.chatAnimationEnabled;
@@ -2811,6 +3056,7 @@ export const consoleScript = `
     try { state.meta = await api('GET', '/config/meta'); } catch (_) { state.meta = null; }
     try { state.ai = await aiCall('GET', '/settings'); } catch (_) { state.ai = null; }
     renderAll();
+    void refreshLiveMonitorCard();
   }
 
   var SWITCH_FIELD = {
@@ -2818,7 +3064,6 @@ export const consoleScript = `
     'voice-whisper': 'voiceWhisperEnabled',
     'voice-todo': 'voiceTodoEnabled',
     'g-notify': 'notificationsEnabled',
-    'g-click': 'clickSoundEnabled',
     'g-confine': 'confineToScreen',
     'g-tray': 'trayEnabled',
     'g-obs': 'obsCaptureEnabled',
@@ -2835,7 +3080,8 @@ export const consoleScript = `
     'pet-balance': 'balanceEnabled',
     'pet-whisper': 'whisperEnabled',
     'pet-work': 'workStatusEnabled',
-    'pet-fixed': 'fixedEnabled'
+    'pet-fixed': 'fixedEnabled',
+    'pet-click': 'clickSoundEnabled'
   };
 
   function bind() {
@@ -2878,6 +3124,7 @@ export const consoleScript = `
       },
       'pet-margin-x': function (pet, value) { pet.position.marginX = Number(value); },
       'pet-margin-y': function (pet, value) { pet.position.marginY = Number(value); },
+      'pet-click-volume': function (pet, value) { pet.clickSoundVolume = clamp(value, 0, 1, 0.5); },
       'pet-persona': function (pet, value) {
         var text = value.trim();
         if (text) pet.whisperPrompt = value;
@@ -2908,7 +3155,6 @@ export const consoleScript = `
 
     // 全局数字
     var numField = {
-      'g-click-volume': function (value) { state.globals.clickSoundVolume = clamp(value, 0, 1, 0.5); },
       'ph-gravity': function (value) { state.globals.physics.gravity = clamp(value, 0, 10000, 1400); },
       'ph-restitution': function (value) { state.globals.physics.restitution = clamp(value, 0, 1, 0.78); },
       'ph-friction': function (value) { state.globals.physics.groundFriction = clamp(value, 0, 30, 2.5); },
@@ -3051,7 +3297,7 @@ export const consoleScript = `
       });
     }
 
-    // ===== 直播间窗口：顶部平台 logo 当 Tab，中间是当前平台配置，底部一键开始监听（弹幕在弹幕小窗里看） =====
+    // ===== 直播间窗口：平台由控制台入口选定，中间是该平台配置，底部一键开始监听（弹幕在弹幕小窗里看） =====
     var LIVE_PLATFORMS = ['dm', 'xs', 'ks', 'bl'];
     var liveNames = { dm: '抖音', xs: '小红书', ks: '快手', bl: 'B站' };
     var liveRefreshers = { dm: dmRefresh, xs: xsRefresh, ks: ksRefresh, bl: blRefresh };
@@ -3068,8 +3314,8 @@ export const consoleScript = `
     function liveApplySelection() {
       LIVE_PLATFORMS.forEach(function (p) {
         var active = p === liveCurrent;
-        var logo = document.querySelector('[data-select="' + p + '"]');
-        if (logo) logo.classList.toggle('is-active', active);
+        var entry = document.querySelector('[data-live="' + p + '"]');
+        if (entry) entry.classList.toggle('is-active', active);
         var feed = document.querySelector('[data-feed="' + p + '"]');
         if (feed) feed.classList.toggle('is-active', active);
         var panel = document.querySelector('[data-panel="' + p + '"]');
@@ -3079,14 +3325,18 @@ export const consoleScript = `
       });
       var title = byId('live-config-title');
       if (title) title.textContent = liveNames[liveCurrent];
+      var titlePlat = byId('live-title-plat');
+      if (titlePlat) titlePlat.textContent = ' · ' + liveNames[liveCurrent];
       liveSyncStartBtn();
     }
 
-    function liveRefreshCurrent() {
-      var refresher = liveRefreshers[liveCurrent];
-      if (!refresher) return;
-      void refresher().catch(function (error) {
-        setStatus(byId(liveMsgNodes[liveCurrent]), (error && error.message) || String(error), 'error');
+    /** 打开弹窗时全量拉一遍四平台状态：重开窗口后渲染端是全新内存，不能只刷当前平台，
+     *  否则其余平台的监听绿点会一直停在默认 off。非当前平台报错静默，不抢当前平台的报错位。 */
+    function liveRefreshAll() {
+      LIVE_PLATFORMS.forEach(function (p) {
+        var refresher = liveRefreshers[p];
+        if (!refresher) return;
+        void refresher().catch(function () { /* 非当前平台静默 */ });
       });
     }
 
@@ -3131,33 +3381,49 @@ export const consoleScript = `
       }
     }
 
-    /** 底部唯一按钮：未监听就启动当前平台（成功后直接开小窗），已在监听就停止。 */
+    /** 底部唯一按钮：未监听就启动当前平台（成功后开小窗并顺手关掉直播间弹窗），已在监听就停止；请求在途时显示 loading。 */
     function liveToggleCurrent() {
-      var button = byId('live-start');
-      if (button) button.disabled = true;
+      // 按钮在途时已 disabled，这里再兜一层，防止回车/连点重复发起。
+      if (liveStartBusy) return;
       var platform = liveCurrent;
       if (liveReadingPlatform(platform)) {
         var stopper = liveStoppers[platform];
         if (!stopper) { liveSyncStartBtn(); return; }
-        Promise.resolve(stopper()).then(function () { liveSyncStartBtn(); }, function () { liveSyncStartBtn(); });
+        liveStartBusy = 'stop';
+        liveSyncStartBtn();
+        Promise.resolve(stopper()).then(liveFinishStart, liveFinishStart);
         return;
       }
       var starter = liveStarters[platform];
       if (!starter) { liveSyncStartBtn(); return; }
+      liveStartBusy = 'start';
+      liveSyncStartBtn();
       Promise.resolve(starter()).then(function () {
-        liveSyncStartBtn();
+        liveFinishStart();
         // 各平台的 start 自己吞错并把失败写进状态行；只有真起来了才开小窗。
-        if (liveReadingPlatform(platform)) liveOpenMini(platform);
-      }, function () { liveSyncStartBtn(); });
+        // 小窗真开出来了就把直播间弹窗一并收掉（独立窗口模式则关窗）；
+        // 网页/预览开不了小窗时保留弹窗，方便看状态行报错。关闭口径与右上角关闭按钮一致。
+        if (liveReadingPlatform(platform) && liveOpenMini(platform)) {
+          if (LIVE_STANDALONE) closeLiveWindow();
+          else setLiveDialog(false);
+        }
+      }, liveFinishStart);
     }
 
-    function selectLive(platform) {
-      if (LIVE_PLATFORMS.indexOf(platform) < 0) return;
-      if (platform === liveCurrent) return;
-      liveSaveCurrent();
-      liveCurrent = platform;
-      liveApplySelection();
-      liveRefreshCurrent();
+    /** 启动/停止回包（成功或失败）后解锁按钮，按当前真实状态复原文案与配色。 */
+    function liveFinishStart() {
+      liveStartBusy = '';
+      liveSyncStartBtn();
+    }
+
+    /** 控制台平台入口：先切到对应平台再开直播间弹窗；弹窗内不再提供切平台 Tab。
+     *  setLiveDialog 打开时会 liveRefreshAll 全量刷状态，这里不重复发当前平台的刷新请求。 */
+    function openLiveFor(platform) {
+      if (LIVE_PLATFORMS.indexOf(platform) >= 0 && platform !== liveCurrent) {
+        liveSaveCurrent();
+        liveCurrent = platform;
+      }
+      setLiveDialog(true);
     }
 
     function setLiveDialog(open) {
@@ -3170,7 +3436,7 @@ export const consoleScript = `
       }
       d.removeAttribute('hidden');
       liveApplySelection();
-      liveRefreshCurrent();
+      liveRefreshAll();
     }
 
     // 独立窗口内的关闭动作：优先走主进程桥关窗；桥缺失时 standalone 页自己 window.close()，
@@ -3209,9 +3475,20 @@ export const consoleScript = `
           });
         });
       });
-      var openMiniBtn = byId('live-open-mini');
-      if (openMiniBtn) openMiniBtn.addEventListener('click', function () {
-        liveOpenMini(liveCurrent);
+      var lmStop = byId('lm-stop');
+      if (lmStop) lmStop.addEventListener('click', function () {
+        var stopper = liveStoppers[liveMonitorPlatform];
+        if (stopper) void stopper();
+      });
+      var lmMini = byId('lm-mini');
+      if (lmMini) lmMini.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (liveMonitorPlatform) liveOpenMini(liveMonitorPlatform);
+      });
+      var lmOpen = byId('lm-open');
+      if (lmOpen) lmOpen.addEventListener('click', function (event) {
+        event.preventDefault();
+        liveOpenRoom(liveMonitorPlatform);
       });
       if (dialog) {
         dialog.addEventListener('click', function (event) {
@@ -3226,8 +3503,8 @@ export const consoleScript = `
         else setLiveDialog(false);
       });
       LIVE_PLATFORMS.forEach(function (p) {
-        var logo = document.querySelector('[data-select="' + p + '"]');
-        if (logo) logo.addEventListener('click', function () { selectLive(p); });
+        var entry = document.querySelector('[data-live="' + p + '"]');
+        if (entry) entry.addEventListener('click', function () { openLiveFor(p); });
       });
       ['dm', 'ks', 'bl'].forEach(function (p) {
         var openRoom = byId(p + '-open-live');
@@ -3244,7 +3521,7 @@ export const consoleScript = `
     wireKsDialog();
     // B 站入口：直连 WSS 弹幕弹窗。
     wireBiliDialog();
-    // 统一直播间弹窗：单一入口，左侧平台单选，右侧弹幕流。
+    // 统一直播间弹窗：控制台四张平台入口卡各自打开对应平台配置，窗内不再切平台。
     wireLiveDialog();
 
     // 保存与重置
@@ -3278,7 +3555,7 @@ export const consoleScript = `
       document.body.classList.add('live-mini');
       if (LIVE_PLATFORMS.indexOf(LIVE_MINI_PLATFORM) >= 0) liveCurrent = LIVE_MINI_PLATFORM;
       var miniTitle = byId('live-dialog-title');
-      if (miniTitle) miniTitle.textContent = '弹幕';
+      if (miniTitle) miniTitle.textContent = '互动消息区';
       setLiveDialog(true);
     }
   }
@@ -3309,7 +3586,7 @@ html[data-theme=dark]{
 [hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background-color:var(--bg-base);background-image:url('/standalone-console/console-bg.webp');background-size:cover;background-position:center top;background-repeat:no-repeat;color:var(--label-primary);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
-html[data-theme=dark] body{background-image:none}
+html[data-theme=dark] body{background-image:url('/standalone-console/console-bg-dark.webp')}
 .console{max-width:1080px;margin:0 auto;padding:28px 28px 104px;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:14px}
@@ -3341,11 +3618,35 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .avatar .plus{font-size:26px;color:var(--primary);height:52px;display:flex;align-items:center}
 .addAvatar{justify-content:center;border-style:dashed}
 .avatar .check{position:absolute;right:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
-/* 桌面主区：左侧宠物头像网格，右侧设置入口图标格 */
-.desktop{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start}
+/* 桌面主区：左侧宠物头像网格，中间直播平台入口列，右侧设置入口图标格 */
+.desktop{display:grid;grid-template-columns:1fr auto auto;gap:22px;align-items:start}
 .petDesk{display:flex;flex-direction:column;gap:14px;min-width:0}
+.liveMonitorCard{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.lmHead{display:flex;align-items:center;gap:10px}
+.lmDot{flex:none;width:9px;height:9px;border-radius:50%;background:#34c759;box-shadow:0 0 0 4px rgba(52,199,89,.18)}
+.lmState{font-size:14px;font-weight:700;color:var(--label-primary)}
+.lmPlat{flex:none;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);font-size:12px;font-weight:600}
+.lmStop{margin-left:auto;flex:none;border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);background:color-mix(in srgb,var(--danger) 8%,transparent);color:var(--danger);border-radius:10px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.lmStop:hover{background:color-mix(in srgb,var(--danger) 16%,transparent)}
+.lmTitle{font-size:15px;font-weight:600;color:var(--label-primary);word-break:break-word}
+.lmMeta{font-size:12.5px;color:var(--label-tertiary);display:flex;flex-wrap:wrap;gap:6px 12px}
+.lmMeta b{color:var(--label-secondary);font-weight:600}
+.lmUrl{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+.lmUrlIco{flex:none;color:var(--label-tertiary)}
+.lmUrlText{flex:1;min-width:0;font-size:12.5px;color:var(--label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lmOpen{flex:none;font-size:12.5px;font-weight:600;color:var(--primary);text-decoration:none}
+.lmOpen:hover{text-decoration:underline}
+/* 两个文字动作并排时拉开间距（8px 容器 gap + 16px ≈ 24px），避免「弹幕小窗」「打开直播间」粘连 */
+.lmUrl .lmOpen+.lmOpen{margin-left:16px}
 .deskSectionHead{display:flex;align-items:center;gap:10px;color:var(--label-secondary)}
 .settingsGrid{display:grid;grid-template-columns:repeat(2,minmax(118px,1fr));gap:14px;align-content:start}
+/* 直播平台入口列：纵向四张卡片，与右侧设置格逐行对齐；点击打开对应平台的直播间弹窗 */
+.liveEntryGrid{display:grid;grid-template-columns:minmax(118px,1fr);gap:14px;align-content:start}
+.liveDeskEntry{position:relative}
+.liveDeskEntry .deskEntryIcon{background:transparent;color:inherit}
+.liveDeskEntry.is-active{border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 12%,transparent)}
+.liveDeskEntry.is-active .deskEntryLabel{color:var(--primary)}
+.liveDeskEntry .livePill{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;padding:0}
 .deskEntry{display:flex;flex-direction:column;align-items:center;gap:9px;padding:18px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);box-shadow:var(--shadow);cursor:pointer;font:inherit;color:var(--label-primary);transition:border-color .15s ease,transform .12s ease}
 .deskEntry:hover{border-color:var(--primary);transform:translateY(-2px)}
 .deskEntry:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -3355,7 +3656,7 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .dangerEntry .deskEntryLabel{color:var(--danger)}
 .dangerEntry:hover{border-color:var(--danger)}
 .dangerEntry:hover .deskEntryIcon{background:color-mix(in srgb,var(--danger) 18%,transparent)}
-@media (max-width:880px){.desktop{grid-template-columns:1fr}.settingsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:880px){.desktop{grid-template-columns:1fr}.settingsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.liveEntryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .petConfigBody{display:grid;grid-template-columns:240px 1fr;gap:22px;align-items:start}
 .petConfigBody>.fields{min-width:0}
 .personaBlock{margin-top:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -3381,6 +3682,11 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 select.fieldInput{cursor:pointer}
 .fieldInput.area{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
 .fieldInput:disabled{opacity:.75}
+.liveIdHistory{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.liveIdHistory:empty{display:none}
+.liveIdHistoryBtn{max-width:180px;padding:2px 10px;border:1px solid var(--border);border-radius:999px;background:var(--bg-card);color:var(--label-secondary);font-size:12px;line-height:1.6;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.liveIdHistoryBtn:hover{color:var(--label-primary);border-color:var(--label-tertiary)}
+.liveIdHistoryBtn:focus-visible{outline:2px solid var(--label-tertiary);outline-offset:1px}
 .cornerRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .corner{height:32px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);color:var(--label-secondary);font:inherit;cursor:pointer}
 .corner.active{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -3418,6 +3724,7 @@ button.switch{cursor:pointer}
 .voiceStatus[data-ok="true"]{color:var(--primary)}
 .voiceStatus[data-error="true"]{color:var(--danger)}
 .status{margin:0;color:var(--label-tertiary);font-size:13px;min-height:20px;flex:1}
+.status[data-error="true"]{color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);border:1px solid color-mix(in srgb,var(--danger) 26%,transparent);border-radius:10px;padding:6px 10px;font-weight:600}
 .btn{height:38px;padding:0 20px;border-radius:12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent}
 .btn.primary{background:var(--primary);color:#fff}
 .btn.primary:hover{background:var(--primary-hover)}
@@ -3467,26 +3774,19 @@ html[data-theme=dark] .chatEntry:hover{background:rgba(10,132,255,.20)}
 .dmEntry:hover{background:rgba(0,0,0,.06)}
 html[data-theme=dark] .dmEntry{border-color:transparent}
 html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
-/* 直播间窗口：顶部平台 logo 当 Tab，中间当前平台配置，底部一键开始监听；弹幕区只在小窗里出现 */
-.liveDialog{width:min(900px,100%);height:min(88vh,860px);border-radius:26px;box-shadow:0 28px 80px rgba(20,40,80,.22),0 2px 8px rgba(20,40,80,.06)}
-.liveDialog .chatHead{padding:22px 26px 18px;gap:16px}
-.liveDialog .chatTitle{font-size:21px;font-weight:700;letter-spacing:-.01em;display:inline-flex;align-items:center;gap:10px}
+/* 直播间窗口：单平台配置（平台由控制台入口选定），底部一键开始监听；弹幕区只在小窗里出现 */
+.liveDialog{width:min(900px,100%);height:min(70vh,540px);border-radius:26px;box-shadow:0 28px 80px rgba(20,40,80,.22),0 2px 8px rgba(20,40,80,.06)}
+.liveDialog .chatHead{padding:16px 26px 14px;gap:16px}
+.liveDialog .chatTitle{font-size:19px;font-weight:700;letter-spacing:-.01em;display:inline-flex;align-items:center;gap:10px}
 .liveStatusLight{flex:none;width:9px;height:9px;border-radius:50%;background:color-mix(in srgb,var(--label-tertiary) 55%,transparent);transition:background .2s ease,box-shadow .2s ease}
 .liveStatusLight.on{background:#34c759;box-shadow:0 0 0 4px color-mix(in srgb,#34c759 18%,transparent)}
 .liveDialog .chatClose{width:38px;height:38px;border-radius:50%;border-color:color-mix(in srgb,var(--label-primary) 12%,var(--border));color:var(--label-tertiary)}
 .liveDialog .chatClose:hover{color:var(--label-primary);border-color:color-mix(in srgb,var(--label-primary) 30%,var(--border));background:color-mix(in srgb,var(--label-primary) 5%,var(--bg-card))}
-.liveBody{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:22px 26px 24px;overflow:hidden}
+.liveBody{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:16px 26px 14px;overflow:hidden}
 .liveMain{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
 body:not(.live-mini) .liveMain{display:none}
 .liveHeadRight{display:flex;align-items:center;gap:12px}
-.liveLogoRow{display:flex;align-items:center;gap:10px}
-.liveLogo{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--label-primary) 10%,var(--border));background:var(--bg-card);color:var(--label-secondary);cursor:pointer;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease}
-.liveLogo:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--border));box-shadow:0 4px 12px color-mix(in srgb,var(--primary) 14%,transparent)}
-.liveLogo.is-active{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,var(--bg-card));color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 12%,transparent)}
-.liveLogoIcon{display:inline-flex;align-items:center;justify-content:center}
-.liveLogoIcon svg{width:22px;height:22px}
-.liveLogoName{font-size:14px;font-weight:650;line-height:1;white-space:nowrap}
-.liveLogo .livePill{position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;padding:0}
+.liveTitlePlat{font-size:15px;font-weight:600;color:var(--label-tertiary)}
 .livePill.on{background:#34c759;box-shadow:0 0 0 2px var(--bg-card)}
 .livePill.off{background:color-mix(in srgb,var(--label-tertiary) 45%,transparent)}
 /* 配置在主区里直接摊开，不再是从右侧滑出的抽屉 */
@@ -3494,22 +3794,23 @@ body:not(.live-mini) .liveMain{display:none}
 .liveConfig{display:flex;flex-direction:column;min-height:0}
 .liveConfigTitle{display:none}
 .liveConfigBody{padding:0 2px}
-.liveConfigPanel{display:none;flex-direction:column;gap:16px}
+.liveConfigPanel{display:none;flex-direction:column;gap:12px}
 .liveConfigPanel.is-active{display:flex}
-.liveConfigPanel .dmCard{border-color:color-mix(in srgb,var(--label-primary) 9%,var(--border));background:var(--bg-card);border-radius:20px;padding:24px}
-.liveConfigPanel .dmCard .status{margin-top:12px}
+/* 配置区不再套同色嵌套卡片：字段平铺，输入框靠内凹底色与聚焦光环识别 */
+.liveConfigPanel .dmCard{border:0;background:transparent;border-radius:0;padding:0}
+.liveConfigPanel .dmCard .status{margin-top:10px}
 .liveConfigPanel .dmCard .status:empty{display:none}
 /* 配置页小美化：输入框聚焦光环 */
-.liveConfigPanel .fieldInput{height:52px;border-radius:14px;padding:0 16px;background:var(--bg-card);font-size:15px;transition:border-color .15s ease,box-shadow .15s ease}
-.liveConfigPanel .fieldInput.area{height:auto;min-height:112px;padding:14px 16px;line-height:1.55}
+.liveConfigPanel .fieldInput{height:44px;border-radius:12px;padding:0 14px;background:color-mix(in srgb,var(--label-primary) 4%,var(--bg-card));font-size:14px;transition:border-color .15s ease,box-shadow .15s ease}
+.liveConfigPanel .fieldInput.area{height:auto;min-height:88px;padding:12px 14px;line-height:1.55}
 .liveConfigPanel .fieldInput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 14%,transparent)}
-.liveConfigPanel .dmLabel{font-size:15px;font-weight:600;color:var(--label-primary)}
+.liveConfigPanel .dmLabel{font-size:14px;font-weight:600;color:var(--label-primary)}
 .liveConfigPanel .dmLabelOpt{margin-left:6px;font-size:13px;font-weight:400;color:var(--label-tertiary)}
 /* 链接输入框独占一行 */
 .liveUrlRow{display:flex;gap:12px}
 .liveUrlRow .fieldInput{flex:1;min-width:0}
 /* 状态行左下方的纯文本「打开直播间」 */
-.liveOpenLiveRow{margin:6px 4px 0}
+.liveOpenLiveRow{margin:2px 4px 0}
 .liveOpenLiveText{border:0;background:none;padding:0;font:inherit;font-size:13px;line-height:1.6;color:var(--label-tertiary);cursor:pointer;white-space:nowrap}
 .liveOpenLiveText:hover{color:var(--primary);text-decoration:underline}
 /* 监听状态只占一行文字：圆点 + 摘要，必要时补第二行提示 */
@@ -3523,14 +3824,14 @@ body:not(.live-mini) .liveMain{display:none}
 .liveStatus .statusDot{flex:none;width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--label-tertiary) 55%,transparent)}
 .liveStatus.on .statusDot{background:#34c759}
 .liveStatus .statusNote{flex-basis:100%;color:var(--label-tertiary)}
-.liveFoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:18px 26px 22px;margin-top:18px;border-top:1px solid var(--border)}
+.liveFoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:14px 26px 16px;margin-top:14px;border-top:1px solid var(--border)}
 .liveFootLeft{display:flex;align-items:center;min-width:0}
 .liveFootSwitches{display:none;align-items:center;gap:20px}
 .liveFootSwitches.is-active{display:flex}
 .liveFootSwitches .dmSwitch{flex:none;border-left:0;padding:6px 2px}
 .liveFootSwitches .dmSwitch:hover{background:transparent}
 .liveFootRight{display:flex;align-items:center;gap:12px;margin-left:auto}
-.liveFoot .btn{height:52px;border-radius:14px;padding:0 26px;font-size:15px}
+.liveFoot .btn{height:44px;border-radius:12px;padding:0 22px;font-size:14px}
 .liveFoot .btn.primary{background:var(--primary);box-shadow:0 10px 24px color-mix(in srgb,var(--primary) 30%,transparent)}
 .liveFoot .btn.primary:hover{background:var(--primary-hover)}
 body.live-mini .liveConfigPane{display:none!important}
@@ -3547,7 +3848,8 @@ body.live-mini .liveConfigPane{display:none!important}
 .dmCol{display:flex;flex-direction:column;gap:14px;min-width:0}
 .dmCard{padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--bg-card)}
 .dmCardTitle{margin:0 0 10px;font-size:15px;font-weight:650}
-.dmField{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.dmField{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.liveConfigPanel .dmField:first-child{margin-top:0}
 .dmLabel{font-size:13px;color:var(--label-secondary)}
 .dmSwitches{display:flex;margin-top:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg-card);overflow:hidden}
 .dmSwitch{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1 1 0;padding:12px 14px;font-size:13.5px;color:var(--label-secondary);cursor:pointer;user-select:none;border-left:1px solid var(--border)}
@@ -3628,6 +3930,11 @@ html[data-theme=dark] .dmFeedNick.nk5{color:#ff9fbb}
 /* 停止监听沿用旧页红色按钮口径 */
 .btn.danger{background:color-mix(in srgb,var(--danger) 14%,transparent);border-color:transparent;color:var(--danger)}
 .btn.danger:hover{background:color-mix(in srgb,var(--danger) 22%,transparent)}
+/* 开始/停止监听请求在途：按钮转圈 + 锁定，回包前一直转（轮询改文案也压不住 .is-busy） */
+.btn.is-busy{display:inline-flex;align-items:center;justify-content:center;gap:7px;opacity:1;cursor:progress}
+.btn.is-busy::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:liveBtnSpin .75s linear infinite}
+@keyframes liveBtnSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.btn.is-busy::before{animation-duration:2.4s}}
 /* 保存结果气泡：底部居中浮层，成功主色点、失败红点亮，自动浮现与收起，不遮挡页面点击 */
 .toastRoot{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
 .toast{display:flex;align-items:center;gap:9px;max-width:min(420px,86vw);padding:11px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--label-primary);font-size:14px;line-height:1.5;opacity:0;transform:translateY(10px);transition:opacity .22s ease,transform .22s ease}
@@ -3647,53 +3954,64 @@ body.live-standalone .liveDialog .chatHead,
 body.live-standalone .liveDialog .liveBody,
 body.live-standalone .liveDialog .liveFoot{width:100%;max-width:980px}
 body.live-standalone .liveDialog .chatHead{-webkit-app-region:drag}
-body.live-standalone .liveDialog .chatClose,
-body.live-standalone .liveLogo{-webkit-app-region:no-drag}
+body.live-standalone .liveDialog .chatClose{-webkit-app-region:no-drag}
 /* 弹幕小窗（直播伴侣式浮窗）：整窗只有一行头部 + 礼物/弹幕两区，固定深色，不跟随明暗主题 */
-body.live-mini{background:#070d18;color:#e8eefb}
-body.live-mini #live-dialog{padding:0;align-items:stretch;justify-content:stretch;background:#070d18}
-body.live-mini .liveDialog{width:100%;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none;background:linear-gradient(180deg,#0b1422,#070d18 62%);color:#e8eefb}
+body.live-mini{background:transparent;color:#e8eaed}
+/* 暗色主题 body 的背景图选择器优先级更高，必须在小窗显式关掉，否则控制台背景图会透进浮窗 */
+body.live-mini,html[data-theme=dark] body.live-mini{background-image:none}
+body.live-mini #live-dialog{padding:0;align-items:stretch;justify-content:stretch;background:rgba(32,33,36,.4);border-radius:16px;overflow:hidden}
+body.live-mini .liveDialog{width:100%;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none;background:transparent;color:#e8eaed}
 /* 独立模式的 align-items:center 会把子元素缩成内容宽；小窗可见的礼物/弹幕区在 .liveMain 里，
    不在上面 chatHead/liveBody/liveFoot 的补宽名单中，这里补满整窗宽度，头部同步去掉 980px 上限 */
 body.live-mini .liveDialog .chatHead,body.live-mini .liveDialog .liveMain{width:100%;max-width:none}
-body.live-mini .liveDialog .chatHead{padding:12px 14px;gap:10px;border-bottom:1px solid rgba(255,255,255,.06);background:transparent}
-body.live-mini .liveDialog .chatTitle{display:inline-flex;align-items:center;gap:0;font-size:15px;font-weight:700;letter-spacing:.02em;color:#eaf1fb}
+body.live-mini .liveDialog .chatHead{padding:14px 18px 10px;gap:10px;border-bottom:0;background:transparent}
+body.live-mini .liveDialog .chatTitle{display:inline-flex;align-items:center;gap:0;font-size:15px;font-weight:700;letter-spacing:.02em;color:#f2f3f5}
 body.live-mini .liveStatusLight{display:none!important}
-body.live-mini .liveLogoRow{display:none!important}
-body.live-mini .chatClose{width:30px;height:30px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:#9fb0c8}
-body.live-mini .chatClose:hover{color:#eaf1fb;border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.08)}
+body.live-mini .chatClose{width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:#c9cdd3}
+body.live-mini .chatClose:hover{color:#f2f3f5;background:rgba(255,255,255,.08)}
 body.live-mini .liveBody{display:none!important}
 body.live-mini .liveFoot{display:none!important}
-body.live-mini .liveFeedPanel.is-active{padding:12px 12px 10px;border:0;border-radius:0;background:transparent;gap:16px}
+/* 统计行只放真实口径（弹幕/礼物）；点赞/观众/等级无数据源，不放死槽 */
+.miniStats{display:none}
+body.live-mini .miniStats{display:flex;width:100%;align-items:center;gap:22px;padding:0 18px 10px;color:#9aa0a6}
+body.live-mini .miniStat{display:inline-flex;align-items:center;gap:6px}
+body.live-mini .miniStat svg{width:16px;height:16px;display:block}
+body.live-mini .miniStat b{font-size:12.5px;line-height:16px;font-weight:500;color:#e8eaed}
+body.live-mini .liveFeedPanel.is-active{padding:0 18px 12px;border:0;border-radius:0;background:transparent;gap:0}
 body.live-mini .liveFeedPanel .dmGiftCard,
 body.live-mini .liveFeedPanel .dmFeedCard{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
-body.live-mini .dmGiftCard .dmCardHead,
-body.live-mini .dmFeedCard .dmCardHead{margin:0 0 8px;padding:0 2px}
-body.live-mini .dmGiftCard .dmCardTitle,
-body.live-mini .dmFeedCard .dmCardTitle{font-size:14px;font-weight:700;gap:8px;color:#eaf1fb}
-body.live-mini .dmGiftCard .dmCardTitle::before{height:13px;width:4px;border-radius:2px;background:linear-gradient(180deg,#ffd389,#ee8b00)}
-body.live-mini .dmFeedCard .dmCardTitle::before{height:13px;width:4px;border-radius:2px;background:linear-gradient(180deg,#5aa9ff,#007aff)}
-body.live-mini .dmGiftCard .dmFeedMeta{padding:1px 9px;font-size:11px;border-radius:999px;border:1px solid rgba(255,179,64,.30);background:rgba(255,179,64,.12);color:#ffcf7d;font-weight:600}
-body.live-mini .dmFeedCard .dmFeedMeta{padding:1px 9px;font-size:11px;border-radius:999px;border:1px solid rgba(120,170,255,.22);background:rgba(120,170,255,.10);color:#a9bfdc;font-weight:600}
-body.live-mini .dmGift{gap:6px;padding:0;border:0;background:transparent;border-radius:0;max-height:30vh}
-body.live-mini .dmGift:empty::before{font-size:11px;color:#7e90a8}
-body.live-mini .dmFeed{gap:6px;padding:0;border:0;background:transparent;border-radius:0}
-body.live-mini .dmFeed:empty::before{font-size:12px;color:#7e90a8}
-body.live-mini .dmFeedItem{gap:8px;padding:7px 10px 7px 7px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);box-shadow:none}
-body.live-mini .dmFeedItem.chat:hover{border-color:rgba(120,170,255,.28)}
-body.live-mini .dmFeedItem.gift{border-color:rgba(255,179,64,.32);background:linear-gradient(100deg,rgba(255,179,64,.15),rgba(255,138,0,.05))}
-body.live-mini .dmFeedAva{width:24px;height:24px;font-size:11.5px;box-shadow:none}
-body.live-mini .dmFeedBody{font-size:12.5px;line-height:1.5;color:#e8eefb}
-body.live-mini .dmFeedNick{font-size:12.5px;font-weight:650;color:#c7d4e8}
-body.live-mini .dmFeedNick.nk1{color:#5aa9ff}
-body.live-mini .dmFeedNick.nk2{color:#4fd8c8}
-body.live-mini .dmFeedNick.nk3{color:#ffc06a}
-body.live-mini .dmFeedNick.nk4{color:#b1a2ff}
-body.live-mini .dmFeedNick.nk5{color:#ff9fbb}
-body.live-mini .dmFeedNick::after{color:#7e90a8}
-body.live-mini .dmFeedText{color:#e8eefb}
-body.live-mini .dmFeedItem.gift .dmFeedText{color:#ffe0ad}
+/* 设计稿无「礼物/弹幕」小标题，计数收进顶部统计行 */
+body.live-mini .dmCardHead{display:none}
+body.live-mini .dmGift{gap:6px;padding:2px 0 0;border:0;background:transparent;border-radius:0;max-height:32vh;min-height:132px}
+body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息";margin:auto;font-size:12px;color:#6b7076}
+/* 礼物区与弹幕区之间的发丝分隔线（ specificity 需压过上面 border:0 名单） */
+body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-top:10px}
+body.live-mini .dmFeed{gap:4px;padding:0;border:0;background:transparent;border-radius:0}
+body.live-mini .dmFeed:empty::before{font-size:12px;color:#6b7076}
+body.live-mini .dmFeedItem{display:flex;align-items:center;gap:8px;padding:6px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
+body.live-mini .dmFeedItem.chat:hover{border-color:transparent;background:transparent}
+body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.45);background:rgba(255,179,64,.10);border-radius:12px;padding:8px 12px;margin-bottom:6px}
+/* 设计稿弹幕行无左侧头像；礼物行用金色礼物托 */
+body.live-mini .dmFeedAva{display:none}
+body.live-mini .dmGiftTile{flex:none;width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
+body.live-mini .dmGiftTile svg{width:12px;height:12px;display:block}
+body.live-mini .dmFeedBody{display:flex;align-items:center;gap:6px;min-width:0;font-size:12.5px;line-height:1.5;color:#e8eaed}
+body.live-mini .dmFeedItem.chat .dmFeedNick{font-size:12.5px;font-weight:500;color:#4fc3f7}
+body.live-mini .dmFeedItem.gift .dmFeedNick{font-size:12.5px;font-weight:500;color:#4fc3f7}
+body.live-mini .dmFeedItem.chat .dmFeedNick::after{color:#4fc3f7}
+body.live-mini .dmFeedItem.gift .dmFeedNick::after,body.live-mini .dmFeedItem.entry .dmFeedNick::after{content:none}
+body.live-mini .dmFeedVerb{color:#e8eaed}
+body.live-mini .dmFeedGiftName{color:#ffc06a;font-weight:500}
+body.live-mini .dmFeedCount{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,192,106,.45);background:rgba(255,192,106,.12);color:#ffc06a;font-size:11px;line-height:16px;font-weight:700}
+body.live-mini .dmFeedText{color:#e8eaed}
+body.live-mini .dmFeedItem.entry .dmFeedNick{color:#4fc3f7}
+body.live-mini .dmFeedItem.entry .dmFeedText{color:#e8eaed}
 body.live-mini .dmFeedTime{display:none}
+/* 细灰滚动条 */
+body.live-mini .dmFeed,body.live-mini .dmGift{scrollbar-width:thin;scrollbar-color:#5a5f66 transparent}
+body.live-mini .dmFeed::-webkit-scrollbar,body.live-mini .dmGift::-webkit-scrollbar{width:6px}
+body.live-mini .dmFeed::-webkit-scrollbar-thumb,body.live-mini .dmGift::-webkit-scrollbar-thumb{background:#5a5f66;border-radius:3px}
+body.live-mini .dmFeed::-webkit-scrollbar-track,body.live-mini .dmGift::-webkit-scrollbar-track{background:transparent}
 body.live-mini .toastRoot{bottom:16px}
 ${PANEL_CSS}
 `;

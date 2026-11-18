@@ -351,6 +351,20 @@ describe('readSay —— 说话叶子（弹气泡 / 清空 两种形态）', () 
     assert.deepEqual(readSay({ counter: 1, data: { clear: true, text: 'x' } }), { kind: 'clear' });
   });
 
+  test('clear.stopVoice：严格 true 才带上（连带停播），脏值当没给', () => {
+    assert.deepEqual(readSay({ counter: 1, data: { clear: true, stopVoice: true } }), {
+      kind: 'clear',
+      stopVoice: true,
+    });
+    for (const v of ['yes', 1, {}, null]) {
+      assert.deepEqual(
+        readSay({ counter: 1, data: { clear: true, stopVoice: v } }),
+        { kind: 'clear' },
+        `stopVoice=${JSON.stringify(v)} 不应判成停播`,
+      );
+    }
+  });
+
   test('clear 只认严格 true（"yes"/1 之类不算，免得脏数据把气泡误清掉）', () => {
     for (const v of ['yes', 1, {}, null]) {
       assert.equal(say({ clear: v, text: 'x' })?.text, 'x', `clear=${JSON.stringify(v)} 不应判成清空`);

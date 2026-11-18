@@ -124,6 +124,47 @@ function normalizeLiveUrl(input) {
   throw new Error('请提供 live.douyin.com/数字 形式的直播间链接或房间号');
 }
 
+/** 页面内读房间标题 / 主播：旧 RENDER_DATA 标签与新 window.SSR_RENDER_DATA 状态都试；读不到回空，不抛错。 */
+const DY_META_SCRIPT = `(function(){
+  function pick(v) {
+    if (!v || typeof v !== 'object') return null;
+    var paths = [['app','initialState','roomStore','roomInfo','room'],['roomStore','roomInfo','room'],['initialState','roomStore','roomInfo','room']];
+    for (var i = 0; i < paths.length; i++) {
+      var cur = v;
+      for (var j = 0; j < paths[i].length; j++) cur = cur && typeof cur === 'object' ? cur[paths[i][j]] : undefined;
+      if (cur && typeof cur === 'object' && (cur.id_str || cur.id)) {
+        var owner = cur.owner || cur.anchor || {};
+        return { title: String(cur.title || cur.room_title || ''), anchor: String(owner.nickname || owner.nick_name || owner.nickName || '') };
+      }
+    }
+    return null;
+  }
+  function parseSource(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    if (typeof raw !== 'string') return null;
+    try { return JSON.parse(decodeURIComponent(raw)); } catch (_) { /* 再试原串 */ }
+    try { return JSON.parse(raw); } catch (_) { /* 读不到就算了 */ }
+    return null;
+  }
+  try {
+    var el = document.getElementById('RENDER_DATA');
+    var sources = [el && el.textContent, window.SSR_RENDER_DATA, window.SSR_RENDER_DATA_DOC];
+    for (var s = 0; s < sources.length; s++) {
+      var hit = pick(parseSource(sources[s]));
+      if (hit && (hit.title || hit.anchor)) return hit;
+    }
+  } catch (_) { /* 页面结构变了就当读不到 */ }
+  // 最后兜底：页面标题形如「{主播}的抖音直播间 - 抖音直播」，只取主播，不把整串当房间标题。
+  var t = document.querySelector('title');
+  var text = t ? String(t.textContent || '').trim() : '';
+  var m = text.match(/^(.+?)的抖音直播间/);
+  return { title: '', anchor: m ? m[1] : '' };
+})();`;
+
+/** 加载后首读为空时的补读间隔。 */
+const META_RETRY_MS = 3000;
+
 /**
  * 创建抖音 CDP 旁听桥控制器（进程内单例语义由调用方保证）。
  *
@@ -146,14 +187,20 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   let win = null;
   /** @type {Map<string,string>} requestId → WS url */
   const wsUrls = new Map();
+  /** @type {Set<string>} 页面 enter 请求的 requestId，等 loadingFinished 取 body */
+  const enterRequests = new Set();
   /** @type {Set<(frame: Buffer)=>void>} */
   const frameListeners = new Set();
   /** @type {Set<()=>void>} */
   const loginListeners = new Set();
   /** @type {Set<()=>void>} */
   const closedListeners = new Set();
+  /** @type {Set<(meta:{title:string,anchor:string})=>void>} */
+  const metaListeners = new Set();
   /** @type {NodeJS.Timeout|null} */
   let loginPoll = null;
+  /** @type {NodeJS.Timeout|null} */
+  let metaRetry = null;
   let attached = false;
 
   const state = {
@@ -162,6 +209,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     url: '',
     loggedIn: false,
     lastError: '',
+    title: '',
+    anchor: '',
   };
 
   function sess() {
@@ -187,6 +236,88 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         /* ignore */
       }
     }
+  }
+
+  function emitMeta() {
+    for (const fn of metaListeners) {
+      try {
+        fn({ title: state.title, anchor: state.anchor });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  function clearMetaRetry() {
+    if (metaRetry) {
+      clearTimeout(metaRetry);
+      metaRetry = null;
+    }
+  }
+
+  /**
+   * 从内嵌页的 SSR 状态读房间标题 / 主播昵称（旧 RENDER_DATA 标签与新 window.SSR_RENDER_DATA 都试）。
+   * 读不到就保持空串，不影响旁听；加载后先读一次，空则 3s 后补读一次。
+   */
+  async function readRoomMeta() {
+    if (!win || win.isDestroyed()) return;
+    let meta = null;
+    try {
+      meta = await win.webContents.executeJavaScript(DY_META_SCRIPT);
+    } catch {
+      return;
+    }
+    applyMeta(meta?.title, meta?.anchor);
+  }
+
+  /** 合并非空元数据；空值不覆盖已读到的值，有变化才广播。 */
+  function applyMeta(title, anchor) {
+    const t = String(title || '').trim();
+    const a = String(anchor || '').trim();
+    if (!t && !a) return;
+    const nextTitle = t || state.title;
+    const nextAnchor = a || state.anchor;
+    if (nextTitle === state.title && nextAnchor === state.anchor) return;
+    state.title = nextTitle;
+    state.anchor = nextAnchor;
+    emitMeta();
+  }
+
+  /** 页面 enter 响应里的 room 对象（data.room 或 data.data 列表项）。 */
+  function pickEnterRoom(json) {
+    const data = json?.data;
+    if (!data || typeof data !== 'object') return null;
+    const hasId = (r) => r && typeof r === 'object' && (r.id_str || r.id);
+    if (hasId(data.room)) return data.room;
+    const list = Array.isArray(data.data) ? data.data : [data.data];
+    for (const item of list) {
+      if (hasId(item)) return item;
+      if (hasId(item?.room)) return item.room;
+    }
+    return null;
+  }
+
+  /** 取页面自己 enter 请求的响应体：带 Cookie、页域签名，比外部补请求稳。 */
+  async function readEnterMeta(contents, requestId) {
+    let res = null;
+    try {
+      res = await contents.debugger.sendCommand('Network.getResponseBody', { requestId });
+    } catch {
+      return;
+    }
+    let json = null;
+    try {
+      const body = res?.base64Encoded
+        ? Buffer.from(String(res.body || ''), 'base64').toString('utf8')
+        : String(res?.body || '');
+      json = JSON.parse(body);
+    } catch {
+      return;
+    }
+    const room = pickEnterRoom(json);
+    if (!room) return;
+    const owner = room.owner || room.anchor || {};
+    applyMeta(room.title || room.room_title, owner.nickname || owner.nick_name || owner.nickName);
   }
 
   /** 分区内是否已带登录态。 */
@@ -250,6 +381,18 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         if (rid && url) wsUrls.set(String(rid), String(url));
       } else if (method === 'Network.webSocketFrameReceived') {
         handleFrame(params);
+      } else if (method === 'Network.responseReceived') {
+        // 页面自己带 Cookie 发的 enter 请求：标题/主播最稳的来源，记下来等 body 就绪。
+        const url = String(params?.response?.url || '');
+        if (params?.requestId && url.includes('/webcast/room/') && url.includes('/enter/')) {
+          enterRequests.add(String(params.requestId));
+        }
+      } else if (method === 'Network.loadingFinished') {
+        const rid = String(params?.requestId || '');
+        if (enterRequests.has(rid)) {
+          enterRequests.delete(rid);
+          void readEnterMeta(contents, rid);
+        }
       }
     });
     contents.debugger.attach('1.3');
@@ -353,6 +496,15 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     await win.loadURL(url);
     state.running = true;
 
+    // 房间标题 / 主播：页面 SSR 的 RENDER_DATA 里就有，加载完读一次，空则补读一次。
+    void readRoomMeta();
+    clearMetaRetry();
+    metaRetry = setTimeout(() => {
+      metaRetry = null;
+      void readRoomMeta();
+    }, META_RETRY_MS);
+    metaRetry.unref?.();
+
     // 已有登录态：全程隐藏；未登录：先显示供扫码，轮询到登录态后自动隐藏停播。
     if (loggedIn) {
       hide();
@@ -378,7 +530,9 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
 
   function stop() {
     clearLoginPoll();
+    clearMetaRetry();
     wsUrls.clear();
+    enterRequests.clear();
     attached = false;
     if (win && !win.isDestroyed()) {
       try {
@@ -397,6 +551,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     state.visible = false;
     state.url = '';
     state.loggedIn = false;
+    state.title = '';
+    state.anchor = '';
   }
 
   function status() {
@@ -423,6 +579,11 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     onClosed(fn) {
       closedListeners.add(fn);
       return () => closedListeners.delete(fn);
+    },
+    /** 订阅「读到房间标题 / 主播」事件。返回取消订阅函数。 */
+    onMeta(fn) {
+      metaListeners.add(fn);
+      return () => metaListeners.delete(fn);
     },
   };
 }

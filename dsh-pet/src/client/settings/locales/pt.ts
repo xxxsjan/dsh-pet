@@ -16,7 +16,7 @@ export const pt: Record<Key, string> = {
   avatarUploading: 'Enviando…',
   avatarUploaded: 'Avatar atualizado',
   petCardHint:
-    'Ajustes por pet: nome / tamanho / exibição / posição / deslocamentos / os quatro interruptores. Clique em "Salvar" no fim para aplicar na hora.',
+    'Ajustes por pet: nome / tamanho / exibição / posição / deslocamentos / interruptores (incl. som de clique e volume). Clique em "Salvar" no fim para aplicar na hora.',
   globalTitle: 'Interruptores globais',
   globalHint:
     'Compartilhados por todos os pets (um pet pack pode sobrescrevê-los no arquivo do próprio tipo). Estes interruptores só mudam o estado local e são gravados na configuração do usuário ao "Salvar" (nunca na hora); as notificações do sistema são relidas logo após salvar, sem recarregar a página.',
@@ -137,9 +137,11 @@ export const pt: Record<Key, string> = {
   notifyToggle: 'Notificações do sistema',
   notifyToggleHint:
     'Avisos do sistema (canto inferior direito do desktop) para fim de conversa, falhas, pedidos de permissão e perguntas — só enquanto esta janela está sem foco.',
-  clickSoundToggle: 'Som de clique',
-  clickSoundToggleHint:
-    'Toca o som de clique embutido (assets/sound/click-duck.wav, volume 0.5) quando o pet é clicado; cliques repetidos em até 100ms tocam uma vez só, então vários pets não empilham som. Desligue para silêncio total. Gravado na configuração do usuário junto com o "Salvar".',
+  clickSoundEnabled: 'Som de clique',
+  clickSoundEnabledHint:
+    'Toca o som de clique embutido (assets/sound/click-duck.wav) quando este pet é clicado; cliques repetidos em até 100ms tocam uma vez só, então vários pets não empilham som. Desligue para silenciar este pet. Gravado na configuração do usuário junto com o "Salvar".',
+  clickSoundVolumeLabel: 'Volume do som de clique (0–1)',
+  clickSoundVolumeHint: '1 = 100%, padrão 0.5; sons curtos não são amplificados. Afeta apenas este pet.',
   whisperImageToggle: 'Imagens no sussurro',
   whisperImageToggleHint:
     'Anexa um meme aleatório do pool a cada sussurro (o mapeamento de imagens fica no campo de topo memes). Tokens: o sussurro já chama o modelo a cada ciclo, então a imagem só acrescenta o nome + a descrição daquele meme (~100 caracteres / ~60 tokens) ao mesmo pedido — desprezível.',

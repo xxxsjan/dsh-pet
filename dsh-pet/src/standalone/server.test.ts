@@ -379,6 +379,13 @@ describe('HTTP boundary protects every route and settings', () => {
         background.status === 404 || background.headers.get('content-type') === 'image/webp',
         '背景图要么缺失 404，要么是 WebP',
       );
+      // 暗色背景图与浅色同口径。
+      const backgroundDark = await fetch(base + '/standalone-console/console-bg-dark.webp');
+      assert.notEqual(backgroundDark.status, 403, '暗色背景图不得要求令牌');
+      assert.ok(
+        backgroundDark.status === 404 || backgroundDark.headers.get('content-type') === 'image/webp',
+        '暗色背景图要么缺失 404，要么是 WebP',
+      );
       assert.equal((await fetch(base + '/standalone-ai/settings')).status, 403);
       const read = await fetch(base + '/standalone-ai/settings', { headers });
       assert.deepEqual(await read.json(), { protocol: 'anthropic', model: 'x', hasKey: true });

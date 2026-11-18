@@ -167,10 +167,10 @@ export function topFieldValid(key: string, value: unknown): boolean {
     case 'notificationsEnabled':
       return typeof value === 'boolean';
     case 'clickSoundEnabled':
-      // 点击音效开关（全局布尔，只读 main 条目）：与 notificationsEnabled 同一套校验
+      // 点击音效开关（实例级布尔；旧配置顶层全局值也走这条校验做读取侧回落）
       return typeof value === 'boolean';
     case 'clickSoundVolume':
-      // 点击音效音量 0–1：HTMLAudioElement.volume 上限 1，短提示音不做增益放大，>1 截断即失真
+      // 点击音效音量 0–1（实例级）：HTMLAudioElement.volume 上限 1，短提示音不做增益放大，>1 截断即失真
       return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
     case 'whisperImageEnabled':
       return typeof value === 'boolean';

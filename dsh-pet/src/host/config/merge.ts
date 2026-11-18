@@ -29,18 +29,44 @@ export function packBase(
   return out ?? base;
 }
 
-/** 一个覆盖文件 → 完整条目：顶层逐字段合并（没写/非法 → 内置默认 + 告警），pets 逐实例 */
+/**
+ * 旧版全局点击音效（顶层 clickSoundEnabled / clickSoundVolume）的遗留值。
+ * 这两个字段已下沉到 pets[] 实例级；旧配置写在顶层的值只做读取侧回落——
+ * 实例没写自己的值时按它兜底，不回写磁盘、不进成品顶层。
+ */
+export interface LegacyClickSound {
+  clickSoundEnabled?: boolean;
+  clickSoundVolume?: number;
+}
+
+/** 从覆盖文件顶层提取遗留的全局点击音效值（非法值视同没写，与读取侧同一套校验）。 */
+export function legacyClickSoundOf(overlay: Record<string, unknown> | undefined): LegacyClickSound {
+  const out: LegacyClickSound = {};
+  if (!overlay) return out;
+  if (topFieldValid('clickSoundEnabled', overlay.clickSoundEnabled)) {
+    out.clickSoundEnabled = overlay.clickSoundEnabled as boolean;
+  }
+  if (topFieldValid('clickSoundVolume', overlay.clickSoundVolume)) {
+    out.clickSoundVolume = overlay.clickSoundVolume as number;
+  }
+  return out;
+}
+
+/** 一个覆盖文件 → 完整条目：顶层逐字段合并（没写/非法 → 内置默认 + 告警），pets 逐实例。
+ *  legacy 是用户主配置顶层的旧全局点击音效值（文件宠物也认它）；本文件顶层自己写了则优先用自己的。 */
 export function mergeEntry(
   base: Record<string, unknown>,
   overlay: Record<string, unknown> | undefined,
   label: string,
   basePets: Record<string, unknown>[],
   seenIds: Set<string>,
+  legacy?: LegacyClickSound,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  const clickLegacy: LegacyClickSound = { ...legacy, ...legacyClickSoundOf(overlay) };
   for (const key of Object.keys(base)) {
     if (key === 'pets') {
-      out.pets = mergePets(basePets, overlay?.[key], label, seenIds);
+      out.pets = mergePets(basePets, overlay?.[key], label, seenIds, clickLegacy);
       continue;
     }
     const own = overlay ? overlay[key] : undefined;
@@ -60,14 +86,19 @@ export function mergeEntry(
   return out;
 }
 
-/** pets 数组合并：文件没写/空 → 默认列表；逐实例合并（缺字段 → 内置默认 pets[0]，静默）。 */
+/** pets 数组合并：文件没写/空 → 默认列表；逐实例合并（缺字段 → 内置默认 pets[0]，静默）。
+ *  旧全局点击音效值吹进合并基座：实例没写自己的值时按它回落（优先于内置默认）。 */
 function mergePets(
   basePets: Record<string, unknown>[],
   raw: unknown,
   label: string,
   seenIds: Set<string>,
+  legacy?: LegacyClickSound,
 ): Record<string, unknown>[] {
-  const basePet: Record<string, unknown> = basePets[0] ?? {};
+  let basePet: Record<string, unknown> = basePets[0] ?? {};
+  if (legacy?.clickSoundEnabled !== undefined || legacy?.clickSoundVolume !== undefined) {
+    basePet = { ...basePet, ...legacy };
+  }
   if (!Array.isArray(raw) || raw.length === 0) {
     warnOnce(`${label}:pets`, `「${label}」的 pets 缺失或为空，已取默认宠物列表`);
     return basePets;
@@ -133,6 +164,17 @@ function petEnum(
   return typeof def === 'string' ? def : '';
 }
 
+/** 宠物实例的点击音效音量：0–1 的有限数字才收；缺失 → 静默取默认；显式写但非法 → 告警 + 默认。
+ *  与 petNumber 分开写是因为它有上界（HTMLAudioElement.volume 上限 1，>1 截断即失真）。 */
+function petClickVolume(own: unknown, def: unknown, label: string, id: string): number {
+  if (own !== undefined && own !== null) {
+    if (typeof own === 'number' && Number.isFinite(own) && own >= 0 && own <= 1) return own;
+    warnOnce(`${label}:clickSoundVolume:${id}`, `宠物「${id}」的 clickSoundVolume 非法，已取默认值`);
+  }
+  const d = Number(def);
+  return Number.isFinite(d) && d >= 0 && d <= 1 ? d : 0.5;
+}
+
 /** 一只实例 → 完成品实例（id 必须自己的且全局唯一；其余字段没写/非法 → 默认 + 告警） */
 function mergePet(
   base: Record<string, unknown>,
@@ -165,6 +207,8 @@ function mergePet(
     whisperEnabled: petBool(p.whisperEnabled, base.whisperEnabled, label, 'whisperEnabled', id),
     workStatusEnabled: petBool(p.workStatusEnabled, base.workStatusEnabled, label, 'workStatusEnabled', id),
     fixedEnabled: petBool(p.fixedEnabled, base.fixedEnabled, label, 'fixedEnabled', id),
+    clickSoundEnabled: petBool(p.clickSoundEnabled, base.clickSoundEnabled, label, 'clickSoundEnabled', id),
+    clickSoundVolume: petClickVolume(p.clickSoundVolume, base.clickSoundVolume, label, id),
     display: petEnum(p.display, PET_DISPLAY_SET, base.display, label, 'display', id),
     position: {
       corner: petEnum(ownPos.corner, CORNER_SET, basePos.corner, label, 'position.corner', id),

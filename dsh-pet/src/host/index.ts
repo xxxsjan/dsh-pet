@@ -114,6 +114,48 @@ export function apply(ctx: any): void {
 
   // 弹幕回复专用超时：短于普通对话（60s）与独立模式默认（30s），超时即失败跳过，不堵串行队列
   const DANMAKU_CHAT_TIMEOUT_MS = 12_000;
+
+  /** 弹幕对话包装（每平台一份）：等回复写完、且朗读真正结束（或跳过/失败/超时）后再放行队列下一条；
+   *  开关关闭时经 cancelVoice 掐断该类回复——取消朗读回执并写 say `{ clear: true, stopVoice: true }`
+   *  通知渲染端收起气泡、停掉在播音频；还在生成中的那条只置标记，生成完再取消（那时 say 叶子才写上）。 */
+  const createDanmakuChat = () => {
+    type DanmakuJob = { petId: string; kind: 'chat' | 'gift'; utteranceId?: string; cancelled: boolean };
+    let current: DanmakuJob | null = null;
+    const stopVoice = (petId: string, utteranceId?: string): void => {
+      if (utteranceId) voiceUtterances.cancel(utteranceId, 'reply-disabled');
+      state.writePet(petId, 'say', { clear: true, stopVoice: true });
+    };
+    return {
+      chatWithPet: async (petId: string, text: string, kind: 'chat' | 'gift') => {
+        const job: DanmakuJob = { petId, kind, cancelled: false };
+        current = job;
+        try {
+          const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
+          if (!r.ok) return { ok: false, message: r.message || r.reason };
+          // 生成期间开关被关掉：刚写出的回复不再朗读，立即取消回执并收起气泡。
+          if (job.cancelled) {
+            stopVoice(petId, r.voiceUtteranceId);
+            return { ok: true };
+          }
+          if (r.voiceUtteranceId) {
+            job.utteranceId = r.voiceUtteranceId;
+            await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
+          }
+          return { ok: true };
+        } finally {
+          if (current === job) current = null;
+        }
+      },
+      cancelVoice: (kind: 'chat' | 'gift'): void => {
+        if (!current || current.kind !== kind) return;
+        current.cancelled = true;
+        // 已在朗读：立即掐断；还在生成：只置标记，交给生成后的分支处理。
+        if (current.utteranceId) stopVoice(current.petId, current.utteranceId);
+      },
+    };
+  };
+
+  const douyinChat = createDanmakuChat();
   const douyinDanmaku = createDouyinMonitor({
     log,
     getSignBaseUrl: getDouyinSignBaseUrl,
@@ -122,17 +164,11 @@ export function apply(ctx: any): void {
       const id = String(resolveActivePetId() || '').trim();
       return id || 'main';
     },
-    // 等回复写完、且朗读真正结束（或跳过/失败/超时）后再放行队列下一条
-    chatWithPet: async (petId, text) => {
-      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
-      if (!r.ok) return { ok: false, message: r.message || r.reason };
-      if (r.voiceUtteranceId) {
-        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
-      }
-      return { ok: true };
-    },
+    chatWithPet: douyinChat.chatWithPet,
+    cancelVoice: douyinChat.cancelVoice,
   });
 
+  const xhsChat = createDanmakuChat();
   const xiaohongshuDanmaku = createXhsMonitor({
     log,
     getCdpBridge: () => getXhsCdpBridge(),
@@ -140,46 +176,30 @@ export function apply(ctx: any): void {
       const id = String(resolveActivePetId() || '').trim();
       return id || 'main';
     },
-    chatWithPet: async (petId, text) => {
-      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
-      if (!r.ok) return { ok: false, message: r.message || r.reason };
-      if (r.voiceUtteranceId) {
-        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
-      }
-      return { ok: true };
-    },
+    chatWithPet: xhsChat.chatWithPet,
+    cancelVoice: xhsChat.cancelVoice,
   });
 
+  const ksChat = createDanmakuChat();
   const kuaishouDanmaku = createKsMonitor({
     log,
     resolvePetId: () => {
       const id = String(resolveActivePetId() || '').trim();
       return id || 'main';
     },
-    chatWithPet: async (petId, text) => {
-      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
-      if (!r.ok) return { ok: false, message: r.message || r.reason };
-      if (r.voiceUtteranceId) {
-        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
-      }
-      return { ok: true };
-    },
+    chatWithPet: ksChat.chatWithPet,
+    cancelVoice: ksChat.cancelVoice,
   });
 
+  const biliChat = createDanmakuChat();
   const bilibiliDanmaku = createBiliMonitor({
     log,
     resolvePetId: () => {
       const id = String(resolveActivePetId() || '').trim();
       return id || 'main';
     },
-    chatWithPet: async (petId, text) => {
-      const r = await chatWithPet(petId, text, undefined, { timeoutMs: DANMAKU_CHAT_TIMEOUT_MS });
-      if (!r.ok) return { ok: false, message: r.message || r.reason };
-      if (r.voiceUtteranceId) {
-        await voiceUtterances.waitUntilDone(r.voiceUtteranceId, VOICE_UTTERANCE_WAIT_MS);
-      }
-      return { ok: true };
-    },
+    chatWithPet: biliChat.chatWithPet,
+    cancelVoice: biliChat.cancelVoice,
   });
 
   const deps: PetRouteDeps = {

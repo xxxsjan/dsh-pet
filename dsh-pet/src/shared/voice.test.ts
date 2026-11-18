@@ -21,6 +21,7 @@ import {
   setSurface,
   setVoiceConfig,
   speechSlice,
+  stopSayVoice,
   subscribeVoiceUtterance,
   type VoiceUtteranceEvent,
 } from './voice.ts';
@@ -329,6 +330,108 @@ describe('setVoiceConfig —— 音量系数', () => {
       }
     } finally {
       restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+});
+
+describe('stopSayVoice —— 打断自动播报', () => {
+  /** 不自动播完的音频桩：模拟一句正在朗读的长语音，pause 记次数。 */
+  function stubLongAudio(): { pauses: number[]; restore: () => void } {
+    const pauses: number[] = [];
+    const previousAudio = (globalThis as { Audio?: unknown }).Audio;
+    const previousCreate = URL.createObjectURL;
+    const previousRevoke = URL.revokeObjectURL;
+    (globalThis as { Audio?: unknown }).Audio = class {
+      volume = 1;
+      onended: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      play(): Promise<void> {
+        return Promise.resolve(); // 不触发 onended：一直念到被打断
+      }
+      pause(): void {
+        pauses.push(1);
+      }
+    };
+    URL.createObjectURL = () => 'blob:blue-fish-test';
+    URL.revokeObjectURL = () => undefined;
+    return {
+      pauses,
+      restore: () => {
+        (globalThis as { Audio?: unknown }).Audio = previousAudio;
+        URL.createObjectURL = previousCreate;
+        URL.revokeObjectURL = previousRevoke;
+      },
+    };
+  }
+
+  /** 记录全部请求（含回执上报）的合成端点桩。 */
+  function stubFetchWithUrls(): { requests: Array<{ url: string; body: string }>; restore: () => void } {
+    const requests: Array<{ url: string; body: string }> = [];
+    const previous = globalThis.fetch;
+    (globalThis as { fetch: unknown }).fetch = async (url: string, init?: { body?: string }) => {
+      requests.push({ url: String(url), body: String(init?.body ?? '') });
+      return {
+        ok: true,
+        headers: { get: () => 'audio/mpeg' },
+        blob: async () => ({ size: 1 }),
+      };
+    };
+    return {
+      requests,
+      restore: () => {
+        (globalThis as { fetch: unknown }).fetch = previous;
+      },
+    };
+  }
+
+  test('播放中打断：音频被 pause、状态回 idle、回执报 skipped/cancelled、事件成对收尾', async () => {
+    const events: VoiceUtteranceEvent[] = [];
+    const fetchStub = stubFetchWithUrls();
+    const audioStub = stubLongAudio();
+    const off = subscribeVoiceUtterance((event) => events.push(event));
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '一条很长的弹幕回复', voiceTo: 'desktop', voiceUtteranceId: 'vu-test' });
+      await flush();
+      assert.equal(getVoiceState(), 'ready', '打断前应处于播放就绪态');
+      stopSayVoice();
+      await flush();
+      assert.ok(audioStub.pauses.length >= 1, '在播音频应被暂停');
+      assert.equal(getVoiceState(), 'idle', '打断后状态应归回 idle 而不是 failed');
+      assert.deepEqual(
+        events.map((event) => event.kind),
+        ['start', 'end'],
+        '被打断也要报 end，气泡不能永远挂着',
+      );
+      const report = fetchStub.requests.find((r) => r.url.includes('/voice/utterance/vu-test/report'));
+      assert.ok(report, '应向宿主上报回执');
+      assert.deepEqual(JSON.parse(report.body), { status: 'skipped', reason: 'cancelled' });
+    } finally {
+      off();
+      audioStub.restore();
+      fetchStub.restore();
+    }
+  });
+
+  test('没在念时调用无副作用；打断后下一句照常播', async () => {
+    const fetchStub = stubFetchWithUrls();
+    const audioStub = stubLongAudio();
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      stopSayVoice(); // 空放一枪：不应抛错也不应影响后续
+      await flush();
+      assert.equal(fetchStub.requests.length, 0);
+      playSayVoice({ text: '打断后的新一句', voiceTo: 'desktop' });
+      await flush();
+      assert.equal(getVoiceState(), 'ready', '上一句的取消不能波及下一句');
+      stopSayVoice();
+      await flush();
+      assert.equal(getVoiceState(), 'idle');
+    } finally {
+      audioStub.restore();
       fetchStub.restore();
     }
   });
