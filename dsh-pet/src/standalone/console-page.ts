@@ -12,10 +12,11 @@
  * @module dsh-pet/src/standalone/console-page
  */
 import { ROUTE_SEGMENT } from '../shared/constants.ts';
-import { BREEZE_API_KEY_URL } from '../shared/voice-links.ts';
+import { BREEZE_API_KEY_URL, FISH_API_KEY_URL } from '../shared/voice-links.ts';
 import { PANEL_CSS } from '../client/chat/panel-css.ts';
 import { giftIconUrlMapJson } from './live-gift-icon.ts';
 import { dyEmojiNameMapJson } from './dy-emoji.ts';
+import { xhsEmojiUrlMapJson } from './xhs-emoji.ts';
 
 /** 控制台页面 HTML。 */
 export function consolePage(): string {
@@ -238,14 +239,14 @@ export function consolePage(): string {
 <div class="fieldRow"><label class="fieldLabel" for="voice-name">音色</label><select class="fieldInput" id="voice-name"></select></div>
 <div class="fieldRow wide keyRow" id="fish-key-row" hidden>
 <label class="fieldLabel" for="voice-fish-key">Fish Audio API Key</label>
-<div class="keyInputRow"><input class="fieldInput" type="password" id="voice-fish-key" autocomplete="off"><button type="button" class="btn ghost danger" id="voice-fish-clear" disabled>清除</button></div>
-<span class="fieldHint">留空会保留已保存的密钥，不会回显；要彻底删除请点「清除」后再保存。</span>
+<div class="keyInputRow"><input class="fieldInput" type="password" id="voice-fish-key" autocomplete="off"><button type="button" class="btn ghost" id="voice-fish-link">获取 API Key</button></div>
+<span class="fieldHint">留空会保留已保存的密钥，不会回显；填写新 Key 会覆盖旧值。</span>
 <span class="voiceStatus" id="voice-fish-key-status" role="status"></span>
 </div>
 <div class="fieldRow wide keyRow" id="breeze-key-row" hidden>
 <label class="fieldLabel" for="voice-breeze-key">Breeze Blue API Key（xi-api-key）</label>
-<div class="keyInputRow"><input class="fieldInput" type="password" id="voice-breeze-key" autocomplete="off"><button type="button" class="btn ghost danger" id="voice-breeze-clear" disabled>清除</button><button type="button" class="btn ghost" id="voice-breeze-link">获取 API Key</button></div>
-<span class="fieldHint">请求头用 xi-api-key；留空会保留已保存的密钥，要彻底删除请点「清除」后再保存。</span>
+<div class="keyInputRow"><input class="fieldInput" type="password" id="voice-breeze-key" autocomplete="off"><button type="button" class="btn ghost" id="voice-breeze-link">获取 API Key</button></div>
+<span class="fieldHint">请求头用 xi-api-key；留空会保留已保存的密钥，填写新 Key 会覆盖旧值。</span>
 <span class="voiceStatus" id="voice-breeze-key-status" role="status"></span>
 </div>
 <div class="fieldRow wide" id="fish-model-row" hidden>
@@ -302,7 +303,7 @@ export function consolePage(): string {
 </div>
 </div>
 </main>
-<nav class="dockBar" aria-label="功能入口"><button type="button" class="chatEntry" id="chat-open" aria-label="打开对话窗口" title="对话"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z"/></svg></button><button type="button" class="chatEntry liveEntry" id="live-open" aria-label="打开直播间弹幕窗口" title="直播间弹幕"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3.5" width="12" height="8" rx="1.6"/><path d="M5.5 13.5h5M8 11.5v2"/><circle cx="12" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></button><span class="dockStatus" id="console-status" role="status" aria-live="polite"></span></nav>
+<nav class="dockBar" aria-label="功能入口"><button type="button" class="chatEntry" id="chat-open" aria-label="打开对话窗口" title="对话"><svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.4h10a1.1 1.1 0 0 1 1.1 1.1v5.6A1.1 1.1 0 0 1 13 11.2H8.2L5 13.6v-2.4H3a1.1 1.1 0 0 1-1.1-1.1V4.5A1.1 1.1 0 0 1 3 3.4Z"/></svg></button><span class="dockStatus" id="console-status" role="status" aria-live="polite"></span></nav>
 <div class="chatMask" id="chat-dialog" hidden>
 <div class="chatDialog" role="dialog" aria-modal="true" aria-labelledby="chat-dialog-title">
 <div class="chatHead"><h2 class="chatTitle" id="chat-dialog-title">对话</h2><button type="button" class="chatClose" id="chat-close" aria-label="关闭对话窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
@@ -418,6 +419,7 @@ export const consoleScript = `
 (function () {
   var API = ${JSON.stringify(ROUTE_SEGMENT)};
   var BREEZE_KEY_URL = ${JSON.stringify(BREEZE_API_KEY_URL)};
+  var FISH_KEY_URL = ${JSON.stringify(FISH_API_KEY_URL)};
   var TOKEN = new URLSearchParams(location.hash.slice(1)).get('token') || '';
   // 独立直播间窗口：主进程以 ?live=1 打开本页，隐藏控制台表单、直播间铺满整窗；
   // 普通控制台页与无 Electron 桥的网页/预览环境不置该标志，行为回落到页内弹窗。
@@ -434,6 +436,9 @@ export const consoleScript = `
   // 未收录的 [名字] 原样显示文字，不会出现裂图。
   var DY_EMOJI_NAMES = ${dyEmojiNameMapJson()};
   var DY_EMOJI_TOKEN_RE = /\\[[^[\\]\\s]{1,20}\\]/g;
+  // 小红书表情：名字（含别名写法）→ 同源取图地址，表在 src/standalone/xhs-emoji.ts。
+  // 站内 token 带 R/H 后缀，查表前要去掉，规则与后端归一一致。
+  var XHS_EMOJI_URLS = ${xhsEmojiUrlMapJson()};
   // 小窗礼物行的金色礼物托（取不到官方图时的占位）
   var GIFT_TILE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
   var hasCloseLiveBridge = !!(window.petBridge && typeof window.petBridge.closeLive === 'function');
@@ -601,6 +606,16 @@ export const consoleScript = `
     if (giftNode) giftNode.textContent = String(Number(status && status.giftCount) || 0);
     // 只有抖音回 likeCount（本场累计总赞）；其余平台缺字段时显示 0，不冒装有点赞。
     if (likeNode) likeNode.textContent = miniFormatCount(status && status.likeCount);
+    // 小窗没有状态行：下播时在统计行右侧挂一个「已下播」小胶囊，关掉再出现即摘掉。
+    var statsRow = byId('mini-stats');
+    if (statsRow) {
+      var endedTag = statsRow.querySelector('.miniEndedTag');
+      if (status && status.ended) {
+        if (!endedTag) statsRow.appendChild(dmNode('span', 'miniEndedTag', '已下播'));
+      } else if (endedTag && endedTag.parentNode) {
+        endedTag.parentNode.removeChild(endedTag);
+      }
+    }
   }
   // 小窗礼物行的礼物托：礼物名在图标表里就放真实礼物图，否则保持金色礼盒占位。
   function dmGiftTile(giftName, platform) {
@@ -694,6 +709,8 @@ export const consoleScript = `
   var DM_CACHE_KEY = 'blue_fish_douyin_danmaku_form_v1';
   var DM_POLL_MS = 3000;
   var dmListening = false;
+  /** 下播提示只弹一次：状态里 ended 由 false→true 时提示，回到非 ended 时重置。 */
+  var dmEndedNotified = false;
   var dmLastFeedId = 0;
   var dmStickBottom = true;
   var dmLastStatusUrl = '';
@@ -728,15 +745,25 @@ export const consoleScript = `
     if (last < raw.length) node.appendChild(document.createTextNode(raw.slice(last)));
     return node;
   }
-  /** 单个表情图：alt 保留 [名字] 语义，加载失败就地换回文字。 */
-  function dmEmojiImg(token) {
+  /** 单个表情图：alt 保留 [名字] 语义，加载失败就地换回文字；src 缺省走抖音取图路由。
+   *  title 另给时按它显示（小红书 token 带 R/H 后缀，悬停不该看到那截后缀）。
+   *  上游偶发限流会回 404，先带 cache-buster 重试一次，仍失败才退回文字。 */
+  function dmEmojiImg(token, src, title) {
     var img = document.createElement('img');
     img.className = 'dmEmoji';
     img.alt = token;
-    img.title = token.slice(1, -1);
+    img.title = title || token.slice(1, -1);
     img.setAttribute('referrerpolicy', 'no-referrer');
-    img.src = '/standalone-console/emoji?n=' + encodeURIComponent(token);
+    var baseSrc = src || '/standalone-console/emoji?n=' + encodeURIComponent(token);
+    img.src = baseSrc;
     img.addEventListener('error', function () {
+      if (!img.dataset.retried) {
+        img.dataset.retried = '1';
+        setTimeout(function () {
+          img.src = baseSrc + (baseSrc.indexOf('?') < 0 ? '?' : '&') + 'r=1';
+        }, 500);
+        return;
+      }
       var text = document.createTextNode(token);
       if (img.parentNode) img.parentNode.replaceChild(text, img);
     });
@@ -746,17 +773,24 @@ export const consoleScript = `
    * 配置页那一行监听状态：一个小圆点 + 一行摘要；只有扫码/报错这类需要用户动手的提示才补第二行。
    * 不再占一整块卡片或灰底方块。
    */
-  function renderLiveStatus(box, listening, summary, note) {
+  function renderLiveStatus(box, listening, summary, note, ended) {
     if (!box) return;
     box.textContent = '';
     if (listening) box.classList.add('on');
     else box.classList.remove('on');
+    var text = ended ? '已下播' : (listening ? '监听中' : '未监听');
     box.appendChild(dmNode('span', 'statusDot', ''));
-    box.appendChild(dmNode('span', 'statusText', (listening ? '监听中' : '未监听') + (summary ? ' · ' + summary : '')));
+    box.appendChild(dmNode('span', 'statusText', text + (summary ? ' · ' + summary : '')));
     if (note) box.appendChild(dmNode('span', 'statusNote', note));
   }
   /** 抖音/小红书：CDP 扫码态与最近报错压成一行提示。 */
   function dmStatusNote(status) {
+    // 下播是终点状态：收过播说「自动停止」，从没开起来就说「等开播再点」——别拿没发生的事糊人。
+    if (status.ended) {
+      return status.startedAt
+        ? '主播已下播，已自动停止监听'
+        : '主播已下播（直播结束），等开播后再点开始监听';
+    }
     var note = '';
     if (status.mode === 'cdp') {
       if (status.cdpVisible && !status.cdpLoggedIn) note = '等待扫码：在弹出的窗口完成登录';
@@ -949,6 +983,16 @@ export const consoleScript = `
     renderLiveMonitorCard();
     dmSyncToggle();
     if (typeof status.url === 'string' && status.url.trim()) dmLastStatusUrl = status.url.trim();
+    var dmEnded = !!status.ended;
+    // 下播是「自动停听」的终点：第一次拿到这个状态时提示一次，避免 3s 轮询重复弹。
+    if (!dmEnded) dmEndedNotified = false;
+    else if (!dmEndedNotified) {
+      dmEndedNotified = true;
+      showToast(
+        status.startedAt ? '主播已下播，已自动停止监听' : '主播已下播，等开播后再开始监听',
+        'error',
+      );
+    }
     var box = byId('dm-status');
     if (box) {
       var roomId = status.roomId || dmExtractWebRid(status.url);
@@ -958,8 +1002,11 @@ export const consoleScript = `
         bits.push('主播 ' + (status.anchor || '未知'));
         if (roomId) bits.push('房间 ' + roomId);
         bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
+      } else if (dmEnded) {
+        // 收播后仍给出「播了多久 / 收了多少」，方便回看这场的数据。
+        bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
       }
-      renderLiveStatus(box, dmListening, bits.join(' · '), dmStatusNote(status));
+      renderLiveStatus(box, dmListening, bits.join(' · '), dmStatusNote(status), dmEnded);
     }
     dmRenderFeed(status.recent);
     // 未监听时保留本地勾选，避免 status 的默认 false 冲掉表单。
@@ -1143,6 +1190,42 @@ export const consoleScript = `
     button.textContent = xsListening ? '停止监听' : '开始监听';
     button.className = xsListening ? 'btn danger' : 'btn primary';
   }
+  /** 小红书表情查表：去方括号后先按原名查，再去站内 R/H 后缀查一次；未收录返回空串。 */
+  function xsEmojiSrc(token) {
+    var name = token.slice(1, -1);
+    var src = XHS_EMOJI_URLS[name];
+    if (src) return src;
+    if (name.length > 1 && /[RH]$/i.test(name)) return XHS_EMOJI_URLS[name.slice(0, -1)] || '';
+    return '';
+  }
+  /** 悬停提示用裸名字：[微笑R] 显示「微笑」，不带站内后缀。 */
+  function xsEmojiLabel(token) {
+    var name = token.slice(1, -1);
+    if (name.length > 1 && /[RH]$/i.test(name) && XHS_EMOJI_URLS[name.slice(0, -1)]) return name.slice(0, -1);
+    return name;
+  }
+  /** 小红书弹幕正文：已知表情 token 换成图，其余原样按文本节点渲染；token 正则与抖音同一套。 */
+  function xsRichText(text) {
+    var node = dmNode('span', 'dmFeedText');
+    var raw = String(text == null ? '' : text);
+    if (raw.indexOf('[') < 0) {
+      node.textContent = raw;
+      return node;
+    }
+    var last = 0;
+    var m;
+    DY_EMOJI_TOKEN_RE.lastIndex = 0;
+    while ((m = DY_EMOJI_TOKEN_RE.exec(raw)) !== null) {
+      var token = m[0];
+      var src = xsEmojiSrc(token);
+      if (!src) continue;
+      if (m.index > last) node.appendChild(document.createTextNode(raw.slice(last, m.index)));
+      node.appendChild(dmEmojiImg(token, src, xsEmojiLabel(token)));
+      last = m.index + token.length;
+    }
+    if (last < raw.length) node.appendChild(document.createTextNode(raw.slice(last)));
+    return node;
+  }
   function xsRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
     var prevId = xsLastFeedId;
@@ -1186,7 +1269,7 @@ export const consoleScript = `
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
+      bodyBox.appendChild(xsRichText(item.text));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
       feedBox.appendChild(row);
@@ -1335,6 +1418,49 @@ export const consoleScript = `
   var ksListening = false;
   var ksLastFeedId = 0;
   var ksStickBottom = true;
+  /** 快手表情表：[表情名] → 图片地址，来自直播间页 webConfig，进房后由状态带回。 */
+  var KS_EMOJI_URLS = {};
+
+  /** 把快手正文里的 [表情名] token 换成表情图；未收录的 token 原样保留文本。 */
+  function ksEmojiText(text) {
+    var raw = String(text || '');
+    if (raw.indexOf('[') < 0) return document.createTextNode(raw);
+    var frag = document.createDocumentFragment();
+    var last = 0;
+    var i = raw.indexOf('[');
+    while (i >= 0) {
+      var j = raw.indexOf(']', i + 1);
+      if (j < 0) break;
+      var token = raw.slice(i, j + 1);
+      var src = token.length <= 10 ? KS_EMOJI_URLS[token] : '';
+      if (!src) {
+        i = raw.indexOf('[', i + 1);
+        continue;
+      }
+      if (i > last) frag.appendChild(document.createTextNode(raw.slice(last, i)));
+      frag.appendChild(ksEmojiImg(token, src));
+      last = j + 1;
+      i = raw.indexOf('[', last);
+    }
+    if (last === 0) return document.createTextNode(raw);
+    if (last < raw.length) frag.appendChild(document.createTextNode(raw.slice(last)));
+    return frag;
+  }
+
+  function ksEmojiImg(token, src) {
+    var img = document.createElement('img');
+    img.className = 'dmEmoji';
+    img.alt = token.slice(1, -1);
+    img.title = img.alt;
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', function () {
+      var span = document.createTextNode(token);
+      if (img.parentNode) img.parentNode.replaceChild(span, img);
+    });
+    img.src = src;
+    return img;
+  }
 
   function ksInputValue(id) {
     var node = byId(id);
@@ -1429,7 +1555,9 @@ export const consoleScript = `
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
+      var textBox = dmNode('span', 'dmFeedText', '');
+      textBox.appendChild(ksEmojiText(item.text));
+      bodyBox.appendChild(textBox);
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
       feedBox.appendChild(row);
@@ -1441,6 +1569,7 @@ export const consoleScript = `
   }
   function ksRenderStatus(data, syncToggles) {
     var status = data || {};
+    if (status.emoji && typeof status.emoji === 'object') KS_EMOJI_URLS = status.emoji;
     ksListening = !!status.listening;
     liveSyncPill('ks', ksListening);
     liveMonitorSnapshots.ks = status;
@@ -1733,9 +1862,16 @@ export const consoleScript = `
   /** 主页监听状态卡：各平台最近一次状态快照与当前展示平台（顶层作用域，供四个 renderStatus 与 load 共用）。 */
   var liveMonitorSnapshots = { dm: null, xs: null, ks: null, bl: null };
   var liveMonitorPlatform = '';
+  /** 当前监听快照的地址是不是中控台（小红书主播中控台）；true 时右下角动作改为「打开中控台」，弹回内嵌窗。 */
+  var liveMonitorIsCenter = false;
   var liveMonitorNames = { dm: '抖音', xs: '小红书', ks: '快手', bl: 'B站' };
   var liveMonitorPlatforms = ['dm', 'xs', 'ks', 'bl'];
   var liveMonitorRefreshers = { dm: dmRefresh, xs: xsRefresh, ks: ksRefresh, bl: blRefresh };
+
+  /** 中控台地址（小红书主播中控台）：这类链接不是他人直播间，右下角动作应弹回内嵌中控台窗，而不是用外部浏览器开直播间。 */
+  function isCenterControlUrl(url) {
+    return /live_center_control/i.test(String(url || ''));
+  }
 
   /** 主页状态卡：从最近快照里找正在监听的平台；没有就整块隐藏。 */
   function renderLiveMonitorCard() {
@@ -1749,10 +1885,12 @@ export const consoleScript = `
     if (!active) {
       card.hidden = true;
       liveMonitorPlatform = '';
+      liveMonitorIsCenter = false;
       return;
     }
     liveMonitorPlatform = active.p;
     var snap = active.snap;
+    liveMonitorIsCenter = isCenterControlUrl(snap.url);
     var setText = function (id, text) { var node = byId(id); if (node) node.textContent = text; };
     setText('lm-plat', liveMonitorNames[active.p] || active.p);
     setText('lm-title', String(snap.title || '未知直播间'));
@@ -1761,6 +1899,11 @@ export const consoleScript = `
     setText('lm-chat', String(Number(snap.chatCount) || 0));
     setText('lm-gift', String(Number(snap.giftCount) || 0));
     setText('lm-url', String(snap.url || ''));
+    var lmOpen = byId('lm-open');
+    if (lmOpen) {
+      lmOpen.textContent = liveMonitorIsCenter ? '打开中控台 ›' : '打开直播间 ›';
+      lmOpen.title = liveMonitorIsCenter ? '把已登录的内嵌中控台窗口弹回前台' : '用浏览器打开直播间';
+    }
     card.hidden = false;
   }
 
@@ -1838,18 +1981,60 @@ export const consoleScript = `
     }
   }
   // ===== 直播间 ID 历史：开始监听成功后缓存房间 ID，每平台最多 3 条（最近优先），输入框下方点击快速填入 =====
+  // 每条可单独锁定：锁定的条目不会被新房间顶掉，也不会被上限淘汰；解锁后回到正常的最旧优先淘汰。
   var LIVE_ID_HISTORY_KEY = 'blue_fish_live_id_history_v1';
   var LIVE_ID_HISTORY_MAX = 3;
   var LIVE_ID_HISTORY_PLATFORMS = ['dm', 'ks', 'bl'];
   var liveIdHistory = { dm: [], ks: [], bl: [] };
 
-  /** 纯合并：去重 + 提到最前 + 截断到 max；不碰 DOM/存储，便于单测。 */
+  /** 缓存条目统一成 { id, locked }：兼容只存字符串的旧缓存。 */
+  function liveIdHistoryEntry(item) {
+    if (typeof item === 'string') {
+      var text = item.trim();
+      return text ? { id: text, locked: false } : null;
+    }
+    if (!item || typeof item !== 'object') return null;
+    var id = String(item.id == null ? '' : item.id).trim();
+    if (!id) return null;
+    return { id: id, locked: item.locked === true };
+  }
+
+  /** 规整成去重后的 { id, locked } 数组；不合法的条目直接丢掉。 */
+  function liveIdHistoryList(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (item) {
+      var entry = liveIdHistoryEntry(item);
+      if (!entry) return;
+      var seen = false;
+      for (var i = 0; i < out.length; i += 1) {
+        if (out[i].id === entry.id) { seen = true; break; }
+      }
+      if (!seen) out.push(entry);
+    });
+    return out;
+  }
+
+  /** 纯合并：新 ID 提到最前（沿用原锁定态）+ 去重 + 锁定的永不淘汰；不碰 DOM/存储，便于单测。 */
   function liveIdHistoryMerge(list, id, max) {
-    var text = String(id || '').trim();
-    var base = Array.isArray(list) ? list : [];
-    if (!text) return base.slice(0, max);
-    var rest = base.filter(function (item) { return item !== text; });
-    return [text].concat(rest).slice(0, max);
+    var limit = Math.max(1, Math.floor(Number(max) || 1));
+    var base = liveIdHistoryList(list);
+    var text = String(id == null ? '' : id).trim();
+    if (text) {
+      var locked = false;
+      for (var i = 0; i < base.length; i += 1) {
+        if (base[i].id === text) { locked = base[i].locked; break; }
+      }
+      base = [{ id: text, locked: locked }].concat(base.filter(function (item) { return item.id !== text; }));
+    }
+    while (base.length > limit) {
+      var dropAt = -1;
+      for (var j = base.length - 1; j >= 0; j -= 1) {
+        if (!base[j].locked) { dropAt = j; break; }
+      }
+      if (dropAt < 0) break;
+      base.splice(dropAt, 1);
+    }
+    return base;
   }
   /** 从输入里取出要展示/缓存的 ID：抖音复用 web rid 提取；B站取纯数字或链接尾段数字；快手取裸 id / 短链尾段。 */
   function liveIdHistoryExtract(platform, raw) {
@@ -1868,8 +2053,8 @@ export const consoleScript = `
       var parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return;
       LIVE_ID_HISTORY_PLATFORMS.forEach(function (p) {
-        var arr = Array.isArray(parsed[p]) ? parsed[p] : [];
-        liveIdHistory[p] = arr.filter(function (item) { return typeof item === 'string' && item.trim(); }).slice(0, LIVE_ID_HISTORY_MAX);
+        // 走一次空 ID 合并：老格式（纯字符串）升级成 { id, locked }，顺带按上限裁剪。
+        liveIdHistory[p] = liveIdHistoryMerge(parsed[p], '', LIVE_ID_HISTORY_MAX);
       });
     } catch (_) { /* 缓存坏了就当没监听过 */ }
   }
@@ -1878,12 +2063,41 @@ export const consoleScript = `
       localStorage.setItem(LIVE_ID_HISTORY_KEY, JSON.stringify(liveIdHistory));
     } catch (_) { /* 隐私模式写不进去也不影响使用 */ }
   }
+  /** 锁图标：锁定=合扣，未锁定=开扣，形状本身能区分状态（不靠颜色）。 */
+  function liveIdHistoryLockIcon(locked) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('width', '12');
+    svg.setAttribute('height', '12');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.4');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    var shackle = document.createElementNS(ns, 'path');
+    shackle.setAttribute('d', locked ? 'M5.4 7V5.3a2.6 2.6 0 0 1 5.2 0V7' : 'M5.4 7V5.3a2.6 2.6 0 0 1 5.2 0');
+    var body = document.createElementNS(ns, 'rect');
+    body.setAttribute('x', '3.4');
+    body.setAttribute('y', '6.8');
+    body.setAttribute('width', '9.2');
+    body.setAttribute('height', '6.4');
+    body.setAttribute('rx', '1.6');
+    svg.appendChild(shackle);
+    svg.appendChild(body);
+    return svg;
+  }
   function liveIdHistoryRender(platform) {
     var box = byId(platform + '-url-history');
     var input = byId(platform + '-url');
     if (!box) return;
     box.textContent = '';
-    (liveIdHistory[platform] || []).forEach(function (id) {
+    liveIdHistoryList(liveIdHistory[platform]).forEach(function (entry) {
+      var id = entry.id;
+      var row = document.createElement('span');
+      row.className = 'liveIdHistoryItem' + (entry.locked ? ' locked' : '');
+      row.setAttribute('data-history-id', id);
+
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'liveIdHistoryBtn';
@@ -1895,11 +2109,41 @@ export const consoleScript = `
         input.value = id;
         input.focus();
       });
-      box.appendChild(btn);
+
+      var lock = document.createElement('button');
+      lock.type = 'button';
+      lock.className = 'liveIdHistoryLock';
+      lock.setAttribute('aria-pressed', entry.locked ? 'true' : 'false');
+      lock.setAttribute('data-history-lock', id);
+      lock.setAttribute('aria-label', (entry.locked ? '解锁房间号 ' : '锁定房间号 ') + id);
+      lock.title = entry.locked
+        ? '已锁定：不会被新房间顶掉，也不会被清出历史'
+        : '锁定后不会被新房间顶掉，也不会被清出历史';
+      lock.appendChild(liveIdHistoryLockIcon(entry.locked));
+      lock.addEventListener('click', function () {
+        liveIdHistoryToggleLock(platform, id, true);
+      });
+
+      row.appendChild(btn);
+      row.appendChild(lock);
+      box.appendChild(row);
     });
   }
   function liveIdHistoryRenderAll() {
     LIVE_ID_HISTORY_PLATFORMS.forEach(liveIdHistoryRender);
+  }
+  /** 锁定/解锁一条历史；keepFocus 为重绘后把焦点还给同一把锁，键盘操作不会丢位置。 */
+  function liveIdHistoryToggleLock(platform, id, keepFocus) {
+    if (LIVE_ID_HISTORY_PLATFORMS.indexOf(platform) < 0) return;
+    liveIdHistory[platform] = liveIdHistoryList(liveIdHistory[platform]).map(function (item) {
+      return { id: item.id, locked: item.id === id ? !item.locked : item.locked };
+    });
+    liveIdHistorySave();
+    liveIdHistoryRender(platform);
+    if (!keepFocus) return;
+    var box = byId(platform + '-url-history');
+    var next = box && box.querySelector('.liveIdHistoryLock[data-history-lock="' + id + '"]');
+    if (next && typeof next.focus === 'function') next.focus();
   }
   /** 开始监听被接受后调用：缓存当前房间 ID 并刷新快捷行。 */
   function liveIdHistoryRemember(platform, raw) {
@@ -2068,8 +2312,6 @@ export const consoleScript = `
       hasBreezeApiKey: src.hasBreezeApiKey === true,
       fishApiKeyDraft: '',
       breezeApiKeyDraft: '',
-      clearFishApiKey: false,
-      clearBreezeApiKey: false,
       fishTtsModel: typeof src.fishTtsModel === 'string' && src.fishTtsModel ? src.fishTtsModel : 's2.1-pro-free',
       fishVoices: cloneVoiceList(src.fishVoices),
       breezeVoices: cloneVoiceList(src.breezeVoices),
@@ -2537,8 +2779,8 @@ export const consoleScript = `
   }
 
   var KEY_ROWS = [
-    { kind: 'fish', row: 'fish-key-row', input: 'voice-fish-key', btn: 'voice-fish-clear', status: 'voice-fish-key-status', draft: 'fishApiKeyDraft', clear: 'clearFishApiKey', has: 'hasFishApiKey', placeholder: '在 Fish Audio 控制台获取 Bearer Key' },
-    { kind: 'breeze', row: 'breeze-key-row', input: 'voice-breeze-key', btn: 'voice-breeze-clear', status: 'voice-breeze-key-status', draft: 'breezeApiKeyDraft', clear: 'clearBreezeApiKey', has: 'hasBreezeApiKey', placeholder: '在 Breeze Blue 开发者控制台获取（请求头 xi-api-key）' }
+    { kind: 'fish', row: 'fish-key-row', input: 'voice-fish-key', status: 'voice-fish-key-status', draft: 'fishApiKeyDraft', has: 'hasFishApiKey', placeholder: '在 Fish Audio 控制台获取 Bearer Key' },
+    { kind: 'breeze', row: 'breeze-key-row', input: 'voice-breeze-key', status: 'voice-breeze-key-status', draft: 'breezeApiKeyDraft', has: 'hasBreezeApiKey', placeholder: '在 Breeze Blue 开发者控制台获取（请求头 xi-api-key）' }
   ];
 
   function renderKeyRows() {
@@ -2550,15 +2792,11 @@ export const consoleScript = `
       var show = d.voiceProvider === r.kind;
       rowEl.hidden = !show;
       if (!show) return;
-      var input = byId(r.input), btn = byId(r.btn), status = byId(r.status);
-      var clear = d[r.clear], has = d[r.has];
+      var input = byId(r.input), status = byId(r.status);
+      var has = d[r.has];
       if (document.activeElement !== input) input.value = d[r.draft];
-      input.disabled = clear;
       input.placeholder = has ? '已保存密钥，留空保留；填写新 Key 则覆盖' : r.placeholder;
-      btn.disabled = !has;
-      btn.textContent = clear ? '取消清除' : '清除';
-      if (clear) setStatus(status, '保存后将删除磁盘上已保存的密钥。', 'error');
-      else if (has) setStatus(status, '已保存密钥，留空保留；点清除可删除。');
+      if (has) setStatus(status, '已保存密钥，留空保留；填写新 Key 会覆盖旧值。');
       else setStatus(status, '尚未保存 Key；填好后随语音设置一起保存。');
     });
   }
@@ -2621,10 +2859,8 @@ export const consoleScript = `
     };
     var fishKey = d.fishApiKeyDraft.trim();
     var breezeKey = d.breezeApiKeyDraft.trim();
-    if (d.clearFishApiKey) payload.clearFishApiKey = true;
-    else if (fishKey) payload.fishApiKey = fishKey;
-    if (d.clearBreezeApiKey) payload.clearBreezeApiKey = true;
-    else if (breezeKey) payload.breezeApiKey = breezeKey;
+    if (fishKey) payload.fishApiKey = fishKey;
+    if (breezeKey) payload.breezeApiKey = breezeKey;
     return payload;
   }
 
@@ -2665,8 +2901,6 @@ export const consoleScript = `
       g.hasBreezeApiKey = freshV.hasBreezeApiKey;
       g.fishApiKeyDraft = '';
       g.breezeApiKeyDraft = '';
-      g.clearFishApiKey = false;
-      g.clearBreezeApiKey = false;
       g.fishTtsModel = freshV.fishTtsModel;
       g.fishVoices = freshV.fishVoices;
       g.breezeVoices = freshV.breezeVoices;
@@ -3325,17 +3559,10 @@ export const consoleScript = `
       if (state.draft) state.draft.voiceVolume = clamp(this.value, 0, 3, 1);
     });
     KEY_ROWS.forEach(function (r) {
-      var input = byId(r.input), btn = byId(r.btn);
+      var input = byId(r.input);
       if (input) input.addEventListener('input', function () {
         if (!state.draft) return;
         state.draft[r.draft] = input.value;
-        if (input.value.trim() !== '') state.draft[r.clear] = false;
-        renderKeyRows();
-      });
-      if (btn) btn.addEventListener('click', function () {
-        if (!state.draft) return;
-        state.draft[r.clear] = !state.draft[r.clear];
-        if (state.draft[r.clear]) state.draft[r.draft] = '';
         renderKeyRows();
       });
     });
@@ -3343,6 +3570,11 @@ export const consoleScript = `
     var breezeLink = byId('voice-breeze-link');
     if (breezeLink) breezeLink.addEventListener('click', function () {
       window.open(BREEZE_KEY_URL, '_blank', 'noopener,noreferrer');
+    });
+    // Fish 控制台跳转：与 Breeze 同一交互
+    var fishLink = byId('voice-fish-link');
+    if (fishLink) fishLink.addEventListener('click', function () {
+      window.open(FISH_KEY_URL, '_blank', 'noopener,noreferrer');
     });
 
     // 头像
@@ -3462,6 +3694,13 @@ export const consoleScript = `
       } else {
         showToast('要用桌面端（独立模式）才能跳转浏览器', 'error');
       }
+    }
+
+    /** 「打开中控台」：把后台隐藏的小红书中控台内嵌窗弹回前台；无桥 / 未启动时由后端回错，toast 提示。 */
+    function xsShowCenter() {
+      void api('POST', '/danmaku/xiaohongshu/show-center', {}).catch(function (error) {
+        showToast((error && error.message) || String(error), 'error');
+      });
     }
 
     /** 底部唯一按钮：未监听就启动当前平台（成功后开小窗并顺手关掉直播间弹窗），已在监听就停止；请求在途时显示 loading。 */
@@ -3586,17 +3825,57 @@ export const consoleScript = `
       });
     }
 
+    // 小窗头部拖动：整条头部当抓手，按屏幕坐标增量推窗口；按住时头部光标切成抓握。
+    // 不走 -webkit-app-region:drag：那里的光标由系统非客户区接管，永远是箭头，抓手样式挂不上。
+    function wireMiniDrag() {
+      if (!LIVE_MINI) return;
+      var head = document.querySelector('.liveDialog .chatHead');
+      var bridge = window.petBridge;
+      if (!head || !bridge || typeof bridge.windowDrag !== 'function') return;
+      var dragging = false;
+      var lastX = 0;
+      var lastY = 0;
+      function push(phase, x, y) {
+        try { bridge.windowDrag(phase, x, y); } catch (_) {}
+      }
+      // 头部里的按钮（透明度/关闭）只负责点击，既不当拖动起点，也不吞掉点击。
+      function fromControl(target) {
+        return !!(target && target.closest && target.closest('button,a,input,select,textarea'));
+      }
+      head.addEventListener('pointerdown', function (event) {
+        if (event.button !== 0 || fromControl(event.target)) return;
+        dragging = true;
+        lastX = event.screenX;
+        lastY = event.screenY;
+        head.classList.add('is-dragging');
+        // 捕获指针：窗口跟着光标走后指针可能已经跑到头部外，没有捕获就会丢掉 pointerup，拖动收不住。
+        try { head.setPointerCapture(event.pointerId); } catch (_) {}
+        push('start', lastX, lastY);
+        event.preventDefault();
+      });
+      head.addEventListener('pointermove', function (event) {
+        if (!dragging) return;
+        // 窗口跟着光标走会触发操作系统补发 mousemove，屏幕坐标没变就不必再推窗口。
+        if (event.screenX === lastX && event.screenY === lastY) return;
+        lastX = event.screenX;
+        lastY = event.screenY;
+        push('move', lastX, lastY);
+      });
+      function finish() {
+        if (!dragging) return;
+        dragging = false;
+        head.classList.remove('is-dragging');
+        push('end', 0, 0);
+      }
+      head.addEventListener('pointerup', finish);
+      head.addEventListener('pointercancel', finish);
+      // 被别的窗口抢走焦点时也要收口，否则松手收不到 pointerup，拖动会话一直挂着。
+      window.addEventListener('blur', finish);
+    }
+
     function wireLiveDialog() {
-      var openBtn = byId('live-open');
       var dialog = liveDialogEl();
       var closeBtn = byId('live-close');
-      if (openBtn && dialog) {
-        openBtn.addEventListener('click', function () {
-          // 直播间统一为控制台页内 HTML 弹窗：不再另开独立桌面窗口；看弹幕仍走「弹幕小窗」。
-          if (dialog.hasAttribute('hidden')) setLiveDialog(true);
-          else setLiveDialog(false);
-        });
-      }
       if (closeBtn) closeBtn.addEventListener('click', function () {
         if (LIVE_STANDALONE) closeLiveWindow();
         else setLiveDialog(false);
@@ -3627,7 +3906,9 @@ export const consoleScript = `
       var lmOpen = byId('lm-open');
       if (lmOpen) lmOpen.addEventListener('click', function (event) {
         event.preventDefault();
-        liveOpenRoom(liveMonitorPlatform);
+        // 中控台快照：弹回内嵌中控台窗；普通直播间：外部浏览器打开房间页。
+        if (liveMonitorIsCenter) xsShowCenter();
+        else liveOpenRoom(liveMonitorPlatform);
       });
       if (dialog) {
         dialog.addEventListener('click', function (event) {
@@ -3664,6 +3945,8 @@ export const consoleScript = `
     wireLiveDialog();
     // 小窗头部的透明度滑块（非小窗形态内部直接 return）
     wireMiniOpacity();
+    // 小窗头部拖动（非小窗形态内部直接 return）
+    wireMiniDrag();
 
     // 保存与重置
     byId('pet-save').addEventListener('click', savePet);
@@ -3825,9 +4108,15 @@ select.fieldInput{cursor:pointer}
 .fieldInput:disabled{opacity:.75}
 .liveIdHistory{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .liveIdHistory:empty{display:none}
-.liveIdHistoryBtn{max-width:180px;padding:2px 10px;border:1px solid var(--border);border-radius:999px;background:var(--bg-card);color:var(--label-secondary);font-size:12px;line-height:1.6;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.liveIdHistoryBtn:hover{color:var(--label-primary);border-color:var(--label-tertiary)}
+.liveIdHistoryItem{display:inline-flex;align-items:center;max-width:220px;border:1px solid var(--border);border-radius:999px;background:var(--bg-card);overflow:hidden}
+.liveIdHistoryItem.locked{border-color:var(--primary)}
+.liveIdHistoryBtn{max-width:180px;padding:2px 4px 2px 10px;border:0;background:transparent;color:var(--label-secondary);font-size:12px;line-height:1.6;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.liveIdHistoryBtn:hover{color:var(--label-primary)}
 .liveIdHistoryBtn:focus-visible{outline:2px solid var(--label-tertiary);outline-offset:1px}
+.liveIdHistoryLock{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 8px 0 2px;border:0;background:transparent;color:var(--label-secondary);cursor:pointer;line-height:0}
+.liveIdHistoryLock:hover{color:var(--label-primary)}
+.liveIdHistoryLock:focus-visible{outline:2px solid var(--label-tertiary);outline-offset:-1px}
+.liveIdHistoryItem.locked .liveIdHistoryLock{color:var(--primary)}
 .cornerRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .corner{height:32px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);color:var(--label-secondary);font:inherit;cursor:pointer}
 .corner.active{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -4078,9 +4367,9 @@ html[data-theme=dark] .dmFeedNick.nk5{color:#ff9fbb}
 .btn.is-busy::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:liveBtnSpin .75s linear infinite}
 @keyframes liveBtnSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.btn.is-busy::before{animation-duration:2.4s}}
-/* 保存结果气泡：底部居中浮层，成功主色点、失败红点亮，自动浮现与收起，不遮挡页面点击 */
-.toastRoot{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
-.toast{display:flex;align-items:center;gap:9px;max-width:min(420px,86vw);padding:11px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--label-primary);font-size:14px;line-height:1.5;opacity:0;transform:translateY(10px);transition:opacity .22s ease,transform .22s ease}
+/* 保存结果气泡：顶部居中浮层，成功主色点、失败红点亮，自动浮现与收起，不遮挡页面点击 */
+.toastRoot{position:fixed;left:50%;top:24px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:9px;max-width:min(420px,86vw);padding:11px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--label-primary);font-size:14px;line-height:1.5;opacity:0;transform:translateY(-10px);transition:opacity .22s ease,transform .22s ease}
 .toastShow{opacity:1;transform:translateY(0)}
 .toast::before{content:"";width:8px;height:8px;border-radius:50%;flex:none}
 .toastOk::before{background:var(--primary)}
@@ -4110,7 +4399,14 @@ body.live-mini .liveDialog{width:100%;height:100%;max-height:none;border:0;borde
 /* 独立模式的 align-items:center 会把子元素缩成内容宽；小窗可见的礼物/弹幕区在 .liveMain 里，
    不在上面 chatHead/liveBody/liveFoot 的补宽名单中，这里补满整窗宽度，头部同步去掉 980px 上限 */
 body.live-mini .liveDialog .chatHead,body.live-mini .liveDialog .liveMain{width:100%;max-width:none}
-body.live-mini .liveDialog .chatHead{padding:12px 18px 4px;gap:10px;border-bottom:0;background:transparent}
+body.live-mini .liveDialog .chatHead{padding:8px 12px 3px;gap:8px;border-bottom:0;background:transparent}
+/* 小窗头部是窗口的抓手：平时显示抓手光标，按住拖动时换成抓握。
+   拖动由页内按屏幕坐标增量推窗口完成，不能挂 -webkit-app-region:drag——那条路的命中区交给
+   系统非客户区，光标被固定成箭头，这里写的 cursor 根本不生效。 */
+body.live-mini .liveDialog .chatHead{cursor:grab;user-select:none}
+body.live-mini .liveDialog .chatHead.is-dragging{cursor:grabbing}
+/* 头部里的透明度/关闭按钮只负责点击，光标保持小手，也不能当拖动起点 */
+body.live-mini .liveDialog .chatHead button{cursor:pointer}
 body.live-mini .liveDialog .chatTitle{display:inline-flex;align-items:center;gap:0;font-size:17px;font-weight:700;letter-spacing:.02em;color:#f2f3f5}
 body.live-mini .liveStatusLight{display:none!important}
 body.live-mini .chatClose{width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:#c9cdd3}
@@ -4131,12 +4427,14 @@ body.live-mini .liveBody{display:none!important}
 body.live-mini .liveFoot{display:none!important}
 /* 统计行只放真实口径（在线观众人数/礼物数/本场累计点赞数）；弹幕数不再展示，等级无数据源，不放死槽；抖音点赞由 likeCount 提供 */
 .miniStats{display:none}
-body.live-mini .miniStats{display:flex;width:100%;align-items:center;gap:20px;padding:0 18px 8px;color:#9aa0a6}
+body.live-mini .miniStats{display:flex;width:100%;align-items:center;gap:14px;padding:0 12px 6px;color:#9aa0a6}
+/* 小窗没有状态行：下播时在统计行右侧挂一个胶囊，跟抖音「已下播」口径一致 */
+body.live-mini .miniEndedTag{margin-left:auto;padding:1px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.24);color:rgba(255,255,255,.62);font-size:12px;line-height:16px;white-space:nowrap}
 body.live-mini .miniStat{display:inline-flex;align-items:center;gap:6px}
 /* 小窗字号整体放大一档（正文/昵称 12.5→14.5，统计 12.5→14，标题 15→17），按 380×560 的窗口可视距离读 */
 body.live-mini .miniStat svg{width:17px;height:17px;display:block}
 body.live-mini .miniStat b{font-size:14px;line-height:18px;font-weight:500;color:#e8eaed}
-body.live-mini .liveFeedPanel.is-active{padding:0 18px 10px;border:0;border-radius:0;background:transparent;gap:0}
+body.live-mini .liveFeedPanel.is-active{padding:0 12px 8px;border:0;border-radius:0;background:transparent;gap:0}
 body.live-mini .liveFeedPanel .dmGiftCard,
 body.live-mini .liveFeedPanel .dmFeedCard{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 /* 设计稿无「礼物/弹幕」小标题，计数收进顶部统计行 */
@@ -4148,7 +4446,9 @@ body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息"
 /* 礼物区与弹幕区之间的发丝分隔线（ specificity 需压过上面 border:0 名单） */
 body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
 body.live-mini .dmFeed{gap:4px;padding:0;border:0;background:transparent;border-radius:0;min-height:0}
-body.live-mini .dmFeed:empty::before{font-size:13px;color:#6b7076}
+/* 空态提示必须顶到容器顶部：基类 .dmFeed:empty::before 带 margin:auto，会把提示垂直居中，
+   弹幕区一旦撑满剩余高度，中间就空出一大截 */
+body.live-mini .dmFeed:empty::before{margin:0;padding:2px 0 0;align-self:flex-start;font-size:13px;color:#6b7076}
 /* 小窗弹幕行：昵称与内容作为同一段文本流，右边没位置了再从左边第二行开始（不悬挂缩进）。
    容器保持 flex 是为了让礼物行的金色礼物托与文字区并排；文字区内部是文本流。 */
 body.live-mini .dmFeedItem{display:flex;align-items:start;gap:8px;padding:5px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
@@ -4178,6 +4478,7 @@ body.live-mini .dmFeed,body.live-mini .dmGift{scrollbar-width:thin;scrollbar-col
 body.live-mini .dmFeed::-webkit-scrollbar,body.live-mini .dmGift::-webkit-scrollbar{width:6px}
 body.live-mini .dmFeed::-webkit-scrollbar-thumb,body.live-mini .dmGift::-webkit-scrollbar-thumb{background:#5a5f66;border-radius:3px}
 body.live-mini .dmFeed::-webkit-scrollbar-track,body.live-mini .dmGift::-webkit-scrollbar-track{background:transparent}
-body.live-mini .toastRoot{bottom:16px}
+/* 小窗头部（抓手 + 标题 + 按钮）压在最上面，气泡让到头部下沿再出现 */
+body.live-mini .toastRoot{top:46px}
 ${PANEL_CSS}
 `;

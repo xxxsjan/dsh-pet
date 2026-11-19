@@ -166,6 +166,14 @@ export function apply(ctx: any): void {
     },
     chatWithPet: douyinChat.chatWithPet,
     cancelVoice: douyinChat.cancelVoice,
+    // 主播下播自动停听：宿主侧补一次 state 回写，右键菜单/状态卡读的是这份快照。
+    onEnded: (status) => {
+      try {
+        state.writeSection('danmaku', status);
+      } catch (e) {
+        log.warn?.(`[blue-fish] write danmaku state failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
   });
 
   const xhsChat = createDanmakuChat();
@@ -203,7 +211,8 @@ export function apply(ctx: any): void {
   });
 
   const deps: PetRouteDeps = {
-    ...setup,    ...petLookup,
+    ...setup,
+    ...petLookup,
     ...workStatusBridge,
     ...chatMemory,
     ...balancePoll,

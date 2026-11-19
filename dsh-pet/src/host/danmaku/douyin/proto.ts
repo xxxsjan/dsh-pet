@@ -113,6 +113,15 @@ const root = protobuf.Root.fromJSON({
             total: { type: 'uint64', id: 3 },
           },
         },
+        /**
+         * 控制帧（`WebcastControlMessage`）：status=2 是状态码，3 = 直播结束（主播下播）。
+         * common（field 1）不解码，protobufjs 会自动跳过。
+         */
+        ControlMessage: {
+          fields: {
+            status: { type: 'uint32', id: 2 },
+          },
+        },
         PushFrame: {
           fields: {
             seqId: { type: 'uint64', id: 1 },
@@ -141,6 +150,8 @@ export const RoomUserSeqMessage = root.lookupType('douyin.RoomUserSeqMessage');
 export const LightGiftMessage = root.lookupType('douyin.LightGiftMessage');
 /** 点赞消息类型（`WebcastLikeMessage`）：total=本场累计总赞，count=本帧增量。 */
 export const LikeMessage = root.lookupType('douyin.LikeMessage');
+/** 控制消息类型（`WebcastControlMessage`）：status=3 表示直播结束（主播下播）。 */
+export const ControlMessage = root.lookupType('douyin.ControlMessage');
 
 /** 编码心跳帧。 */
 export function encodeHeartbeat(): Uint8Array {

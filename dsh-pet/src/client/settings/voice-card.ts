@@ -12,7 +12,7 @@ import type { jsx } from 'react/jsx-runtime';
 import type { VoiceOption, VoicePickerProps } from './picker/voice-picker.ts';
 import type { SettingsRuntime } from './runtime.ts';
 import { INPUT_CLASS, makeUiKit, numberInputProps } from './ui.ts';
-import { BREEZE_API_KEY_URL } from '../../shared/voice-links.ts';
+import { BREEZE_API_KEY_URL, FISH_API_KEY_URL } from '../../shared/voice-links.ts';
 
 export type { VoiceOption } from './picker/voice-picker.ts';
 
@@ -49,16 +49,12 @@ export interface VoiceCardProps {
   readonly hasFishApiKey: boolean;
   /** 用户新输入的 Fish Key；空串 = 保存时保留旧值。 */
   readonly fishApiKeyDraft: string;
-  /** 是否在下次保存时清空已存 Fish Key。 */
-  readonly clearFishApiKey: boolean;
   /** 用户追加的 Fish 音色。 */
   readonly fishCustomVoices: readonly CustomVoiceDraft[];
   /** 磁盘上是否已有 Breeze API Key（响应体不回传明文）。 */
   readonly hasBreezeApiKey: boolean;
   /** 用户新输入的 Breeze Key；空串 = 保存时保留旧值。 */
   readonly breezeApiKeyDraft: string;
-  /** 是否在下次保存时清空已存 Breeze Key。 */
-  readonly clearBreezeApiKey: boolean;
   /** 用户追加的 Breeze 音色。 */
   readonly breezeCustomVoices: readonly CustomVoiceDraft[];
   /** 周期碎碎念要不要念出来（受总开关约束）。 */
@@ -83,16 +79,12 @@ export interface VoiceCardProps {
   readonly onFishModelChange: (model: string) => void;
   /** 编辑 Fish Key 草稿。 */
   readonly onFishApiKeyDraftChange: (value: string) => void;
-  /** 标记清空 / 取消清空已存 Fish Key。 */
-  readonly onClearFishApiKeyChange: (clear: boolean) => void;
   /** 追加一条 Fish 自定义 Voice ID。 */
   readonly onAddFishVoice: (id: string, label: string) => void;
   /** 删除一条 Fish 自定义 Voice ID。 */
   readonly onRemoveFishVoice: (id: string) => void;
   /** 编辑 Breeze Key 草稿。 */
   readonly onBreezeApiKeyDraftChange: (value: string) => void;
-  /** 标记清空 / 取消清空已存 Breeze Key。 */
-  readonly onClearBreezeApiKeyChange: (clear: boolean) => void;
   /** 追加一条 Breeze 自定义 Voice ID。 */
   readonly onAddBreezeVoice: (id: string, label: string) => void;
   /** 删除一条 Breeze 自定义 Voice ID。 */
@@ -119,15 +111,13 @@ export function makeVoiceCard(
     const [breezeDraftId, setBreezeDraftId] = useState('');
     const [breezeDraftLabel, setBreezeDraftLabel] = useState('');
 
-    /** 引擎专用字段共用的一套：口令输入 + 清空勾选；可选的控制台跳转链接。 */
+    /** 引擎专用字段共用的一套：口令输入 + 可选的控制台跳转链接。 */
     const apiKeyField = (opts: {
       label: string;
       hint: string;
       draft: string;
       hasKey: boolean;
-      clear: boolean;
       onDraft: (value: string) => void;
-      onClear: (clear: boolean) => void;
       keyUrl?: string;
     }): Node =>
       field(
@@ -151,30 +141,13 @@ export function makeVoiceCard(
                   type: 'password',
                   className: INPUT_CLASS,
                   autoComplete: 'new-password',
-                  disabled: props.busy || opts.clear,
+                  disabled: props.busy,
                   value: opts.draft,
                   placeholder: opts.hasKey ? t('fishApiKeyKeepPlaceholder') : t('fishApiKeyPlaceholder'),
                   onChange: (e: { target: { value: string } }) => opts.onDraft(e.target.value),
                 }),
               ],
             }),
-            opts.hasKey
-              ? h('label', {
-                  className: 'blue-fish-cfg__check',
-                  children: [
-                    h('input', {
-                      type: 'checkbox',
-                      disabled: props.busy,
-                      checked: opts.clear,
-                      onChange: (e: { target: { checked: boolean } }) => {
-                        opts.onClear(e.target.checked);
-                        if (e.target.checked) opts.onDraft('');
-                      },
-                    }),
-                    t('fishApiKeyClear'),
-                  ],
-                })
-              : null,
           ],
         }),
         opts.hint,
@@ -265,9 +238,8 @@ export function makeVoiceCard(
               hint: t('fishApiKeyHint'),
               draft: props.fishApiKeyDraft,
               hasKey: props.hasFishApiKey,
-              clear: props.clearFishApiKey,
               onDraft: props.onFishApiKeyDraftChange,
-              onClear: props.onClearFishApiKeyChange,
+              keyUrl: FISH_API_KEY_URL,
             }),
             field(
               t('fishTtsModelLabel'),
@@ -305,9 +277,7 @@ export function makeVoiceCard(
               hint: t('breezeApiKeyHint'),
               draft: props.breezeApiKeyDraft,
               hasKey: props.hasBreezeApiKey,
-              clear: props.clearBreezeApiKey,
               onDraft: props.onBreezeApiKeyDraftChange,
-              onClear: props.onClearBreezeApiKeyChange,
               keyUrl: BREEZE_API_KEY_URL,
             }),
             customVoiceField({

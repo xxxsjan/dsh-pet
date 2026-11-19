@@ -27,6 +27,7 @@ import { readSettingsIcon } from '../standalone/icon.ts';
 import { readConsoleBackground, readConsoleBackgroundDark } from '../standalone/console-bg.ts';
 import { loadGiftIcon } from '../standalone/live-gift-icon.ts';
 import { loadDyEmoji } from '../standalone/dy-emoji.ts';
+import { loadXhsEmoji } from '../standalone/xhs-emoji.ts';
 import { readSettingsAssets } from '../standalone/settings-assets.ts';
 import { consolePage, consoleScript, consoleStyle } from '../standalone/console-page.ts';
 
@@ -155,9 +156,11 @@ export function startRouter(
           rejectRequest(res, 405, '仅支持 GET');
           return;
         }
-        // 抖音弹幕表情同样走同源代取：页面只给表情 token，真实地址取自固化表，
-        // 不接受任意 URL（否则就是个现成的 SSRF 入口）。
-        const emoji = await loadDyEmoji(url.searchParams.get('n') ?? '');
+        // 弹幕表情同样走同源代取：页面只给表情 token，真实地址取自固化表，
+        // 不接受任意 URL（否则就是个现成的 SSRF 入口）。p 缺省按抖音，旧链接不受影响。
+        const emojiName = url.searchParams.get('n') ?? '';
+        const emoji =
+          url.searchParams.get('p') === 'xhs' ? await loadXhsEmoji(emojiName) : await loadDyEmoji(emojiName);
         if (!emoji) {
           rejectRequest(res, 404, '该表情暂无可用图');
           return;

@@ -188,6 +188,13 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
     return okResult({ ok: true, ...status });
   }
 
+  if (rest === 'danmaku/xiaohongshu/show-center') {
+    if (method !== 'POST') return methodNotAllowed();
+    const status = deps.xiaohongshuDanmaku.showCenter();
+    deps.state.writeSection('xhs-danmaku', status);
+    return okResult({ ok: true, ...status });
+  }
+
   if (rest === 'danmaku/kuaishou/status') {
     if (method !== 'GET') return methodNotAllowed();
     return okResult({ ok: true, ...deps.kuaishouDanmaku.status() });

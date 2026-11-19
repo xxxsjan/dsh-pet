@@ -218,3 +218,23 @@ test('设置页对话面板脚本：产物缺失时 → 404 并提示重新构�
     await server.close();
   }
 });
+
+test('小红书表情取图：p=xhs 按内置表出图，img 不带令牌也能取，未收录回 404', async () => {
+  const server = await start();
+  try {
+    // 小红花只有内置 SVG，取图不联网，适合钉住路由接线。
+    const hit = await fetch(server.base + '/standalone-console/emoji?p=xhs&n=%E5%B0%8F%E7%BA%A2%E8%8A%B1');
+    assert.equal(hit.status, 200);
+    assert.equal(hit.headers.get('content-type'), 'image/svg+xml');
+    assert.match(await hit.text(), /^<svg /);
+    const miss = await fetch(server.base + '/standalone-console/emoji?p=xhs&n=%E4%B8%8D%E5%AD%98%E5%9C%A8');
+    assert.equal(miss.status, 404);
+    await miss.text();
+    // p 缺省仍查抖音表，旧链接行为不变。
+    const legacy = await fetch(server.base + '/standalone-console/emoji?n=%E4%B8%8D%E5%AD%98%E5%9C%A8');
+    assert.equal(legacy.status, 404);
+    await legacy.text();
+  } finally {
+    await server.close();
+  }
+});

@@ -7,6 +7,7 @@ import { describe, test } from 'node:test';
 
 import {
   cookieHasKsLogin,
+  extractKsEmojiPanel,
   extractKsLiveStreamId,
   extractKsPrincipalId,
   extractKsTitle,
@@ -46,10 +47,7 @@ describe('快手 URL 归一化', () => {
   });
 
   test('已有 http 原样返回', () => {
-    assert.equal(
-      normalizeKsRoomUrl('https://live.kuaishou.com/u/abc123'),
-      'https://live.kuaishou.com/u/abc123',
-    );
+    assert.equal(normalizeKsRoomUrl('https://live.kuaishou.com/u/abc123'), 'https://live.kuaishou.com/u/abc123');
   });
 
   test('live. 域名片段补 https', () => {
@@ -87,10 +85,7 @@ describe('快手页面字段提取', () => {
   });
 
   test('extractKsLiveStreamId 取 JSON 字段', () => {
-    assert.equal(
-      extractKsLiveStreamId('{"liveStreamId":"stream-777","x":1}'),
-      'stream-777',
-    );
+    assert.equal(extractKsLiveStreamId('{"liveStreamId":"stream-777","x":1}'), 'stream-777');
   });
 
   test('extractKsWsBundle 解析内嵌 wsFeedInfo', () => {
@@ -105,6 +100,24 @@ describe('快手页面字段提取', () => {
 
   test('extractKsWsBundle 信息不全返回 null', () => {
     assert.equal(extractKsWsBundle('{"wsFeedInfo":{"liveStreamId":"s-1"}}'), null);
+  });
+});
+
+describe('快手表情表提取', () => {
+  test('从 webConfig.emojiPanel 取 token→图片，并补全 https', () => {
+    const body = [
+      '{"pcLive.webConfig":{}}',
+      '{"pcLive.webConfig.emojiPanel":{"[666]":"\\u002F\\u002Fali2.a.yximgs.com\\u002Fbs2\\u002Femotion\\/e.png",',
+      '"[捂脸]":"https://bd.a.yximgs.com/bs2/emotion/b.png","坏键":"//x.png"}}',
+    ].join('');
+    const panel = extractKsEmojiPanel(body);
+    assert.equal(panel['[666]'], 'https://ali2.a.yximgs.com/bs2/emotion/e.png');
+    assert.equal(panel['[捂脸]'], 'https://bd.a.yximgs.com/bs2/emotion/b.png');
+    assert.equal(panel['坏键'], undefined);
+  });
+
+  test('页面没有表情表时返回空对象', () => {
+    assert.deepEqual(extractKsEmojiPanel('<html></html>'), {});
   });
 });
 

@@ -11,13 +11,7 @@ import type { LoggerLike } from '../../log-file.ts';
 import { resolveKsWsInfo, type KsWsInfo } from './ks-live-info.ts';
 import { parseKsWsFrame, type KsParsedItem } from './ks-danmaku.ts';
 import { createKsGiftCatalog, preloadKsGiftCatalog } from './ks-gift-catalog.ts';
-import {
-  encodeEnterRoom,
-  encodeHeartbeat,
-  encodeSocketMessage,
-  makeKsPageId,
-  KS_PAYLOAD,
-} from './proto.ts';
+import { encodeEnterRoom, encodeHeartbeat, encodeSocketMessage, makeKsPageId, KS_PAYLOAD } from './proto.ts';
 
 /** 启动参数。 */
 export type KsMonitorStartInput = {
@@ -65,6 +59,8 @@ export type KsMonitorStatus = {
   thankGift: boolean;
   /** 当前链路：ws = 直连；idle = 未启动。 */
   mode: 'ws' | 'idle';
+  /** 直播间表情表（`[表情名] → 图片地址`），前端渲染快手 emoji 用；未拿到时为空对象。 */
+  emoji: Record<string, string>;
   recent: KsFeedItem[];
 };
 
@@ -175,9 +171,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
         const petId = (resolvePetId() || 'main').trim() || 'main';
         currentJobKind = job.kind;
         try {
-          log.info?.(
-            `[blue-fish][kuaishou] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`,
-          );
+          log.info?.(`[blue-fish][kuaishou] → chat pet=${petId} kind=${job.kind} pending=${pendingChats.length}`);
           const r = await chatWithPet(petId, job.prompt, job.kind);
           if (!r.ok) {
             log.warn?.(`[blue-fish][kuaishou] chat failed kind=${job.kind}: ${r.message || 'unknown'}`);
@@ -323,10 +317,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
 
       // 进房帧：token + liveStreamId + pageId。
       socket.send(
-        encodeSocketMessage(
-          KS_PAYLOAD.CS_ENTER_ROOM,
-          encodeEnterRoom(info.token, info.liveStreamId, makeKsPageId()),
-        ),
+        encodeSocketMessage(KS_PAYLOAD.CS_ENTER_ROOM, encodeEnterRoom(info.token, info.liveStreamId, makeKsPageId())),
       );
 
       listening = true;
@@ -366,9 +357,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       if (pendingChats[i]?.kind === kind) pendingChats.splice(i, 1);
     }
     if (before !== pendingChats.length) {
-      log.info?.(
-        `[blue-fish][kuaishou] switch off kind=${kind}: drop queued=${before - pendingChats.length}`,
-      );
+      log.info?.(`[blue-fish][kuaishou] switch off kind=${kind}: drop queued=${before - pendingChats.length}`);
     }
     if (currentJobKind === kind) {
       log.info?.(`[blue-fish][kuaishou] switch off kind=${kind}: cancel in-flight voice`);
@@ -442,6 +431,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       replyChat,
       thankGift,
       mode,
+      emoji: info?.emoji ?? {},
       recent: recentFeed.slice(),
     };
   }

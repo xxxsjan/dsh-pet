@@ -21,11 +21,15 @@ function makeBridge() {
     starts: Array<{ cookie?: string }>;
     stopped: boolean;
     loggedIn: boolean;
+    visible: boolean;
+    showCalls: number;
     subs: typeof subs;
   } = {
     starts: [],
     stopped: false,
     loggedIn: false,
+    visible: false,
+    showCalls: 0,
     subs,
     async start(input: { cookie?: string }) {
       this.starts.push({ cookie: input.cookie });
@@ -33,10 +37,15 @@ function makeBridge() {
     stop() {
       this.stopped = true;
     },
-    show() {},
-    hide() {},
+    show() {
+      this.showCalls += 1;
+      this.visible = true;
+    },
+    hide() {
+      this.visible = false;
+    },
     status() {
-      return { running: true, visible: false, loggedIn: this.loggedIn, lastError: '' };
+      return { running: true, visible: this.visible, loggedIn: this.loggedIn, lastError: '' };
     },
     onFrame(fn: (frame: Uint8Array) => void) {
       subs.frame = fn;
@@ -100,13 +109,34 @@ describe('xiaohongshu monitor CDP 链路', () => {
     assert.equal(status.listening, false);
   });
 
+  test('showCenter 唤起内嵌中控台窗口并同步可见态', async () => {
+    const bridge = makeBridge();
+    const mon = createXhsMonitor(makeDeps(bridge));
+    await mon.start({});
+    assert.equal(bridge.visible, false);
+    const status = mon.showCenter();
+    assert.equal(bridge.showCalls, 1);
+    assert.equal(bridge.visible, true);
+    assert.equal(status.cdpVisible, true);
+  });
+
+  test('未启动时 showCenter 不触窗也不抛错', () => {
+    const bridge = makeBridge();
+    const mon = createXhsMonitor(makeDeps(bridge));
+    const status = mon.showCenter();
+    assert.equal(bridge.showCalls, 0);
+    assert.equal(status.listening, false);
+  });
+
   test('文本帧分发为弹幕，礼物帧分发为礼物', async () => {
     const bridge = makeBridge();
     const mon = createXhsMonitor(makeDeps(bridge));
     await mon.start({});
 
     bridge.subs.frame?.(
-      frameOf({ body: { customData: { type: 'text', desc: '你好呀', profile: { nickname: '小明' }, commentId: 'c1' } } }),
+      frameOf({
+        body: { customData: { type: 'text', desc: '你好呀', profile: { nickname: '小明' }, commentId: 'c1' } },
+      }),
     );
     bridge.subs.frame?.(
       frameOf({
@@ -156,9 +186,7 @@ describe('xiaohongshu 在线统计', () => {
     assert.equal(mon.status().chatCount, 0, '在线统计不计入弹幕数');
     assert.equal(mon.status().giftCount, 0, '在线统计不计入礼物数');
 
-    bridge.subs.frame?.(
-      frameOf({ body: { customData: { type: 'room_online', onlineCount: '1.2万', msgId: 's2' } } }),
-    );
+    bridge.subs.frame?.(frameOf({ body: { customData: { type: 'room_online', onlineCount: '1.2万', msgId: 's2' } } }));
     assert.equal(mon.status().viewerCount, 12000);
     mon.stop();
   });
@@ -296,7 +324,15 @@ describe('xiaohongshu 帧解码', () => {
   });
 
   test('b.d.b[] base64 包裹形态可解出消息', () => {
-    const inner = { customData: { type: 'gift_comment', send_user_info: { nick_name: 'B' }, base_gift_info: { name: '玫瑰' }, gift_action_info: { count: 5 } }, msgId: 'b1' };
+    const inner = {
+      customData: {
+        type: 'gift_comment',
+        send_user_info: { nick_name: 'B' },
+        base_gift_info: { name: '玫瑰' },
+        gift_action_info: { count: 5 },
+      },
+      msgId: 'b1',
+    };
     const wrapped = Buffer.from(JSON.stringify(inner), 'utf8').toString('base64');
     const seen = new Set<string>();
     const items = parseXhsWsPayload(frameOf({ b: { d: { b: [{ d: wrapped }] } } }), seen);
@@ -312,5 +348,61 @@ describe('xiaohongshu 帧解码', () => {
     assert.equal(parseXhsWsPayload(frameOf({ body: { customData: msg } }), seen).length, 1);
     assert.equal(parseXhsWsPayload(frameOf({ body: { customData: msg } }), seen).length, 0);
     assert.equal(classifyXhsItem({ type: 'audience_join', profile: { nickname: 'D' } }), null);
+  });
+});
+
+describe('xiaohongshu 协议兼容（对齐实测字段）', () => {
+  test('text_message / content 与昵称别名都能入库', () => {
+    const item = classifyXhsItem({
+      type: 'text_message',
+      content: '换行折叠',
+      profile: { nickname: '阿红' },
+      comment_id: 'c42',
+    });
+    assert.equal(item?.kind, 'chat');
+    assert.equal(item?.nick, '阿红');
+    assert.equal(item?.text, '换行折叠');
+  });
+
+  test('gift 别名、num 数量与 nickname 昵称兜底', () => {
+    const item = classifyXhsItem({
+      type: 'gift',
+      send_user_info: { nickname: '大哥' },
+      base_gift_info: { name: '玫瑰' },
+      gift_action_info: { num: 3 },
+      msg_id: 'g9',
+    });
+    assert.equal(item?.kind, 'gift');
+    assert.equal(item?.nick, '大哥');
+    assert.equal(item?.giftName, '玫瑰');
+    assert.equal(item?.count, 3);
+  });
+
+  test('refresh 帧按 member_count 取当前在线，不拿累计 viewer_count 冒充', () => {
+    assert.equal(parseXhsOnlineCount({ type: 'refresh', member_count: '1.2万', viewer_count: 999999 }), 12000);
+    assert.equal(parseXhsOnlineCount({ type: 'refresh', data: { member_count: 88 } }), 88);
+    assert.equal(parseXhsOnlineCount({ type: 'letter_refresh', display_watching_count: '3千' }), 3000);
+  });
+
+  test('展示串支持 千 与 正在观看', () => {
+    assert.equal(parseXhsCountText('3千'), 3000);
+    assert.equal(parseXhsCountText('1.2万人正在观看'), 12000);
+  });
+
+  test('command != 1 的控制帧不产生消息', () => {
+    const inner = {
+      command: 3,
+      customData: { type: 'text', desc: '不该入库', profile: { nickname: 'X' }, commentId: 'ctl1' },
+    };
+    const wrapped = Buffer.from(JSON.stringify(inner), 'utf8').toString('base64');
+    const seen = new Set<string>();
+    assert.equal(parseXhsWsPayload(frameOf({ b: { d: { b: [{ d: wrapped }] } } }), seen).length, 0);
+  });
+
+  test('snake_case 的 comment_id 也能参与去重', () => {
+    const seen = new Set<string>();
+    const msg = { type: 'text', desc: 'dup', profile: { nickname: 'A' }, comment_id: 'c9' };
+    assert.equal(parseXhsWsPayload(frameOf({ body: { customData: msg } }), seen).length, 1);
+    assert.equal(parseXhsWsPayload(frameOf({ body: { customData: msg } }), seen).length, 0);
   });
 });

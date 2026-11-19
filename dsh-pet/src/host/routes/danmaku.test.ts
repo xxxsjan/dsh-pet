@@ -12,15 +12,16 @@ import type { PetRouteDeps, RouteInput } from './types.ts';
 import type { RouteResult } from '../http.ts';
 
 type Monitor = {
-  calls: { stop: number; start: number; setOptions: number };
+  calls: { stop: number; start: number; setOptions: number; showCenter: number };
   status: () => Record<string, unknown>;
   stop: () => Record<string, unknown>;
   start: () => Promise<Record<string, unknown>>;
   setOptions: () => Record<string, unknown>;
+  showCenter: () => Record<string, unknown>;
 };
 
 function makeMonitor(source: string): Monitor {
-  const calls = { stop: 0, start: 0, setOptions: 0 };
+  const calls = { stop: 0, start: 0, setOptions: 0, showCenter: 0 };
   return {
     calls,
     status: () => ({ listening: false, source }),
@@ -35,6 +36,10 @@ function makeMonitor(source: string): Monitor {
     setOptions: () => {
       calls.setOptions += 1;
       return { listening: false, source };
+    },
+    showCenter: () => {
+      calls.showCenter += 1;
+      return { listening: true, source };
     },
   };
 }
@@ -115,5 +120,17 @@ test('互斥停止会回写其余三个状态段，当前段由 start 结果回�
   assert.deepEqual(
     written.sort(),
     ['bili-danmaku', 'danmaku', 'ks-danmaku', 'xhs-danmaku'].sort(),
+  );
+});
+
+test('小红书 show-center：唤起内嵌中控台窗口并回写状态段', async () => {
+  const { deps, monitors, sections } = makeHarness();
+  const { status, obj } = jsonOf(await handleDanmakuRoutes(deps, input('danmaku/xiaohongshu/show-center', {})));
+  assert.equal(status, 200);
+  assert.equal(obj.source, 'xiaohongshu');
+  assert.equal(monitors.xiaohongshu.calls.showCenter, 1);
+  assert.deepEqual(
+    sections.map(([name]) => name),
+    ['xhs-danmaku'],
   );
 });

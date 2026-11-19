@@ -17,6 +17,8 @@ export type KsWsInfo = {
   websocketUrl: string;
   cookie: string;
   title: string;
+  /** 直播间页自带的 `[表情名] → 图片地址` 表（前端渲染快手 emoji 用）；抓不到时为空。 */
+  emoji?: Record<string, string>;
 };
 
 const USER_AGENT =
@@ -90,7 +92,9 @@ export function createKsCookieJar(cookieStr: string): KsCookieJar {
     if (!setCookie) return;
     const list: string[] = Array.isArray(setCookie) ? setCookie : String(setCookie).split(',');
     for (const entry of list) {
-      const first = String(entry || '').split(';')[0]?.trim();
+      const first = String(entry || '')
+        .split(';')[0]
+        ?.trim();
       if (!first) continue;
       const eq = first.indexOf('=');
       if (eq <= 0) continue;
@@ -118,6 +122,70 @@ export function extractKsTitle(body: string): string {
   if (caption?.[1]) return caption[1];
   const title = /<title>([^<]{1,120})<\/title>/i.exec(body);
   return title?.[1]?.trim() ?? '';
+}
+
+/** 表情图地址归一：页面里是 `//ali2.a.yximgs.com/...` 这类协议相对地址。 */
+function normalizeEmojiUrl(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const s = value.trim();
+  if (!s) return '';
+  if (s.startsWith('//')) return `https:${s}`;
+  if (s.startsWith('http://')) return `https://${s.slice(7)}`;
+  if (s.startsWith('https://')) return s;
+  return '';
+}
+
+/** 从字符串里定位 `{` 对应的配对 `}`（跳过字符串内的花括号与转义）。 */
+function matchBrace(text: string, open: number): number {
+  let depth = 0;
+  let inStr = false;
+  for (let i = open; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inStr) {
+      if (ch === '\\') i += 1;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '{') depth += 1;
+    else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 从直播间页臃出的 `pcLive.webConfig.emojiPanel` 里取 `[表情名] → 图片地址` 表。
+ *
+ * 快手弹幕正文里的表情就是以 `[666]` / `[捂脸]` 这类 token 出现的，服务端不下发图片；
+ * 图片地址表只在页面 HTML 的这份 webConfig 里，所以进房时顺手抠出来带给前端。
+ */
+export function extractKsEmojiPanel(body: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const key = '"pcLive.webConfig.emojiPanel"';
+  let from = 0;
+  for (;;) {
+    const at = body.indexOf(key, from);
+    if (at < 0) break;
+    from = at + key.length;
+    const open = body.indexOf('{', from);
+    if (open < 0) break;
+    const end = matchBrace(body, open);
+    if (end < 0) continue;
+    try {
+      const raw = JSON.parse(body.slice(open, end + 1)) as Record<string, unknown>;
+      for (const [token, value] of Object.entries(raw)) {
+        const url = normalizeEmojiUrl(value);
+        if (token.startsWith('[') && token.endsWith(']') && url) out[token] = url;
+      }
+    } catch {
+      /* 段落不是合法 JSON 就继续找下一处 */
+    }
+    if (Object.keys(out).length) break;
+  }
+  return out;
 }
 
 /** 从页面 HTML / 注入 JSON 提取 liveStreamId。 */
@@ -185,12 +253,11 @@ function pageHeaders(cookie: string, accept: string): Record<string, string> {
   return headers;
 }
 
-async function getJson(
-  url: string,
-  jar: KsCookieJar,
-  fetchFn: typeof fetchViaOutboundProxy,
-): Promise<unknown> {
-  const init: ProxyFetchInit = { method: 'GET', headers: pageHeaders(jar.header(), 'application/json, text/plain, */*') };
+async function getJson(url: string, jar: KsCookieJar, fetchFn: typeof fetchViaOutboundProxy): Promise<unknown> {
+  const init: ProxyFetchInit = {
+    method: 'GET',
+    headers: pageHeaders(jar.header(), 'application/json, text/plain, */*'),
+  };
   const resp = await fetchFn(url, init);
   jar.applySetCookie(resp.headers.getSetCookie?.() ?? resp.headers.get('set-cookie'));
   return resp.json() as Promise<unknown>;
@@ -231,9 +298,10 @@ export async function resolveKsWsInfo(
   }
 
   const title = extractKsTitle(body);
+  const emoji = extractKsEmojiPanel(body);
   const bundle = extractKsWsBundle(body);
   if (bundle) {
-    return { ...bundle, cookie: jar.header(), title: bundle.title || title };
+    return { ...bundle, cookie: jar.header(), title: bundle.title || title, emoji };
   }
 
   const liveStreamId = extractKsLiveStreamId(body);
@@ -256,5 +324,12 @@ export async function resolveKsWsInfo(
     throw new Error('未拿到进房 token：直播会话票已失效或被风控，请在浏览器打开该直播间后再复制 Cookie');
   }
 
-  return { liveStreamId, token: parsed.token, websocketUrl: parsed.websocketUrl, cookie: jar.header(), title };
+  return {
+    liveStreamId,
+    token: parsed.token,
+    websocketUrl: parsed.websocketUrl,
+    cookie: jar.header(),
+    title,
+    emoji,
+  };
 }

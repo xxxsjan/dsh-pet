@@ -77,6 +77,15 @@ contextBridge.exposeInMainWorld('petBridge', {
   closeLiveMini(platform) {
     ipcRenderer.send('pet:close-live-mini', platform ? { platform: String(platform) } : null);
   },
+  // 无边框窗口的头部拖动：渲染端只报阶段（start/move/end）与屏幕坐标，窗口位移在主进程做。
+  // 不走 -webkit-app-region:drag 是因为系统拖动区会把光标接管成箭头，抓手样式挂不上去。
+  windowDrag(phase, screenX, screenY) {
+    ipcRenderer.send('pet:window-drag', {
+      phase: String(phase || ''),
+      x: Number(screenX),
+      y: Number(screenY),
+    });
+  },
   // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址（只接受 http(s) 链接）。
   openExternal(url) {
     ipcRenderer.send('pet:open-external', url ? { url: String(url) } : null);

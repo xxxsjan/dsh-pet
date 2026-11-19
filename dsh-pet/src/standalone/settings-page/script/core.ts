@@ -18,6 +18,8 @@ export interface ScriptConsts {
   readonly breezeVoices: readonly { readonly id: string; readonly name: string; readonly tag: string }[];
   /** Breeze Blue 控制台 API Key 页地址（来自 shared/voice-links.ts）。 */
   readonly breezeApiKeyUrl: string;
+  /** Fish Audio 控制台 API Key 页地址（来自 shared/voice-links.ts）。 */
+  readonly fishApiKeyUrl: string;
   /** 字体预设 id（来自 shared/fonts.ts）。 */
   readonly fonts: readonly string[];
   /** 显示档（来自 shared/config.ts）。 */
@@ -46,6 +48,7 @@ const VOICES = ${JSON.stringify(consts.voices)};
 const FISH_VOICES = ${JSON.stringify(consts.fishVoices)};
 const BREEZE_VOICES = ${JSON.stringify(consts.breezeVoices)};
 const BREEZE_API_KEY_URL = ${JSON.stringify(consts.breezeApiKeyUrl)};
+const FISH_API_KEY_URL = ${JSON.stringify(consts.fishApiKeyUrl)};
 const FONT_IDS = ${JSON.stringify(consts.fonts)};
 const DISPLAYS = ${JSON.stringify(consts.displays)};
 const CORNERS = ${JSON.stringify(consts.corners)};

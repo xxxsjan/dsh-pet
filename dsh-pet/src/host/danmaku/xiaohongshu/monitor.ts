@@ -351,6 +351,23 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     return status();
   }
 
+  /** 把隐藏的内嵌中控台窗口重新弹到前台（登录后默认隐藏省流，需要回看中控台时调用）。 */
+  function showCenter(): XhsMonitorStatus {
+    if (!cdp) {
+      noteError('尚未开始监听：没有可弹出的中控台窗口');
+      return status();
+    }
+    try {
+      cdp.show();
+      const snap = cdp.status();
+      cdpVisible = snap.visible;
+      cdpLoggedIn = snap.loggedIn;
+    } catch (e) {
+      noteError(e);
+    }
+    return status();
+  }
+
   function status(): XhsMonitorStatus {
     return {
       listening: listening && wantListen,
@@ -372,7 +389,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     };
   }
 
-  return { start: startMonitor, stop, status, setOptions };
+  return { start: startMonitor, stop, status, setOptions, showCenter };
 }
 
 /** 小红书中控台弹幕监听器实例。 */

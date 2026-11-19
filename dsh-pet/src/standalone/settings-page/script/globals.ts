@@ -292,8 +292,12 @@ function voiceCard() {
   const isBreeze = provider === 'breeze';
   const voiceOpts = voiceOptionsForProvider(provider);
   const fishRows = isFish ? [
-    passwordField('g-fish-key', 'Fish Audio API Key', g.fishApiKeyDraft || '', (value) => setGlobal('fishApiKeyDraft', value), g.hasFishApiKey ? '已保存密钥，留空保留；勾选下方可清除' : '在 Fish Audio 控制台获取'),
-    g.hasFishApiKey ? toggleRow('g-fish-clear', '清除已保存的 Fish API Key', '下次保存时删除磁盘上的密钥。', g.clearFishApiKey === true, (value) => setGlobal('clearFishApiKey', value)) : null,
+    make('div', { class: 'testRow' }, [
+      button('获取 API Key', () => {
+        window.open(FISH_API_KEY_URL, '_blank', 'noopener,noreferrer');
+      }, { ghost: true }),
+    ]),
+    passwordField('g-fish-key', 'Fish Audio API Key', g.fishApiKeyDraft || '', (value) => setGlobal('fishApiKeyDraft', value), g.hasFishApiKey ? '已保存密钥，留空保留；填写新 Key 会覆盖' : '在 Fish Audio 控制台获取'),
     selectField('g-fish-model', 'Fish 合成模型', g.fishTtsModel || 's2.1-pro-free', [
       { value: 's2.1-pro-free', label: 'S2.1 Pro Free' },
       { value: 's2.1-pro', label: 'S2.1 Pro' },
@@ -307,8 +311,7 @@ function voiceCard() {
         window.open(BREEZE_API_KEY_URL, '_blank', 'noopener,noreferrer');
       }, { ghost: true }),
     ]),
-    passwordField('g-breeze-key', 'Breeze Blue API Key', g.breezeApiKeyDraft || '', (value) => setGlobal('breezeApiKeyDraft', value), g.hasBreezeApiKey ? '已保存密钥，留空保留；勾选下方可清除' : '在 Breeze Blue 开发者控制台获取（请求头 xi-api-key）'),
-    g.hasBreezeApiKey ? toggleRow('g-breeze-clear', '清除已保存的 Breeze API Key', '下次保存时删除磁盘上的密钥。', g.clearBreezeApiKey === true, (value) => setGlobal('clearBreezeApiKey', value)) : null,
+    passwordField('g-breeze-key', 'Breeze Blue API Key', g.breezeApiKeyDraft || '', (value) => setGlobal('breezeApiKeyDraft', value), g.hasBreezeApiKey ? '已保存密钥，留空保留；填写新 Key 会覆盖' : '在 Breeze Blue 开发者控制台获取（请求头 xi-api-key）'),
   ].concat(breezeCustomVoiceRows()).filter(Boolean) : [];
   return card('语音播报', '桌宠开口说话用的引擎、音色与音量；保存后立即写盘。', [
     toggleRow('g-voice', '语音播报', '关闭后所有语音都静音，文字气泡不受影响。', g.voiceEnabled, (value) => setGlobal('voiceEnabled', value)),

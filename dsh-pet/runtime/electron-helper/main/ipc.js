@@ -549,6 +549,34 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     if (win && !win.isDestroyed()) win.close();
   });
 
+  // 无边框窗口的头部拖动（弹幕小窗等）：渲染端只报阶段 + 屏幕坐标，起点窗口位置与位移都在这里算。
+  // 之所以不用 -webkit-app-region:drag：拖动区的命中测试交给系统非客户区，光标被系统固定成箭头，
+  // 渲染端挂的 cursor:grab 不生效；改走这条通道后光标由页面自己控制，抓手样式才留得住。
+  // 会话按窗口对象存（WeakMap）：窗口被销毁就自动回收，不会留下按 id 复用的脏起点。
+  const windowDragSessions = new WeakMap();
+  ipcMain.on('pet:window-drag', (event, payload) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return;
+    const phase = payload && typeof payload === 'object' ? String(payload.phase || '') : '';
+    const x = Number(payload && payload.x);
+    const y = Number(payload && payload.y);
+    if (phase === 'start') {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      windowDragSessions.set(win, { wx: Math.round(win.getPosition()[0]), wy: Math.round(win.getPosition()[1]), sx: x, sy: y });
+      return;
+    }
+    const session = windowDragSessions.get(win);
+    if (!session) return;
+    if (phase === 'end') {
+      windowDragSessions.delete(win);
+      return;
+    }
+    if (phase !== 'move' || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    // 用屏幕坐标增量推窗口（不是光标相对窗口的位置）：窗口跟着光标走会触发操作系统补发
+    // mousemove，只有屏幕坐标差才不会被这层回声带偏。
+    win.setPosition(Math.round(session.wx + (x - session.sx)), Math.round(session.wy + (y - session.sy)), false);
+  });
+
   // 只叫窗口、不改去向：被别的窗口挡住时把主窗口提到前台。
   ipcMain.on('pet:focus-host', () => {
     if (openTarget !== 'desktop') return;

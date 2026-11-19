@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import { createRequestSecurity } from './request-security.ts';
 import { listenStandaloneServer } from './server.ts';
 import { consolePage, consoleScript, consoleStyle } from './console-page.ts';
+import { xhsEmojiUrlMapJson } from './xhs-emoji.ts';
 import type { StandaloneLogger } from './context.ts';
 
 /** 测试里多处要按样式文本断言，收一个短别名。 */
@@ -38,13 +39,15 @@ test('语音分区控件与本机端点接线齐备；保存体带回 pets', () 
   for (const key of ['voice-enabled', 'voice-whisper', 'voice-todo']) {
     assert.match(html, new RegExp(`data-switch="${key}"`), `语音开关 ${key} 应存在于静态壳`);
   }
-  for (const id of ['voice-fish-key', 'voice-breeze-key', 'voice-fish-clear', 'voice-breeze-clear']) {
+  for (const id of ['voice-fish-key', 'voice-breeze-key', 'voice-fish-link', 'voice-breeze-link']) {
     assert.match(html, new RegExp(`id="${id}"`), `Key 控件 ${id} 应存在于静态壳`);
   }
+  // Key 首次填写即保存、留空保留，不需要单独的清除入口
+  assert.doesNotMatch(html, /voice-fish-clear|voice-breeze-clear/, 'FISH / Breeze Key 不应有清除按钮');
   assert.match(html, /type="password"[^>]*id="voice-fish-key"/, 'Fish Key 应为密码框，不回显明文');
   assert.match(html, /type="password"[^>]*id="voice-breeze-key"/, 'Breeze Key 应为密码框，不回显明文');
-  for (const field of ['fishApiKey', 'clearFishApiKey', 'breezeApiKey', 'clearBreezeApiKey']) {
-    assert.match(consoleScript, new RegExp(field), `保存体应支持 ${field} 的写入 / 清除口径`);
+  for (const field of ['fishApiKey', 'breezeApiKey']) {
+    assert.match(consoleScript, new RegExp(field), `保存体应支持 ${field} 的写入`);
   }
   assert.match(consoleScript, /hasFishApiKey/, '读取侧应按脱敏布尔判断 Fish 是否已存 Key');
   assert.match(consoleScript, /hasBreezeApiKey/, '读取侧应按脱敏布尔判断 Breeze 是否已存 Key');
@@ -541,10 +544,9 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   const styles = consoleStyles();
   const script = consoleScript;
 
-  // 入口：底部 Dock 里排在对话 icon 右侧，只有一个直播间入口
+  // 入口：底部 Dock 只保留对话入口，不再放直播间 icon（直播间由平台入口卡打开）
   const dockBar = html.slice(html.indexOf('<nav class="dockBar"'), html.indexOf('</nav>'));
-  assert.match(dockBar, /id="live-open"/, '直播间入口应在底部 Dock');
-  assert.ok(dockBar.indexOf('id="chat-open"') < dockBar.indexOf('id="live-open"'), '直播间入口应排在对话 icon 右侧');
+  assert.doesNotMatch(dockBar, /id="live-open"/, '底部 Dock 不应再有直播间入口 icon');
 
   // 弹窗骨架：遮罩、标题「直播间 · 平台」、关闭按钮、内联配置区、底部操作条；头部不再有平台 Tab
   assert.match(html, /id="live-dialog"/, '缺少直播间弹窗遮罩');
@@ -658,7 +660,7 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   assert.match(html, /id="lm-stop"[^>]*>停止监听/, '状态卡应有停止监听快捷按钮');
   assert.match(html, /id="lm-mini"[^>]*>弹幕小窗/, '状态卡应有弹幕小窗文字链接');
   assert.match(html, /id="lm-mini"[\s\S]*?id="lm-open"[^>]*>打开直播间/, '弹幕小窗应排在打开直播间左侧');
-  assert.match(html, /id="lm-open"[^>]*>打开直播间/, '状态卡应有打开直播间链接');
+  assert.match(html, /id="lm-open"[^>]*>打开直播间/, '状态卡默认应有打开直播间链接');
   assert.match(
     html,
     /id="lm-title"[\s\S]*?id="lm-anchor"[\s\S]*?id="lm-room"[\s\S]*?id="lm-chat"[\s\S]*?id="lm-gift"[\s\S]*?id="lm-url"/,
@@ -668,8 +670,18 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   assert.match(script, /liveMonitorSnapshots/, '状态卡应读取各平台最近状态快照');
   assert.match(script, /card\.hidden = true/, '无监听时状态卡整块隐藏');
   assert.match(script, /liveStoppers\[liveMonitorPlatform\]/, '停止按钮应停掉当前监听平台');
-  assert.match(script, /liveOpenRoom\(liveMonitorPlatform\)/, '打开链接应复用现有直播间跳转');
+  assert.match(script, /liveOpenRoom\(liveMonitorPlatform\)/, '普通直播间链接应复用现有直播间跳转');
   assert.match(script, /liveOpenMini\(liveMonitorPlatform\)/, '弹幕小窗链接应打开当前监听平台的小窗');
+  // 中控台快照（如小红书 live_center_control）：右下角改为「打开中控台」，弹回内嵌窗，不再跳外部浏览器直播间
+  assert.match(script, /function isCenterControlUrl\(/, '应有中控台地址判定函数');
+  assert.match(script, /liveMonitorIsCenter/, '状态卡应记录当前快照是否为中控台');
+  assert.match(script, /打开中控台 ›/, '中控台时按钮文案应切换为打开中控台');
+  assert.match(script, /\/danmaku\/xiaohongshu\/show-center/, '打开中控台应请求后端唤起内嵌窗');
+  assert.match(
+    script,
+    /if \(liveMonitorIsCenter\) xsShowCenter\(\);\s*else liveOpenRoom\(liveMonitorPlatform\)/,
+    '中控台走唤起内嵌窗，普通直播间走外部浏览器跳转',
+  );
   assert.match(styles, /\.liveMonitorCard\{/, '状态卡应有独立卡片样式');
 
   // 旧四枚平台入口与旧四套遮罩已拆除，统一进 #live-dialog
@@ -846,11 +858,6 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   );
   assert.doesNotMatch(script, /hasLiveBridge/, '入口不应再探测开窗桥');
   assert.doesNotMatch(script, /window\.petBridge\.openLive\(\)/, '入口不应再通知主进程开独立窗口');
-  assert.match(
-    script,
-    /if \(dialog\.hasAttribute\('hidden'\)\) setLiveDialog\(true\);\s*else setLiveDialog\(false\);/,
-    '入口应直接开合页内弹窗（有桥无桥同一路径）',
-  );
   assert.match(script, /window\.petBridge\.closeLive\(\)/, '独立窗口内关闭按钮应走桥关窗');
   assert.match(script, /function closeLiveWindow\(\)/, '关闭动作应有独立收口函数');
   assert.match(script, /body\.classList\.add\('live-standalone'\)/, '独立模式应给 body 打模式类');
@@ -1001,9 +1008,32 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   assert.match(script, /setProperty\('--mini-panel-alpha'/, '透明度写到底色 alpha 变量而不是整窗 opacity');
   assert.match(script, /localStorage\.setItem\(MINI_ALPHA_KEY/, '透明度应持久化到本机');
   assert.match(script, /wireMiniOpacity\(\);/, '初始化时应接线透明度控件');
+
+  // 头部拖动：光标必须是抓手（抓握），走页内拖拽通道——系统拖动区的光标由非客户区接管，只能是箭头
+  assert.match(
+    styles,
+    /body\.live-mini \.liveDialog \.chatHead\{cursor:grab;user-select:none\}/,
+    '小窗头部应显示抓手光标',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.liveDialog \.chatHead\.is-dragging\{cursor:grabbing\}/,
+    '按住拖动时头部光标应切成抓握',
+  );
+  assert.match(styles, /body\.live-mini \.liveDialog \.chatHead button\{cursor:pointer\}/, '头部按钮保持小手');
+  assert.doesNotMatch(
+    styles,
+    /body\.live-mini \.liveDialog \.chatHead\{[^}]*app-region:drag/,
+    '小窗头部不能挂系统拖动区，否则光标被系统接管回箭头',
+  );
+  assert.match(script, /function wireMiniDrag\(\)/, '应有小窗头部拖动函数');
+  assert.match(script, /typeof bridge\.windowDrag !== 'function'/, '无窗口拖动桥时应静默跳过');
+  assert.match(script, /bridge\.windowDrag\(phase, x, y\)/, '拖动应走窗口拖动桥（阶段 + 屏幕坐标）');
+  assert.match(script, /head\.setPointerCapture\(event\.pointerId\)/, '拖动应捕获指针，窗口跟手后仍收得住');
+  assert.match(script, /wireMiniDrag\(\);/, '初始化时应接线小窗头部拖动');
 });
 
-test('保存结果气泡：保存成功 / 失败都弹出底部气泡，统一收口与 AI 保存都接入', () => {
+test('保存结果气泡：保存成功 / 失败都弹出顶部气泡，统一收口与 AI 保存都接入', () => {
   const html = consolePage();
   const styles = consoleStyles();
   const script = consoleScript;
@@ -1019,8 +1049,10 @@ test('保存结果气泡：保存成功 / 失败都弹出底部气泡，统一�
   assert.match(script, /showToast\(aiErr, 'error'\)/, 'AI 保存失败应弹气泡');
   // 前置校验拦截（未发请求）也要弹失败气泡
   assert.match(script, /showToast\(message, 'error'\)/, '宠物表单校验失败应弹气泡');
-  // 样式：浮层固定居中、成功 / 失败配色点
+  // 样式：浮层固定居中在窗口顶部（不再压住底部按钮），成功 / 失败配色点
   assert.match(styles, /\.toastRoot\{/, '气泡浮层应有定位容器');
+  assert.match(styles, /\.toastRoot\{[^}]*top:24px[^}]*\}/, '气泡浮层应贴在顶部');
+  assert.doesNotMatch(styles, /\.toastRoot\{[^}]*bottom:[^}]*\}/, '气泡浮层不应再落到底部');
   assert.match(styles, /\.toastOk::before\{background:var\(--primary\)\}/, '成功气泡用主色点');
   assert.match(styles, /\.toastError::before\{background:var\(--danger\)\}/, '失败气泡用红色点');
 });
@@ -1063,9 +1095,27 @@ test('直播间 ID 历史：三平台输入框下有快捷行，开始监听成�
   // 点击填入：chip 点击把 ID 写回输入框并聚焦
   assert.match(script, /input\.value = id;\s*input\.focus\(\);/, '点击历史 chip 应填入输入框并聚焦');
   assert.match(script, /btn\.textContent = id/, 'chip 只展示房间 ID 文本');
+
+  // 锁定：每条历史带一把锁，锁定态不靠颜色区分（aria-pressed + 形状不同的图标），重绘后焦点留在同一把锁
+  assert.match(script, /function liveIdHistoryToggleLock\(platform, id, keepFocus\)/, '应有锁定/解锁入口');
+  assert.match(
+    script,
+    /lock\.setAttribute\('aria-pressed', entry\.locked \? 'true' : 'false'\)/,
+    '锁按钮应暴露 aria-pressed',
+  );
+  assert.match(script, /lock\.setAttribute\('aria-label'/, '锁按钮应有可读名称');
+  assert.match(script, /liveIdHistoryLockIcon\(entry\.locked\)/, '锁图标应随锁定态换形状');
+  assert.match(
+    script,
+    /querySelector\('\.liveIdHistoryLock\[data-history-lock="' \+ id \+ '"\]'\)/,
+    '重绘后应把焦点还给同一把锁',
+  );
+  assert.match(styles, /\.liveIdHistoryItem\.locked\{/, '锁定条目应有可见区分');
+  assert.match(styles, /\.liveIdHistoryLock\{[^}]*cursor:pointer/, '锁按钮应是可点控件');
+  assert.match(styles, /\.liveIdHistoryLock:focus-visible\{/, '锁按钮应有可见键盘焦点');
 });
 
-test('直播间 ID 历史纯函数：MRU 去重截断与三平台 ID 提取', () => {
+test('直播间 ID 历史纯函数：MRU 去重截断、锁定不淘汰与三平台 ID 提取', () => {
   const script = consoleScript;
   const pick = (name: string, args: string): string => {
     const m = script.match(new RegExp(`function ${name}\\(${args}\\) \\{[\\s\\S]*?\\n  \\}`));
@@ -1075,6 +1125,10 @@ test('直播间 ID 历史纯函数：MRU 去重截断与三平台 ID 提取', ()
   const factory = new Function(
     pick('dmExtractWebRid', 'raw') +
       '\n' +
+      pick('liveIdHistoryEntry', 'item') +
+      '\n' +
+      pick('liveIdHistoryList', 'list') +
+      '\n' +
       pick('liveIdHistoryMerge', 'list, id, max') +
       '\n' +
       pick('liveIdHistoryExtract', 'platform, raw') +
@@ -1082,16 +1136,50 @@ test('直播间 ID 历史纯函数：MRU 去重截断与三平台 ID 提取', ()
       'return { liveIdHistoryMerge: liveIdHistoryMerge, liveIdHistoryExtract: liveIdHistoryExtract };',
   );
   const { liveIdHistoryMerge, liveIdHistoryExtract } = factory() as {
-    liveIdHistoryMerge: (list: unknown, id: unknown, max: number) => string[];
+    liveIdHistoryMerge: (list: unknown, id: unknown, max: number) => Array<{ id: string; locked: boolean }>;
     liveIdHistoryExtract: (platform: string, raw: string) => string;
   };
+  const ids = (list: Array<{ id: string; locked: boolean }>): string[] => list.map((item) => item.id);
 
   // MRU：新 ID 提最前、重复去重、超出 3 条丢最旧、空 ID 不写
-  assert.deepEqual(liveIdHistoryMerge([], '12345', 3), ['12345']);
-  assert.deepEqual(liveIdHistoryMerge(['a', 'b', 'c'], 'd', 3), ['d', 'a', 'b']);
-  assert.deepEqual(liveIdHistoryMerge(['a', 'b', 'c'], 'b', 3), ['b', 'a', 'c']);
-  assert.deepEqual(liveIdHistoryMerge(['a'], '   ', 3), ['a']);
-  assert.deepEqual(liveIdHistoryMerge(null, 'x', 3), ['x']);
+  assert.deepEqual(ids(liveIdHistoryMerge([], '12345', 3)), ['12345']);
+  assert.deepEqual(ids(liveIdHistoryMerge(['a', 'b', 'c'], 'd', 3)), ['d', 'a', 'b']);
+  assert.deepEqual(ids(liveIdHistoryMerge(['a', 'b', 'c'], 'b', 3)), ['b', 'a', 'c']);
+  assert.deepEqual(ids(liveIdHistoryMerge(['a'], '   ', 3)), ['a']);
+  assert.deepEqual(ids(liveIdHistoryMerge(null, 'x', 3)), ['x']);
+
+  // 旧缓存（纯字符串）升级成 { id, locked: false }，不会被当成坏数据丢掉
+  assert.deepEqual(liveIdHistoryMerge(['a'], '', 3), [{ id: 'a', locked: false }]);
+
+  // 锁定：被锁的条目在淘汰时跳过，只丢最旧的未锁定项；再次被提到最前也不丢锁定态
+  assert.deepEqual(liveIdHistoryMerge([{ id: 'a', locked: true }, 'b', 'c'], 'd', 3), [
+    { id: 'd', locked: false },
+    { id: 'a', locked: true },
+    { id: 'b', locked: false },
+  ]);
+  assert.deepEqual(liveIdHistoryMerge([{ id: 'a', locked: true }, 'b'], 'a', 3), [
+    { id: 'a', locked: true },
+    { id: 'b', locked: false },
+  ]);
+  // 三条全锁：新 ID 挤不进来，锁定的原样保留（不会被覆盖、也不会被移除）
+  assert.deepEqual(
+    liveIdHistoryMerge(
+      [
+        { id: 'a', locked: true },
+        { id: 'b', locked: true },
+        { id: 'c', locked: true },
+      ],
+      'd',
+      3,
+    ),
+    [
+      { id: 'a', locked: true },
+      { id: 'b', locked: true },
+      { id: 'c', locked: true },
+    ],
+  );
+  // 锁一条 + 两条未锁：新 ID 进来只淘汰未锁的最旧那条
+  assert.deepEqual(ids(liveIdHistoryMerge(['a', { id: 'b', locked: true }, 'c'], 'd', 3)), ['d', 'a', 'b']);
 
   // 提取：链接取房间号、纯数字原样、快手取短链尾段
   assert.equal(liveIdHistoryExtract('dm', 'https://live.douyin.com/123456?from=web'), '123456');
@@ -1101,4 +1189,76 @@ test('直播间 ID 历史纯函数：MRU 去重截断与三平台 ID 提取', ()
   assert.equal(liveIdHistoryExtract('ks', 'https://live.kuaishou.com/u/abc123'), 'abc123');
   assert.equal(liveIdHistoryExtract('ks', 'abc123'), 'abc123');
   assert.equal(liveIdHistoryExtract('dm', ''), '');
+});
+
+test('下播态：状态行第三态「已下播」+ 一次性气泡，轮询不会重复弹', () => {
+  const script = consoleScript;
+
+  // 状态行支持第三态（ended 优先于未监听），收播后仍带本场数据
+  const render = script.match(/function renderLiveStatus\(([\s\S]*?)\n {2}\}/);
+  assert.ok(render, '应能取到 renderLiveStatus');
+  assert.match(render![0], /ended \? '已下播'/, '状态行应支持「已下播」第三态');
+  const dmRender = script.match(/function dmRenderStatus\(data, syncToggles\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(dmRender, '应能取到 dmRenderStatus');
+  assert.match(
+    dmRender![1],
+    /renderLiveStatus\(box, dmListening, bits\.join\(' · '\), dmStatusNote\(status\), dmEnded\)/,
+    'ended 应传进状态行',
+  );
+  assert.match(dmRender![1], /else if \(dmEnded\)[\s\S]*?弹幕 ' \+ /, '收播后仍应带本场弹幕/礼物数');
+
+  // 下播提示：第一次拿到 ended 弹一次，回到非 ended 才重置
+  assert.match(dmRender![1], /if \(!dmEnded\) dmEndedNotified = false;/, '非下播态应重置提示闸门');
+  assert.match(dmRender![1], /showToast\(/, '下播应弹提示');
+  assert.match(dmRender![1], /主播已下播，已自动停止监听/, '收过播的下播提示文案');
+  assert.match(dmRender![1], /主播已下播，等开播后再开始监听/, '没开起来的下播提示文案');
+  assert.match(script, /var dmEndedNotified = false;/, '提示闸门应为模块级变量，避免轮询重复弹');
+
+  // 状态旁注：下播直接给结论；没收到过帧（startedAt 为空）说明是没开播，不谎称「已停止监听」
+  const note = script.match(/function dmStatusNote\(status\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(note, '应能取到 dmStatusNote');
+  assert.match(note![1], /if \(status\.ended\)/, '下播应走独立分支');
+  assert.match(note![1], /status\.startedAt/, '旁注应区分「收过播」与「没开起来」');
+  assert.match(note![1], /主播已下播，已自动停止监听/);
+  assert.match(note![1], /主播已下播（直播结束），等开播后再点开始监听/);
+
+  // 小窗没有状态行：下播时统计行右侧挂一个胶囊
+  const mini = script.match(/function miniSyncStats\(([\s\S]*?)\n {2}\}/);
+  assert.ok(mini, '应能取到 miniSyncStats');
+  assert.match(mini![1], /dmNode\('span', 'miniEndedTag', '已下播'\)/, '小窗下播应挂胶囊');
+  assert.match(consoleStyles(), /\.miniEndedTag\{[^}]*border-radius:999px/, '胶囊样式应存在');
+});
+
+test('快手弹幕：正文里的 [表情名] 走表情图渲染，表情表随快手状态下发缓存', () => {
+  const script = consoleScript;
+  const styles = consoleStyles();
+
+  assert.match(script, /function ksEmojiText\(text\)/, '快手应有表情 token 替换函数');
+  assert.match(script, /function ksEmojiImg\(token, src\)/, '快手表情应走图片节点');
+  assert.match(
+    script,
+    /if \(raw\.indexOf\('\['\) < 0\) return document\.createTextNode\(raw\)/,
+    '无 token 时保持纯文本',
+  );
+  assert.match(
+    script,
+    /token\.length <= 10 \? KS_EMOJI_URLS\[token\] : ''/,
+    '只替换表情表里收录的 token，其余原样保留',
+  );
+  assert.match(script, /KS_EMOJI_URLS = status\.emoji/, '表情表应随快手状态缓存');
+  assert.match(script, /textBox\.appendChild\(ksEmojiText\(item\.text\)\)/, '快手弹幕正文应走表情链路');
+  assert.match(script, /img\.className = 'dmEmoji'/, '表情图复用抖音同一套 .dmEmoji 尺寸');
+  assert.match(script, /img\.referrerPolicy = 'no-referrer'/, '表情图不带 referer，避免 CDN 防盗链');
+  assert.match(styles, /\.dmEmoji\{display:inline-block;width:1\.15em;height:1\.15em/, '表情图尺寸与抖音一致');
+});
+
+test('小红书弹幕：正文里的 [表情R] 走表情图渲染，表情表按官方码全量下发', () => {
+  const script = consoleScript;
+  assert.match(script, /function xsEmojiSrc\(token\)/, '小红书应有表情 token 查表函数');
+  assert.match(script, /function xsRichText\(text\)/, '小红书应有正文替换函数');
+  assert.match(script, /bodyBox\.appendChild\(xsRichText\(item\.text\)\)/, '小红书弹幕正文应走表情链路');
+  assert.match(script, /name\.slice\(0, -1\)/, '查表要认站内 R/H 后缀');
+  assert.match(script, /var XHS_EMOJI_URLS = \{/, '页面应内嵌小红书表情表');
+  assert.ok(script.includes(xhsEmojiUrlMapJson()), '页面表情表必须与后端同一份');
+  assert.match(script, /img\.dataset\.retried/, '表情图取图失败应先重试一次再退回文字');
 });

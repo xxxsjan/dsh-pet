@@ -19,6 +19,16 @@ const XHS_CENTER_URL = 'https://redlive.xiaohongshu.com/live_center_control';
 const SESSION_KEYS = ['web_session', 'customer-sso-sid', 'galaxy_creator_session'];
 /** 轮询登录态间隔。 */
 const LOGIN_POLL_MS = 2000;
+/** 页面里与弹幕无关的 WS（埋点/监控），旁听时直接跳过。 */
+const NOISE_WS_URL_PARTS = [
+  'sentry',
+  'google-analytics',
+  'googletagmanager',
+  'sensorsdata',
+  'apm.',
+  'hotjar',
+  'clarity.ms',
+];
 
 /** 登录态探测脚本：返回 '1' 已登录 / '0' 未登录 / 'login_ui' 登录 UI（对齐参照 XHS_LOGIN_CHECK_JS）。 */
 const XHS_LOGIN_CHECK_JS = `
@@ -90,6 +100,40 @@ function parseCookieHeader(cookieHeader) {
 }
 
 /**
+ * 解 CDP `Network.webSocketFrameReceived` 的 `response.payloadData`。
+ *
+ * CDP 约定：opcode=1 是 UTF-8 文本，其余（二进制）才是 base64。
+ * 小红书 longlink 是文本 JSON，不能无条件 base64 解；个别页面会把 JSON 再包一层
+ * base64，所以文本帧再兜底试一次。
+ *
+ * @param {string} payloadData - CDP 传来的帧载荷。
+ * @param {number} [opcode] - WebSocket 帧 opcode。
+ * @returns {Buffer|null} 原始字节；空帧返回 null。
+ */
+function decodeFramePayload(payloadData, opcode) {
+  const text = String(payloadData ?? '');
+  if (!text) return null;
+  if (opcode === 2) {
+    try {
+      const buf = Buffer.from(text, 'base64');
+      return buf.length ? buf : null;
+    } catch {
+      return null;
+    }
+  }
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return Buffer.from(trimmed, 'utf8');
+  try {
+    const buf = Buffer.from(trimmed, 'base64');
+    const decoded = buf.toString('utf8').trim();
+    if (decoded.startsWith('{') || decoded.startsWith('[')) return buf;
+  } catch {
+    /* 不是 base64：按原文交给上层，解析失败会被自然忽略 */
+  }
+  return Buffer.from(text, 'utf8');
+}
+
+/**
  * 创建小红书中控台 CDP 旁听桥控制器（进程内单例语义由调用方保证）。
  *
  * @param {object} deps
@@ -120,6 +164,8 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
   const closedListeners = new Set();
   /** @type {NodeJS.Timeout|null} */
   let loginPoll = null;
+  /** 本轮旁听到的业务帧数（仅用于首帧日志）。 */
+  let frameCount = 0;
 
   const state = {
     running: false,
@@ -189,18 +235,30 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
     }
   }
 
+  /** 页面埋点/监控类 WS：只旁听业务通道，避免把无关帧送进解码器。 */
+  function isNoiseWsUrl(url) {
+    const u = String(url || '').toLowerCase();
+    return NOISE_WS_URL_PARTS.some((part) => u.includes(part));
+  }
+
   function handleFrame(params) {
     const requestId = params?.requestId;
     if (requestId) wsUrls.set(String(requestId), String(params?.response?.url || ''));
-    const payloadData = params?.response?.payloadData;
+    const url = requestId ? wsUrls.get(String(requestId)) || '' : '';
+    if (url && isNoiseWsUrl(url)) return;
+
+    const response = params?.response;
+    const payloadData = response?.payloadData;
     if (!payloadData) return;
-    let buf;
-    try {
-      buf = Buffer.from(payloadData, 'base64');
-    } catch {
-      return;
+    const opcode = Number(response?.opcode);
+    const buf = decodeFramePayload(payloadData, opcode);
+    if (!buf || !buf.length) return;
+    frameCount += 1;
+    if (frameCount === 1) {
+      log?.info?.(
+        `[blue-fish][xhs-cdp] 收到首条业务 WS 帧：opcode=${Number.isFinite(opcode) ? opcode : '?'} bytes=${buf.length} url=${url || 'unknown'}`,
+      );
     }
-    if (!buf.length) return;
     emitFrame(buf);
   }
 
@@ -217,8 +275,9 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
     contents.debugger.attach('1.3');
     send(contents.debugger, 'Network.enable');
     send(contents.debugger, 'Page.setWebLifecycleState', { state: 'active' });
+    // 省流：视频分片/直播源按 URL 直接拒掉；弹幕走 WS，不受影响。
     send(contents.debugger, 'Network.setBlockedURLs', {
-      urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*'],
+      urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*', '*xhscdn.com/live/*', '*live-play*', '*live-source*'],
     });
   }
 
@@ -311,6 +370,8 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: false,
+        // 隐藏窗口后 Chromium 默认会节流定时器，longlink 心跳可能被拖慢/断线。
+        backgroundThrottling: false,
       },
     });
 
@@ -358,6 +419,7 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
   function stop() {
     clearLoginPoll();
     wsUrls.clear();
+    frameCount = 0;
     if (win && !win.isDestroyed()) {
       try {
         if (win.webContents.debugger.isAttached()) win.webContents.debugger.detach();
@@ -404,4 +466,4 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
   };
 }
 
-module.exports = { startXhsCdpBridge, XHS_PARTITION, XHS_CENTER_URL };
+module.exports = { startXhsCdpBridge, decodeFramePayload, XHS_PARTITION, XHS_CENTER_URL };

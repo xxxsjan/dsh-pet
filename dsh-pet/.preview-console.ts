@@ -178,7 +178,7 @@ function ksPush(kind: 'chat' | 'gift') {
     id: ksSeq,
     kind,
     nick: (kind === 'gift' ? '送礼观众' : '快手观众') + ksSeq,
-    text: kind === 'gift' ? '礼物#' + ksSeq : '这是第 ' + ksSeq + ' 条 mock 弹幕',
+    text: kind === 'gift' ? '礼物#' + ksSeq : '这是第 ' + ksSeq + ' 条 mock 弹幕 [666] 老铁 [捂脸] 安排',
     at: Date.now(),
     ...(kind === 'gift' ? { count: 1 } : {})
   });
@@ -200,6 +200,12 @@ function ksStatus() {
     replyChat: ksState.replyChat,
     thankGift: ksState.thankGift,
     mode: ksState.mode,
+    // 与真实直播间页 pcLive.webConfig.emojiPanel 同形：只放几条用于预览校验
+    emoji: {
+      '[666]': 'https://ali2.a.yximgs.com/bs2/emotion/1704763447505third_party_s1296657489.png',
+      '[捂脸]': 'https://bd.a.yximgs.com/bs2/emotion/1704776021202third_party_s1296747457.png',
+      '[老铁]': 'https://ali2.a.yximgs.com/bs2/emotion/1704763447505third_party_s1296657489.png'
+    },
     recent: ksState.recent.slice(-50)
   };
 }

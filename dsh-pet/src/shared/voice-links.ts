@@ -7,3 +7,6 @@
 
 /** Breeze Blue 开发者控制台 API Key 页（设置页「获取 API Key」跳转）。 */
 export const BREEZE_API_KEY_URL = 'https://breezeblue.ai/zh/app/developer/api-keys';
+
+/** Fish Audio 控制台 API Key 页（设置页「获取 API Key」跳转）。 */
+export const FISH_API_KEY_URL = 'https://fish.audio/app/api-keys/';

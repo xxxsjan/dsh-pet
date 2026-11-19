@@ -182,12 +182,10 @@ export function makePetConfigSection(
     const [fishCustomVoices, setFishCustomVoices] = useState<{ id: string; label: string }[]>([]);
     const [hasFishApiKey, setHasFishApiKey] = useState(false);
     const [fishApiKeyDraft, setFishApiKeyDraft] = useState('');
-    const [clearFishApiKey, setClearFishApiKey] = useState(false);
     // Breeze Blue（大肥鱼原生音色）：与 Fish 同一套形状——自定义 Voice ID 目录 + 脱敏的 Key。
     const [breezeCustomVoices, setBreezeCustomVoices] = useState<{ id: string; label: string }[]>([]);
     const [hasBreezeApiKey, setHasBreezeApiKey] = useState(false);
     const [breezeApiKeyDraft, setBreezeApiKeyDraft] = useState('');
-    const [clearBreezeApiKey, setClearBreezeApiKey] = useState(false);
     // 可选音色：来自宿主 /voice/voices，拉不到就留空——下拉只显示当前值，绝不硬编码音色 id。
     const [edgeVoices, setEdgeVoices] = useState<VoiceOption[]>([]);
     const [fishBuiltinVoices, setFishBuiltinVoices] = useState<VoiceOption[]>([]);
@@ -263,11 +261,9 @@ export function makePetConfigSection(
         if (patch.hasFishApiKey !== undefined) setHasFishApiKey(patch.hasFishApiKey);
         if (patch.breezeVoices !== undefined) setBreezeCustomVoices(patch.breezeVoices);
         if (patch.hasBreezeApiKey !== undefined) setHasBreezeApiKey(patch.hasBreezeApiKey);
-        // 读回配置后丢掉未提交的 Key 草稿与清空标记，避免「保存成功后又带上旧草稿」
+        // 读回配置后丢掉未提交的 Key 草稿，避免「保存成功后又带上旧草稿」
         setFishApiKeyDraft('');
-        setClearFishApiKey(false);
         setBreezeApiKeyDraft('');
-        setClearBreezeApiKey(false);
         if (patch.physics !== undefined) setPhysics(patch.physics);
         if (patch.font !== undefined) setFont(patch.font);
         if (patch.whisperModel !== undefined) setWhisperModel(patch.whisperModel);
@@ -384,10 +380,8 @@ export function makePetConfigSection(
         fishTtsModel,
         fishVoices: fishCustomVoices,
         fishApiKey: fishApiKeyDraft,
-        clearFishApiKey,
         breezeVoices: breezeCustomVoices,
         breezeApiKey: breezeApiKeyDraft,
-        clearBreezeApiKey,
         physics,
         whisperModel,
         chatModel,
@@ -478,11 +472,9 @@ export function makePetConfigSection(
               fishModels,
               hasFishApiKey,
               fishApiKeyDraft,
-              clearFishApiKey,
               fishCustomVoices,
               hasBreezeApiKey,
               breezeApiKeyDraft,
-              clearBreezeApiKey,
               breezeCustomVoices,
               whisperEnabled: voiceWhisperEnabled,
               todoEnabled: voiceTodoEnabled,
@@ -517,7 +509,6 @@ export function makePetConfigSection(
               onTodoToggle: setVoiceTodoEnabled,
               onFishModelChange: setFishTtsModel,
               onFishApiKeyDraftChange: setFishApiKeyDraft,
-              onClearFishApiKeyChange: setClearFishApiKey,
               onAddFishVoice: (id: string, label: string) => {
                 const cleaned = id.trim().replace(/\s+/g, '');
                 if (!cleaned) return;
@@ -533,7 +524,6 @@ export function makePetConfigSection(
                 if (voiceName === id) setVoiceName(fishBuiltinVoices[0]?.id ?? DEFAULT_FISH_VOICE_ID);
               },
               onBreezeApiKeyDraftChange: setBreezeApiKeyDraft,
-              onClearBreezeApiKeyChange: setClearBreezeApiKey,
               onAddBreezeVoice: (id: string, label: string) => {
                 const cleaned = id.trim().replace(/\s+/g, '');
                 if (!cleaned) return;

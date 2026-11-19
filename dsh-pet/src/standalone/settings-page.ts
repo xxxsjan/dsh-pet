@@ -15,7 +15,7 @@ import { PET_DISPLAYS } from '../shared/config.ts';
 import { ROUTE_SEGMENT } from '../shared/constants.ts';
 import { DEFAULT_FONT, FONT_PRESETS } from '../shared/fonts.ts';
 import { DEFAULT_PHYSICS } from '../shared/physics.ts';
-import { BREEZE_API_KEY_URL } from '../shared/voice-links.ts';
+import { BREEZE_API_KEY_URL, FISH_API_KEY_URL } from '../shared/voice-links.ts';
 import { aiScript } from './settings-page/script/ai.ts';
 import { avatarScript } from './settings-page/script/avatar.ts';
 import { bootScript } from './settings-page/script/boot.ts';
@@ -45,6 +45,7 @@ export const settingsScript = [
     fishVoices: FISH_BUILTIN_VOICES.map((voice) => ({ id: voice.id, name: voice.name, tag: voice.tag })),
     breezeVoices: BREEZE_BUILTIN_VOICES.map((voice) => ({ id: voice.id, name: voice.name, tag: voice.tag })),
     breezeApiKeyUrl: BREEZE_API_KEY_URL,
+    fishApiKeyUrl: FISH_API_KEY_URL,
     fonts: FONT_PRESETS.map((preset) => preset.id),
     displays: PET_DISPLAYS,
     corners: [...CORNER_SET],
