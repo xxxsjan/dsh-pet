@@ -57,6 +57,8 @@ export type XhsMonitorStatus = {
   cdpVisible: boolean;
   /** CDP 分区内是否已检测到登录态。 */
   cdpLoggedIn: boolean;
+  /** 本次监听是否因「主播已下播」而自动结束（true 时 listening 恒为 false，需用户手动重连）。 */
+  ended: boolean;
   recent: XhsFeedItem[];
 };
 
@@ -78,16 +80,22 @@ export type XhsMonitorDeps = {
   chatWithPet: XhsChatFn;
   /** 开关关闭时掐断该类正在生成/朗读的回复（宿主侧取消 utterance 并通知渲染端停播）；缺省不掐。 */
   cancelVoice?: (kind: 'chat' | 'gift') => void;
+  /** 自动结束（下播）时回调一次，宿主可据此回写 state / 推通知。 */
+  onEnded?: (status: XhsMonitorStatus) => void;
+  /** 下播探测间隔覆盖（毫秒）；缺省用 ENDED_PROBE_TICK_MS，测试可传小值。 */
+  endedProbeTickMs?: number;
 };
 
 /** 中控台固定地址（与参照 XHS_LIVE_CENTER_URL 对齐）。 */
 const CENTER_URL = 'https://redlive.xiaohongshu.com/live_center_control';
+/** 下播探测间隔：定时让内嵌窗检查页面是否出现结束文案。 */
+const ENDED_PROBE_TICK_MS = 60_000;
 
 /**
  * 创建小红书中控台弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createXhsMonitor(deps: XhsMonitorDeps) {
-  const { log, getCdpBridge, resolvePetId, chatWithPet, cancelVoice } = deps;
+  const { log, getCdpBridge, resolvePetId, chatWithPet, cancelVoice, onEnded } = deps;
 
   let listening = false;
   let wantListen = false;
@@ -117,6 +125,10 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
   let chatPumpRunning = false;
   /** 正在交给宠物处理的那一条的类型；开关关闭时据此决定要不要掐断在播语音。 */
   let currentJobKind: 'chat' | 'gift' | null = null;
+  /** 本次监听是否已判定「主播下播」并自动停听；start 时清零。 */
+  let ended = false;
+  /** 下播探测定时器（每个监听周期最多一个）。 */
+  let endedProbeTimer: ReturnType<typeof setInterval> | null = null;
 
   function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): void {
     feedSeq += 1;
@@ -254,6 +266,59 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     cdpLoggedIn = false;
   }
 
+  function clearEndedProbe(): void {
+    if (endedProbeTimer) clearInterval(endedProbeTimer);
+    endedProbeTimer = null;
+  }
+
+  /**
+   * 主播下播：停听 + 标记 ended，销毁内嵌窗，不再旁听。
+   * 触发点：下播探测拿到页面「直播已结束」文案。
+   */
+  function markEnded(reason: string): void {
+    // 同一次收听里重复探测：状态照旧刷新，但不重复回调宿主。
+    const already = ended && !wantListen;
+    wantListen = false;
+    ended = true;
+    listening = false;
+    mode = 'idle';
+    clearEndedProbe();
+    clearCdp();
+    if (pendingChats.length) {
+      log.info?.(`[blue-fish][xiaohongshu] ended: clear chat queue dropped=${pendingChats.length}`);
+      pendingChats.length = 0;
+    }
+    lastError = reason;
+    if (already) return;
+    log.info?.(`[blue-fish][xiaohongshu] ended: ${reason}`);
+    try {
+      onEnded?.(status());
+    } catch (e) {
+      log.warn?.(`[blue-fish][xiaohongshu] onEnded failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /**
+   * 下播探测：定时让内嵌窗检查页面是否出现「直播已结束」等文案。
+   * 旧 Helper 没有 probeEnded 时不启动（不影响既有行为）。
+   */
+  function startEndedProbe(bridge: XhsCdpBridge): void {
+    clearEndedProbe();
+    if (typeof bridge.probeEnded !== 'function' || typeof setInterval !== 'function') return;
+    const tickMs = deps.endedProbeTickMs ?? ENDED_PROBE_TICK_MS;
+    endedProbeTimer = setInterval(() => {
+      if (!wantListen || ended) return;
+      void (async () => {
+        try {
+          if (await bridge.probeEnded?.()) markEnded('主播已下播（直播结束）');
+        } catch (e) {
+          log.debug?.(`[blue-fish][xiaohongshu] ended probe failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      })();
+    }, tickMs);
+    endedProbeTimer.unref?.();
+  }
+
   async function start(bridge: XhsCdpBridge): Promise<void> {
     clearCdp();
     cdp = bridge;
@@ -280,6 +345,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     log.info?.(
       `[blue-fish][xiaohongshu] cdp center=${CENTER_URL} replyChat=${replyChat} thankGift=${thankGift} loggedIn=${cdpLoggedIn}`,
     );
+    startEndedProbe(bridge);
   }
 
   /** 开关 true→false：清掉该类排队任务；正在处理的那条同类时通知宿主掐断语音。 */
@@ -324,6 +390,8 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     recentFeed.length = 0;
     startedAt = null;
     lastError = '';
+    ended = false;
+    clearEndedProbe();
 
     const bridge = getCdpBridge?.();
     if (!bridge) {
@@ -335,6 +403,8 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
 
   function stop(): XhsMonitorStatus {
     wantListen = false;
+    ended = false;
+    clearEndedProbe();
     clearCdp();
     listening = false;
     mode = 'idle';
@@ -385,6 +455,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
       mode,
       cdpVisible,
       cdpLoggedIn,
+      ended,
       recent: recentFeed.slice(),
     };
   }

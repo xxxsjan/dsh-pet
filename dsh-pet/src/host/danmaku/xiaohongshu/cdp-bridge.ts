@@ -32,6 +32,11 @@ export type XhsCdpBridge = {
   onLogin(fn: () => void): () => void;
   /** 订阅内嵌窗被关闭（旁听中断）事件。 */
   onClosed(fn: () => void): () => void;
+  /**
+   * 探测中控台页面是否已进入「直播结束」态（true=明确下播）；
+   * 旧 Helper 可能没有此方法，monitor 需先判断是否为函数。
+   */
+  probeEnded?: () => Promise<boolean>;
 };
 
 /** globalThis 上挂 CDP 控制器的键（与 Helper 装配一致）。 */

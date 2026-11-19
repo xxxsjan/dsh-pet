@@ -61,6 +61,8 @@ export type KsMonitorStatus = {
   mode: 'ws' | 'idle';
   /** 直播间表情表（`[表情名] → 图片地址`），前端渲染快手 emoji 用；未拿到时为空对象。 */
   emoji: Record<string, string>;
+  /** 本次监听是否因「主播已下播」而自动结束（true 时 listening 恒为 false，需用户手动重连）。 */
+  ended: boolean;
   recent: KsFeedItem[];
 };
 
@@ -80,11 +82,21 @@ export type KsMonitorDeps = {
   chatWithPet: KsChatFn;
   /** 开关关闭时掐断该类正在生成/朗读的回复（宿主侧取消 utterance 并通知渲染端停播）；缺省不掐。 */
   cancelVoice?: (kind: 'chat' | 'gift') => void;
+  /** 进房换票；缺省用真实 resolveKsWsInfo，测试可注入避免打真实网络。 */
+  fetchWsInfo?: (url: string, cookie: string) => Promise<KsWsInfo>;
+  /** 自动结束（下播）时回调一次，宿主可据此回写 state / 推通知。 */
+  onEnded?: (status: KsMonitorStatus) => void;
 };
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const FEED_MAX = 50;
 const CHAT_QUEUE_MAX = 3;
+/** 断线重连退避：2s → 5s → 15s → 30s；用完仍起不来就停止监听，不再无限重连。 */
+const RECONNECT_DELAYS = [2000, 5000, 15000, 30_000];
+/** 静默探活：多久没有业务帧才去查房间是否还在播。 */
+const IDLE_PROBE_SILENT_MS = 180_000;
+/** 静默探活的检查间隔。 */
+const IDLE_PROBE_TICK_MS = 90_000;
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
@@ -92,7 +104,8 @@ const UA =
  * 创建快手直连弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createKsMonitor(deps: KsMonitorDeps) {
-  const { log, resolvePetId, chatWithPet, cancelVoice } = deps;
+  const { log, resolvePetId, chatWithPet, cancelVoice, onEnded } = deps;
+  const fetchWsInfo = deps.fetchWsInfo ?? resolveKsWsInfo;
 
   let listening = false;
   let wantListen = false;
@@ -124,6 +137,14 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   let currentJobKind: 'chat' | 'gift' | null = null;
   /** 礼物名称目录：giftId → 名称；未命中兜底 礼物#<id>。 */
   const catalog = createKsGiftCatalog();
+  /** 本次监听是否已判定「主播下播」并自动停听；start 时清零。 */
+  let ended = false;
+  /** 最近一帧业务帧的时间；用于长时间静默后的探活。 */
+  let lastFrameAt = 0;
+  /** 当前连续重连次数；连上或探活确认在播即清零。 */
+  let reconnectAttempts = 0;
+  /** 静默探活定时器（每个监听周期最多一个）。 */
+  let idleProbeTimer: ReturnType<typeof setInterval> | null = null;
 
   function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): void {
     feedSeq += 1;
@@ -221,6 +242,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   }
 
   function onMessage(data: WebSocket.RawData): void {
+    lastFrameAt = Date.now();
     const buf =
       data instanceof Buffer
         ? new Uint8Array(data)
@@ -249,6 +271,11 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     reconnectTimer = null;
   }
 
+  function clearIdleProbe(): void {
+    if (idleProbeTimer) clearInterval(idleProbeTimer);
+    idleProbeTimer = null;
+  }
+
   function teardownSocket(): void {
     clearHb();
     const cur = ws;
@@ -262,17 +289,95 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     }
   }
 
+  /**
+   * 主播下播：停听 + 标记 ended，不再重连。
+   * 触发点：重连/静默探活拿到「未开播」、退避重连次数耗尽。
+   */
+  function markEnded(reason: string): void {
+    // 同一次收听里重复探活：状态照旧刷新，但不重复回调宿主。
+    const already = ended && !wantListen;
+    wantListen = false;
+    ended = true;
+    listening = false;
+    mode = 'idle';
+    clearReconnect();
+    clearIdleProbe();
+    teardownSocket();
+    reconnectAttempts = 0;
+    if (pendingChats.length) {
+      log.info?.(`[blue-fish][kuaishou] ended: clear chat queue dropped=${pendingChats.length}`);
+      pendingChats.length = 0;
+    }
+    lastError = reason;
+    if (already) return;
+    log.info?.(`[blue-fish][kuaishou] ended: ${reason}`);
+    try {
+      onEnded?.(status());
+    } catch (e) {
+      log.warn?.(`[blue-fish][kuaishou] onEnded failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /**
+   * 探活：能进房 = 在播；抛「未开播」= 已下播（直接 markEnded）；其它错误（风控 / 网络 / 票据失效）当未知，继续重连。
+   * 返回 false 表示调用方不要再连。
+   */
+  async function probeRoomLiving(): Promise<boolean> {
+    if (!wantListen || ended) return false;
+    try {
+      await fetchWsInfo(currentUrl, currentCookie);
+      reconnectAttempts = 0;
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/未开播|直播已结束|已结束|下播/.test(msg)) {
+        markEnded('主播已下播（直播结束）');
+        return false;
+      }
+      log.debug?.(`[blue-fish][kuaishou] liveness unknown: ${msg}`);
+      return true;
+    }
+  }
+
+  /**
+   * 静默探活：长时间没有业务帧就主动查一次房间是否还在播，
+   * 避免下播后监听一直空转。
+   */
+  function startIdleProbe(): void {
+    clearIdleProbe();
+    if (typeof setInterval !== 'function') return;
+    idleProbeTimer = setInterval(() => {
+      if (!wantListen || ended || connecting) return;
+      if (Date.now() - lastFrameAt < IDLE_PROBE_SILENT_MS) return;
+      void (async () => {
+        // 探到还在播：重置静默窗口，避免每隔 90s 就请求一次房间接口。
+        if (await probeRoomLiving()) lastFrameAt = Date.now();
+      })().catch((e) => noteError(e));
+    }, IDLE_PROBE_TICK_MS);
+    idleProbeTimer.unref?.();
+  }
+
   function scheduleReconnect(reason: string): void {
-    if (!wantListen || reconnectTimer) return;
+    if (!wantListen || reconnectTimer || ended) return;
     noteError(reason);
+    if (reconnectAttempts >= RECONNECT_DELAYS.length) {
+      markEnded('重连多次失败，已停止监听');
+      return;
+    }
+    const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length - 1)] ?? 2000;
+    reconnectAttempts += 1;
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
       if (!wantListen) return;
-      void connect().catch((e) => {
+      void (async () => {
+        // 重连前先确认房间还在播：下播后无限重连没有任何意义。
+        if (!(await probeRoomLiving())) return;
+        await connect();
+      })().catch((e) => {
         noteError(e);
         scheduleReconnect('reconnect failed');
       });
-    }, 2000);
+    }, delay);
     reconnectTimer.unref?.();
   }
 
@@ -281,7 +386,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     connecting = true;
     try {
       teardownSocket();
-      info = await resolveKsWsInfo(currentUrl, currentCookie);
+      info = await fetchWsInfo(currentUrl, currentCookie);
 
       log.info?.(
         `[blue-fish][kuaishou] connect stream=${info.liveStreamId} title=${info.title || '-'} replyChat=${replyChat} thankGift=${thankGift}`,
@@ -388,17 +493,25 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     recentFeed.length = 0;
     startedAt = null;
     lastError = '';
+    ended = false;
+    reconnectAttempts = 0;
+    lastFrameAt = Date.now();
+    clearIdleProbe();
 
     // 礼物名称目录异步预拉，不阻塞进房；失败回落 礼物#<id>。
     void preloadKsGiftCatalog(catalog);
 
     await connect();
+    startIdleProbe();
     return status();
   }
 
   function stop(): KsMonitorStatus {
     wantListen = false;
+    ended = false;
+    reconnectAttempts = 0;
     clearReconnect();
+    clearIdleProbe();
     teardownSocket();
     listening = false;
     mode = 'idle';
@@ -432,6 +545,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       thankGift,
       mode,
       emoji: info?.emoji ?? {},
+      ended,
       recent: recentFeed.slice(),
     };
   }

@@ -48,6 +48,18 @@ const XHS_LOGIN_CHECK_JS = `
 })()
 `;
 
+/**
+ * 直播结束态探测脚本：仅当页面明确出现「直播已结束」等完整短语时返回 true。
+ * 不用裸「已结束」——场次管理里的历史已结束场次也会含这三个字，会误判。
+ * 具体文案以真机中控台为准，必要时在此补充关键词。
+ */
+const XHS_ENDED_CHECK_JS = `
+(() => {
+  const text = ((document.body && document.body.innerText) || '').slice(0, 4000);
+  return /直播已结束|本场直播已结束|直播结束|直播已停止|已结束直播/.test(text);
+})()
+`;
+
 /** 省流初始化脚本：不拉直播画面、静音、藏播放器，只留互动通道。 */
 const XHS_INIT_SCRIPT = `
 (function () {
@@ -442,12 +454,28 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
     return { ...state };
   }
 
+  /**
+   * 探测中控台是否已进入「直播结束」态。
+   * 窗口不在 / 页面未就绪 / 执行失败一律返回 false（保守，宁可漏判也不误杀在播监听）。
+   * @returns {Promise<boolean>}
+   */
+  async function probeEnded() {
+    if (!win || win.isDestroyed()) return false;
+    try {
+      const hit = await win.webContents.executeJavaScript(XHS_ENDED_CHECK_JS);
+      return hit === true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     start,
     stop,
     show,
     hide,
     status,
+    probeEnded,
     /** 订阅入站弹幕帧（Buffer）。返回取消订阅函数。 */
     onFrame(fn) {
       frameListeners.add(fn);

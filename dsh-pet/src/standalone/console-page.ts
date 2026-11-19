@@ -711,6 +711,22 @@ export const consoleScript = `
   var dmListening = false;
   /** 下播提示只弹一次：状态里 ended 由 false→true 时提示，回到非 ended 时重置。 */
   var dmEndedNotified = false;
+  /** 小红书/快手/B站通用的下播提示去重表：platform → 是否已弹过。 */
+  var endedNotifiedMap: Record<string, boolean> = {};
+  /** 下播自动停听的一次性提示（与抖音 dmEndedNotified 同语义，三平台共用）。 */
+  function platformEndedToast(platform: string, status: Record<string, unknown>): void {
+    var isEnded = status.ended === true;
+    if (!isEnded) {
+      delete endedNotifiedMap[platform];
+      return;
+    }
+    if (endedNotifiedMap[platform]) return;
+    endedNotifiedMap[platform] = true;
+    showToast(
+      status.startedAt ? '主播已下播，已自动停止监听' : '主播已下播，等开播后再开始监听',
+      'error',
+    );
+  }
   var dmLastFeedId = 0;
   var dmStickBottom = true;
   var dmLastStatusUrl = '';
@@ -799,6 +815,11 @@ export const consoleScript = `
     return joinNote(note, status);
   }
   function xsStatusNote(status) {
+    if (status.ended) {
+      return status.startedAt
+        ? '主播已下播，已自动停止监听'
+        : '主播已下播（直播结束），等开播后再点开始监听';
+    }
     var note = '';
     if (status.mode === 'cdp') {
       if (status.cdpVisible && !status.cdpLoggedIn) note = '等待扫码：在弹出的中控台窗口完成登录';
@@ -808,6 +829,11 @@ export const consoleScript = `
   }
   /** 快手/B站：直连 WSS 没有扫码态，只有报错时才补一行。 */
   function wsStatusNote(status) {
+    if (status.ended) {
+      return status.startedAt
+        ? '主播已下播，已自动停止监听'
+        : '主播已下播（直播结束），等开播后再点开始监听';
+    }
     return joinNote('', status);
   }
   function joinNote(note, status) {
@@ -1287,14 +1313,18 @@ export const consoleScript = `
     miniSyncStats('xs', status);
     renderLiveMonitorCard();
     xsSyncToggle();
+    platformEndedToast('xs', status);
+    var xsEnded = status.ended === true;
     var box = byId('xs-status');
     if (box) {
       var bits = [];
       if (xsListening) {
         bits.push('中控台这场直播');
         bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
+      } else if (xsEnded) {
+        bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
       }
-      renderLiveStatus(box, xsListening, bits.join(' · '), xsStatusNote(status));
+      renderLiveStatus(box, xsListening, bits.join(' · '), xsStatusNote(status), xsEnded);
     }
     xsRenderFeed(status.recent);
     if (syncToggles || xsListening) {
@@ -1576,14 +1606,18 @@ export const consoleScript = `
     miniSyncStats('ks', status);
     renderLiveMonitorCard();
     ksSyncToggle();
+    platformEndedToast('ks', status);
+    var ksEnded = status.ended === true;
     var box = byId('ks-status');
     if (box) {
       var bits = [];
       if (ksListening) {
         bits.push('直连 WSS');
         bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
+      } else if (ksEnded) {
+        bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
       }
-      renderLiveStatus(box, ksListening, bits.join(' · '), wsStatusNote(status));
+      renderLiveStatus(box, ksListening, bits.join(' · '), wsStatusNote(status), ksEnded);
     }
     ksRenderFeed(status.recent);
     if (syncToggles || ksListening) {
@@ -1837,6 +1871,8 @@ export const consoleScript = `
     miniSyncStats('bl', status);
     renderLiveMonitorCard();
     blSyncToggle();
+    platformEndedToast('bl', status);
+    var blEnded = status.ended === true;
     var box = byId('bl-status');
     if (box) {
       var bits = [];
@@ -1844,8 +1880,10 @@ export const consoleScript = `
         if (status.title) bits.push('「' + String(status.title) + '」');
         if (status.anchor) bits.push('主播 ' + String(status.anchor));
         bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
+      } else if (blEnded) {
+        bits.push('弹幕 ' + (Number(status.chatCount) || 0) + ' / 礼物 ' + (Number(status.giftCount) || 0));
       }
-      renderLiveStatus(box, blListening, bits.join(' · '), wsStatusNote(status));
+      renderLiveStatus(box, blListening, bits.join(' · '), wsStatusNote(status), blEnded);
     }
     blRenderFeed(status.recent);
     if (syncToggles || blListening) {

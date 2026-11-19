@@ -21,6 +21,7 @@ import {
   setSurface,
   setVoiceConfig,
   speechSlice,
+  splitSpeech,
   stopSayVoice,
   subscribeVoiceUtterance,
   type VoiceUtteranceEvent,
@@ -432,6 +433,130 @@ describe('stopSayVoice —— 打断自动播报', () => {
       assert.equal(getVoiceState(), 'idle');
     } finally {
       audioStub.restore();
+      fetchStub.restore();
+    }
+  });
+
+  test('多段播放中打断：在播段被暂停、预取被中止，回执 skipped、事件成对', async () => {
+    const events: VoiceUtteranceEvent[] = [];
+    const fetchStub = stubFetchWithUrls();
+    const audioStub = stubLongAudio();
+    const off = subscribeVoiceUtterance((event) => events.push(event));
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '第一句。第二句。', voiceTo: 'desktop', voiceUtteranceId: 'vu-multi' });
+      await flush();
+      assert.equal(getVoiceState(), 'ready', '打断前第一段已在播');
+      stopSayVoice();
+      await flush();
+      assert.ok(audioStub.pauses.length >= 1, '在播段应被暂停');
+      assert.equal(getVoiceState(), 'idle', '打断后归 idle 而非 failed');
+      assert.deepEqual(
+        events.map((event) => event.kind),
+        ['start', 'end'],
+      );
+      const report = fetchStub.requests.find((r) => r.url.includes('/voice/utterance/vu-multi/report'));
+      assert.ok(report, '应向宿主上报回执');
+      assert.deepEqual(JSON.parse(report.body), { status: 'skipped', reason: 'cancelled' });
+    } finally {
+      off();
+      audioStub.restore();
+      fetchStub.restore();
+    }
+  });
+});
+
+describe('splitSpeech —— 按句读切分', () => {
+  test('无标点：单段原样返回', () => {
+    assert.deepEqual(splitSpeech('该喝水了'), ['该喝水了']);
+  });
+
+  test('按标点切分且标点保留在段末', () => {
+    assert.deepEqual(splitSpeech('你好，世界。'), ['你好，', '世界。']);
+  });
+
+  test('换行视为分隔，空白段剔除', () => {
+    assert.deepEqual(splitSpeech('第一行\n第二行'), ['第一行', '第二行']);
+  });
+
+  test('纯标点输入返回空数组', () => {
+    assert.deepEqual(splitSpeech('，。！'), []);
+  });
+});
+
+describe('分句串播 —— 首句即播、边播边预取', () => {
+  test('含标点的回复：按句发多次合成请求，首段就是正文开头', async () => {
+    const fetchStub = stubFetch();
+    const restoreBrowser = stubBrowser();
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '你好呀，我是桌宠。', voiceTo: 'desktop' });
+      await flush();
+      assert.deepEqual(fetchStub.calls, [{ text: '你好呀，' }, { text: '我是桌宠。' }]);
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+
+  test('多段全部播放：播放次数等于段数且顺序一致', async () => {
+    const sink = { volumes: [] as number[] };
+    const fetchStub = stubFetch();
+    const restoreBrowser = stubBrowser(sink);
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '第一句。第二句。第三句。', voiceTo: 'desktop' });
+      await flush();
+      assert.equal(sink.volumes.length, 3, '每段都应真正起播一次');
+      assert.deepEqual(
+        fetchStub.calls.map((c) => c.text),
+        ['第一句。', '第二句。', '第三句。'],
+      );
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+
+  /** 可按文本决定成败的端点：含「坏」的那一段返回非音频，模拟单段合成失败。 */
+  function stubPartialFail(): { calls: string[]; restore: () => void } {
+    const calls: string[] = [];
+    const previous = globalThis.fetch;
+    (globalThis as { fetch: unknown }).fetch = async (_url: string, init?: { body?: string }) => {
+      const text = String((JSON.parse(init?.body ?? '{}') as { text?: unknown }).text ?? '');
+      calls.push(text);
+      const ok = !text.includes('坏');
+      return {
+        ok,
+        headers: { get: () => (ok ? 'audio/mpeg' : 'application/json') },
+        blob: async () => ({ size: 1 }),
+      };
+    };
+    return {
+      calls,
+      restore: () => {
+        (globalThis as { fetch: unknown }).fetch = previous;
+      },
+    };
+  }
+
+  test('中间段合成失败：跳过该段继续播其余，最终状态 failed', async () => {
+    const sink = { volumes: [] as number[] };
+    const fetchStub = stubPartialFail();
+    const restoreBrowser = stubBrowser(sink);
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '好的。坏的。也好。', voiceTo: 'desktop' });
+      await flush();
+      assert.deepEqual(fetchStub.calls, ['好的。', '坏的。', '也好。'], '失败段的请求照发，不影响后面继续合成');
+      assert.equal(sink.volumes.length, 2, '失败段不起播，其余两段照常播放');
+      assert.equal(getVoiceState(), 'failed', '出现过失败就要留静音喇叭');
+    } finally {
+      restoreBrowser();
       fetchStub.restore();
     }
   });

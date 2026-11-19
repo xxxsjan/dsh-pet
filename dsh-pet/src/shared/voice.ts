@@ -151,6 +151,26 @@ export function speechSlice(text: string): string {
 }
 
 /**
+ * 句读切分：把待念正文按标点切成多段，标点留在段末以保留自然停顿。
+ *
+ * 分句是「首句即播」的前提：每段单独走一次 `/voice/speak`，第一段合成好就能先出声，
+ * 不必等整段全部合成。换行同样视为分隔；空白段一律剔除；纯标点输入返回空数组。
+ *
+ * @param text - 已经过 {@link speechSlice} 截断的待念正文。
+ * @returns 去空白后的句子段；原文无标点时为单元素数组。
+ */
+export function splitSpeech(text: string): string[] {
+  const pieces = text.match(/[^。！？；，.!?;、\n\r]+[。！？；，.!?;、]?/g);
+  if (!pieces) return [];
+  const segments: string[] = [];
+  for (const piece of pieces) {
+    const part = piece.trim();
+    if (part) segments.push(part);
+  }
+  return segments;
+}
+
+/**
  * 换掉接口基址；桌面端在模块加载时调一次（`file://` 页面不能用相对路径）。
  * @param base - 已含前缀的地址，如 `blue-fish-bridge://dsh-pet/blue-fish`。
  */
@@ -329,11 +349,23 @@ function reportVoiceUtterance(
 async function speakIfEnabled(text: string, utteranceId?: string): Promise<void> {
   // 取消句柄从等配置阶段就挂上：stopSayVoice 在任何时刻进来都能拦住这一句。
   let cancelled = false;
-  let cancelSpeak: (() => void) | null = null;
-  const cancel = (): void => {
-    cancelled = true;
-    cancelSpeak?.();
+  // 分段后在播段与预取段各登记一个取消回调，用集合统一触发。
+  const cancelFns = new Set<() => void>();
+  const ctl: SpeakControl = {
+    isCancelled: () => cancelled,
+    onCancel: (fn) => {
+      cancelFns.add(fn);
+      if (cancelled) fn();
+    },
   };
+  const cancel = (): void => {
+    if (cancelled) return;
+    cancelled = true;
+    for (const fn of cancelFns) fn();
+  };
+  // 总时限覆盖整段串播：到点统一取消，在途 abort、在播 pause。
+  const overallTimer = setTimeout(cancel, SPEAK_TIMEOUT_MS);
+  overallTimer.unref?.();
   sayCancel = cancel;
   try {
     await loadConfigOnce();
@@ -347,21 +379,23 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
       if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'disabled');
       return;
     }
+    // 先截断到朗读上限，再按句读切分：不改变「最多念多少」，只改变「怎么念」。
+    const segments = splitSpeech(speechSlice(text));
+    if (segments.length === 0) {
+      setVoiceState('idle');
+      if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'empty');
+      return;
+    }
     const seq = ++utteranceSeq;
     // 先报开始再置 loading：气泡要靠这条事件挂起收起计时，晚一步它就可能已经收了。
     emitUtterance({ kind: 'start', seq, text });
     setVoiceState('loading');
     let failed = false;
     try {
-      await speak(speechSlice(text), {
-        isCancelled: () => cancelled,
-        onCancel: (fn) => {
-          cancelSpeak = fn;
-          if (cancelled) fn();
-        },
-      });
-      // speak 内部失败会置 failed，这里再读一次：合成失败也要给宿主回执，否则弹幕队列会干等到超时
-      failed = !cancelled && getVoiceState() === 'failed';
+      const result = await speakStream(segments, ctl);
+      // 串播内部状态会在 ready/failed 间跳，这里按最终结论统一一次图标与回执。
+      failed = !cancelled && result.failed;
+      if (failed) setVoiceState('failed');
     } finally {
       // 成功、失败、超时、被打断都走这里：气泡在等这个收尾，漏一次就永远挂着。
       emitUtterance({ kind: 'end', seq, text });
@@ -375,6 +409,7 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
     }
     if (cancelled) setVoiceState('idle');
   } finally {
+    clearTimeout(overallTimer);
     if (sayCancel === cancel) sayCancel = null;
   }
 }
@@ -389,22 +424,17 @@ export function stopSayVoice(): void {
   cancel?.();
 }
 
-/** 合成请求的打断控制：调用方（speakIfEnabled）注入「是否已被打断」并登记打断回调。 */
+/** 合成与播放的打断控制：调用方（speakIfEnabled）注入「是否已被打断」并登记打断回调。
+ *  分段后同一时刻可能有「在播段 + 预取段」，各自登记一个回调，因此 onCancel 要支持多个。 */
 interface SpeakControl {
   isCancelled: () => boolean;
   onCancel: (fn: () => void) => void;
 }
 
-/** 请求合成并播放；任何一步失败都落到 `failed`（气泡上留一个静音喇叭，而不是干脆没图标）。
- *  成功路径要等到 `onended`（或出错/被打断）才返回——调用方靠它判断「真正读完」，不能在 `play()` 一兑现就收尾。 */
-async function speak(text: string, ctl: SpeakControl): Promise<void> {
+/** 发起一次 `/voice/speak` 合成，返回可播放的 blob 地址；非音频响应、网络失败或被打断均返回 null。 */
+async function fetchAudio(text: string, ctl: SpeakControl): Promise<string | null> {
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), SPEAK_TIMEOUT_MS);
-  let stopPlayback: (() => void) | null = null;
-  ctl.onCancel(() => {
-    abort.abort();
-    stopPlayback?.();
-  });
+  ctl.onCancel(() => abort.abort());
   try {
     const response = await fetch(voiceBase + '/voice/speak', {
       method: 'POST',
@@ -416,48 +446,67 @@ async function speak(text: string, ctl: SpeakControl): Promise<void> {
       }),
       signal: abort.signal,
     });
-    if (!response.ok || !(response.headers.get('content-type') ?? '').includes('audio')) {
-      setVoiceState('failed');
-      return;
-    }
-    const objectUrl = URL.createObjectURL(await response.blob());
-    // 等合成/等音量期间被打断：不再起播，直接释放资源返回（状态由调用方归回 idle）。
-    if (ctl.isCancelled()) {
-      URL.revokeObjectURL(objectUrl);
-      return;
-    }
-    const audio = new Audio(objectUrl);
-    await applyPlaybackVolume(audio, voiceVolume);
-    if (ctl.isCancelled()) {
-      URL.revokeObjectURL(objectUrl);
-      return;
-    }
-    // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
-    setVoiceState('ready');
-    // 播完 / 出错 / play 被拒 / 被打断都要释放 blob，并让 await 真正等到读完（或失败）
-    await new Promise<void>((resolve) => {
-      let settled = false;
-      const finish = (ok: boolean): void => {
-        if (settled) return;
-        settled = true;
-        if (!ok && !ctl.isCancelled()) setVoiceState('failed');
-        URL.revokeObjectURL(objectUrl);
-        resolve();
-      };
-      stopPlayback = () => {
-        audio.pause();
-        finish(true);
-      };
-      audio.onended = () => finish(true);
-      audio.onerror = () => finish(false);
-      void audio.play().catch(() => finish(false));
-    });
+    if (!response.ok || !(response.headers.get('content-type') ?? '').includes('audio')) return null;
+    return URL.createObjectURL(await response.blob());
   } catch {
-    /* 含超时与主动打断：打断时由调用方归回 idle；其余失败也不能反过来打断渲染，只把图标换成静音喇叭 */
-    if (!ctl.isCancelled()) setVoiceState('failed');
-  } finally {
-    clearTimeout(timer);
+    /* 含主动 abort：返回 null 由编排层归类，不直接改全局状态，避免预取段失败干扰主状态 */
+    return null;
   }
+}
+
+/** 播放一段已合成的音频，等到 onended/出错/被打断才返回；返回 false 表示该段未成功读完。 */
+async function playAudio(objectUrl: string, ctl: SpeakControl): Promise<boolean> {
+  const audio = new Audio(objectUrl);
+  await applyPlaybackVolume(audio, voiceVolume);
+  if (ctl.isCancelled()) {
+    URL.revokeObjectURL(objectUrl);
+    return false;
+  }
+  // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
+  setVoiceState('ready');
+  return await new Promise<boolean>((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      resolve(ok);
+    };
+    ctl.onCancel(() => {
+      audio.pause();
+      finish(true);
+    });
+    audio.onended = () => finish(true);
+    audio.onerror = () => finish(false);
+    void audio.play().catch(() => finish(false));
+  });
+}
+
+/**
+ * 分句串播：第一段合成好即起播，同时预取下一段，播完无缝衔接，直到全部段处理完。
+ *
+ * 预取严格只提前一段，保证段顺序、且不挤占 host 的串行队列（同一时至多一个在途合成）。
+ * 某段失败只记标记并跳过，尽量把其余段念完；返回是否出现过失败，供回执区分 ended/failed。
+ */
+async function speakStream(segments: readonly string[], ctl: SpeakControl): Promise<{ failed: boolean }> {
+  let failed = false;
+  let next = fetchAudio(segments[0] as string, ctl);
+  for (let i = 0; i < segments.length; i++) {
+    const objectUrl = await next;
+    if (ctl.isCancelled()) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      return { failed };
+    }
+    // 起播当前段前先把下一段发出去：当前段播放期间，下一段在后台合成。
+    if (i + 1 < segments.length) next = fetchAudio(segments[i + 1] as string, ctl);
+    if (!objectUrl) {
+      failed = true;
+      continue;
+    }
+    const ok = await playAudio(objectUrl, ctl);
+    if (!ok && !ctl.isCancelled()) failed = true;
+  }
+  return { failed };
 }
 
 /** 手动点播时正在响的那个音频；新的一句先掐掉旧的，避免两句话叠在一起。 */

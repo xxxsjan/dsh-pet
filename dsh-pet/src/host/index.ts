@@ -186,6 +186,14 @@ export function apply(ctx: any): void {
     },
     chatWithPet: xhsChat.chatWithPet,
     cancelVoice: xhsChat.cancelVoice,
+    // 主播下播自动停听：宿主侧补一次 state 回写，状态卡/右键菜单读的是这份快照。
+    onEnded: (status) => {
+      try {
+        state.writeSection('xhs-danmaku', status);
+      } catch (e) {
+        log.warn?.(`[blue-fish] write xhs-danmaku state failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
   });
 
   const ksChat = createDanmakuChat();
@@ -197,6 +205,14 @@ export function apply(ctx: any): void {
     },
     chatWithPet: ksChat.chatWithPet,
     cancelVoice: ksChat.cancelVoice,
+    // 主播下播自动停听：宿主侧补一次 state 回写，状态卡/右键菜单读的是这份快照。
+    onEnded: (status) => {
+      try {
+        state.writeSection('ks-danmaku', status);
+      } catch (e) {
+        log.warn?.(`[blue-fish] write ks-danmaku state failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
   });
 
   const biliChat = createDanmakuChat();
@@ -208,6 +224,14 @@ export function apply(ctx: any): void {
     },
     chatWithPet: biliChat.chatWithPet,
     cancelVoice: biliChat.cancelVoice,
+    // 主播下播自动停听：宿主侧补一次 state 回写，状态卡/右键菜单读的是这份快照。
+    onEnded: (status) => {
+      try {
+        state.writeSection('bili-danmaku', status);
+      } catch (e) {
+        log.warn?.(`[blue-fish] write bili-danmaku state failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
   });
 
   const deps: PetRouteDeps = {

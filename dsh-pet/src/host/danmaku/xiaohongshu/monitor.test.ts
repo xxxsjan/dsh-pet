@@ -23,6 +23,8 @@ function makeBridge() {
     loggedIn: boolean;
     visible: boolean;
     showCalls: number;
+    endedHit: boolean;
+    probeCalls: number;
     subs: typeof subs;
   } = {
     starts: [],
@@ -30,6 +32,8 @@ function makeBridge() {
     loggedIn: false,
     visible: false,
     showCalls: 0,
+    endedHit: false,
+    probeCalls: 0,
     subs,
     async start(input: { cookie?: string }) {
       this.starts.push({ cookie: input.cookie });
@@ -65,6 +69,10 @@ function makeBridge() {
         subs.closed = null;
       };
     },
+    async probeEnded() {
+      this.probeCalls += 1;
+      return this.endedHit;
+    },
   };
   const origLogin = bridge.onLogin.bind(bridge);
   bridge.onLogin = (fn: () => void) =>
@@ -86,6 +94,16 @@ function makeDeps(bridge: XhsCdpBridge | undefined) {
 
 function frameOf(obj: unknown): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(obj));
+}
+
+/** 轮询等待条件成立，避免硬等固定毫秒。 */
+async function waitUntil(predicate: () => boolean, timeoutMs = 4000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw new Error('waitUntil 超时');
 }
 
 describe('xiaohongshu monitor CDP 链路', () => {
@@ -171,6 +189,35 @@ describe('xiaohongshu monitor CDP 链路', () => {
   test('桥未就绪时 start 报错', async () => {
     const mon = createXhsMonitor(makeDeps(undefined));
     await assert.rejects(() => mon.start({}), /CDP 旁听桥未就绪/);
+  });
+
+  test('探测到页面「直播已结束」：自动停听、ended=true、onEnded 回调一次', async () => {
+    const bridge = makeBridge();
+    const endedEvents: number[] = [];
+    const mon = createXhsMonitor({
+      ...makeDeps(bridge),
+      endedProbeTickMs: 30,
+      onEnded: () => endedEvents.push(1),
+    });
+    await mon.start({});
+    assert.equal(mon.status().ended, false, '刚启动不是下播态');
+
+    // 页面进入结束态：探测命中后自动停听。
+    bridge.endedHit = true;
+    await waitUntil(() => mon.status().ended);
+    const ended = mon.status();
+    assert.equal(ended.listening, false, '下播后自动停听');
+    assert.equal(ended.mode, 'idle');
+    assert.match(ended.lastError, /下播/, 'lastError 写明下播原因');
+    assert.equal(bridge.stopped, true, '下播后停掉 CDP 桥，不再让页面空转');
+    assert.equal(endedEvents.length, 1, 'onEnded 只回调一次');
+
+    // 重新开始 = 新一场，ended 清零。
+    bridge.endedHit = false;
+    const restarted = await mon.start({});
+    assert.equal(restarted.ended, false);
+    assert.equal(restarted.listening, true);
+    mon.stop();
   });
 });
 
