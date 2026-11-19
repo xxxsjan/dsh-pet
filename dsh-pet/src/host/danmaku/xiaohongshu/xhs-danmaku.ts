@@ -2,7 +2,8 @@
  * 小红书中控台 longlink 弹幕解码（对齐 danmuapp `src/platforms/xhsDanmaku.js`）。
  *
  * 中控台 WS 帧是 JSON：`body.customData`，或 `b.d.b[]` 里 base64 包裹的消息体；
- * 无 protobuf、无压缩。本轮只取「文本弹幕」与「礼物」，进场 / 关注 / 在线人数 / 人气先留样本不入库。
+ * 无 protobuf、无压缩。入库「文本弹幕」「礼物」与「在线统计」，
+ * 进场 / 关注 / 礼物托/结算先留样本不入库。
  * @module dsh-pet/src/host/danmaku/xiaohongshu/xhs-danmaku
  */
 
@@ -27,10 +28,10 @@ export type XhsCustomData = {
 
 /** 解码后归一到展示口径的一条消息。 */
 export type XhsParsedItem = {
-  kind: 'chat' | 'gift';
+  kind: 'chat' | 'gift' | 'online';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0。 */
+  /** 礼物件数；聊天为 0；online 为在线观看人数。 */
   count: number;
   giftName: string;
 };
@@ -140,12 +141,86 @@ export function parseXhsWsPayload(raw: unknown, seen: Set<string>): XhsCustomDat
   return out;
 }
 
+/** 在线统计类 customData 的候选数值字段：中控台各版本键名不统一，按序取第一个可用值。 */
+const XHS_ONLINE_KEYS = [
+  'online_user_num',
+  'online_user_count',
+  'online_count',
+  'online_num',
+  'onlineUserNum',
+  'onlineUserCount',
+  'onlineCount',
+  'onlineNum',
+  'viewer_count',
+  'viewerCount',
+  'watch_count',
+  'watchCount',
+  'audience_count',
+  'audienceCount',
+  'user_count',
+  'userCount',
+  'count',
+  'num',
+  'value',
+  'total',
+];
+
+/** 类型名兜底：含在线 / 观看 / 统计语义才按在线统计处理，其余类型继续留样本。 */
+const XHS_ONLINE_TYPE_RE = /online|viewer|watching|audience|statistic|stats|room_stat/i;
+
+/**
+ * 「1234」/「1.2万」/「1.2w」/「3.4亿」→ 整数；解析不出返回 -1。
+ * 纯数字之外只放行 人 / 位 / 观众 / 在线 / 观看 这类尾缀。
+ */
+export function parseXhsCountText(value: unknown): number {
+  if (value == null) return -1;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value >= 0 ? Math.floor(value) : -1;
+  }
+  const s = String(value)
+    .replace(/[,，\s]/g, '')
+    .trim();
+  if (!s) return -1;
+  const m = /^(\d+(?:\.\d+)?)(亿|万|w|W)?(?:人|位|观众|在线|观看)*$/.exec(s);
+  if (!m) return -1;
+  const base = Number(m[1]);
+  if (!Number.isFinite(base) || base < 0) return -1;
+  const unit = m[2];
+  const scale = unit === '亿' ? 1e8 : unit === '万' || unit === 'w' || unit === 'W' ? 1e4 : 1;
+  return Math.max(0, Math.floor(base * scale));
+}
+
+/**
+ * 在线统计类 customData → 在线人数；非在线类 / 取不到数值返回 -1。
+ *
+ * 中控台不同版本的 type 名与字段名都不稳定，这里按语义白名单 + 候选键兜底，
+ * 取不到就继续按「留样本」处理，绝不拿弹幕/礼物条数冒充。
+ */
+export function parseXhsOnlineCount(cd: XhsCustomData): number {
+  const type = String(cd.type || '').trim();
+  if (!type || !XHS_ONLINE_TYPE_RE.test(type)) return -1;
+  for (const key of XHS_ONLINE_KEYS) {
+    const n = parseXhsCountText((cd as Record<string, unknown>)[key]);
+    if (n >= 0) return n;
+  }
+  // 少数版本把数字塞进展示文案（如「1.2万人正在观看」）。
+  const hint = /在线|在看|观看|观众|人数/.test(String(cd.desc || ''));
+  if (!hint) return -1;
+  const m = /(\d+(?:\.\d+)?)(亿|万|w|W)?/.exec(String(cd.desc || '').replace(/[,，\s]/g, ''));
+  if (!m) return -1;
+  const base = Number(m[1]);
+  if (!Number.isFinite(base) || base < 0) return -1;
+  const unit = m[2];
+  const scale = unit === '亿' ? 1e8 : unit === '万' || unit === 'w' || unit === 'W' ? 1e4 : 1;
+  return Math.max(0, Math.floor(base * scale));
+}
+
 function pickNick(cd: XhsCustomData): string {
   const send = cd.send_user_info;
   return String(send?.nick_name || cd.profile?.nickname || '匿名').trim() || '匿名';
 }
 
-/** 把单条 customData 归一为展示项；非弹幕 / 礼物返回 null。 */
+/** 把单条 customData 归一为展示项；非弹幕 / 礼物 / 在线统计返回 null。 */
 export function classifyXhsItem(cd: XhsCustomData): XhsParsedItem | null {
   switch (cd.type) {
     case 'text': {
@@ -163,8 +238,11 @@ export function classifyXhsItem(cd: XhsCustomData): XhsParsedItem | null {
       const count = Number(action.comb_count ?? action.count ?? gift.count ?? 1) || 1;
       return { kind: 'gift', nick, text: giftName, count: Math.max(1, count), giftName };
     }
-    default:
-      // audience_join / follow_emcee / gift_dock_and_effect / gift_settle / 在线统计：本轮留样本不入库。
+    default: {
+      // 在线统计：type 语义命中且取到数值才入库；进场 / 关注 / 礼物托与结算继续留样本。
+      const online = parseXhsOnlineCount(cd);
+      if (online >= 0) return { kind: 'online', nick: '', text: '', count: online, giftName: '' };
       return null;
+    }
   }
 }

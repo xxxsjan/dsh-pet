@@ -37,6 +37,8 @@ const BASE = {
       whisperEnabled: false,
       workStatusEnabled: false,
       fixedEnabled: false,
+      clickSoundEnabled: true,
+      clickSoundVolume: 0.5,
       display: 'web',
       position: { corner: 'bottom-right', marginX: 40, marginY: 40 },
     },
@@ -1159,6 +1161,140 @@ describe('readAllConfig —— 宠物固定合并（缺失取默认 / 非法回�
     const pets = merged.main.pets as Record<string, unknown>[];
     assert.equal(pets.find((p) => p.id === 'a')?.fixedEnabled, true);
     assert.equal(pets.find((p) => p.id === 'b')?.fixedEnabled, false);
+  });
+});
+
+describe('readAllConfig —— 点击音效下沉实例级（默认 / 实例覆盖 / 旧全局回落）', () => {
+  /** 内置默认带上实例级点击音效（与 assets/config.jsonc 同形：开 + 0.5） */
+  const CLICK_BASE = { pets: [{ ...BASE.pets[0], clickSoundEnabled: true, clickSoundVolume: 0.5 }] };
+  const petAt = (merged: Record<string, Record<string, unknown>>, n = 0): Record<string, unknown> =>
+    (merged.main.pets as Record<string, unknown>[])[n];
+
+  test('内置默认有值 → 用户层没写时读得到（默认开 + 0.5）', () => {
+    const pet = petAt(readAllConfig(withBase(CLICK_BASE)));
+    assert.equal(pet.clickSoundEnabled, true);
+    assert.equal(pet.clickSoundVolume, 0.5);
+  });
+
+  test('实例写了 → 覆盖内置默认', () => {
+    const merged = readAllConfig(
+      withBase(CLICK_BASE, { pets: [{ ...BASE.pets[0], clickSoundEnabled: false, clickSoundVolume: 0.2 }] }),
+    );
+    assert.equal(petAt(merged).clickSoundEnabled, false);
+    assert.equal(petAt(merged).clickSoundVolume, 0.2);
+  });
+
+  test('实例写了非法值 → 回退内置默认（告警 + 默认，不让脏值进渲染层）', () => {
+    const merged = readAllConfig(
+      withBase(CLICK_BASE, { pets: [{ ...BASE.pets[0], clickSoundEnabled: 'yes', clickSoundVolume: 7 }] }),
+    );
+    assert.equal(petAt(merged).clickSoundEnabled, true);
+    assert.equal(petAt(merged).clickSoundVolume, 0.5);
+  });
+
+  test('逐实例独立：一只静音小音量，另一只没写取默认', () => {
+    const merged = readAllConfig(
+      withBase(CLICK_BASE, {
+        pets: [
+          { ...BASE.pets[0], id: 'a', clickSoundEnabled: false, clickSoundVolume: 0.1 },
+          { ...BASE.pets[0], id: 'b' },
+        ],
+      }),
+    );
+    const pets = merged.main.pets as Record<string, unknown>[];
+    const a = pets.find((p) => p.id === 'a') as Record<string, unknown>;
+    const b = pets.find((p) => p.id === 'b') as Record<string, unknown>;
+    assert.equal(a.clickSoundEnabled, false);
+    assert.equal(a.clickSoundVolume, 0.1);
+    assert.equal(b.clickSoundEnabled, true);
+    assert.equal(b.clickSoundVolume, 0.5);
+  });
+
+  test('旧全局值回落：顶层写过、实例没写 → 按顶层旧值生效，且成品顶层不再带这两个键', () => {
+    // 实例必须真的「没写自己的值」：BASE 夹具自带显式值，得先剥掉才测得到回落。
+    const bare: Record<string, unknown> = { ...BASE.pets[0] };
+    delete bare.clickSoundEnabled;
+    delete bare.clickSoundVolume;
+    const merged = readAllConfig(
+      withBase(CLICK_BASE, { clickSoundEnabled: false, clickSoundVolume: 0.3, pets: [bare] }),
+    );
+    assert.equal(petAt(merged).clickSoundEnabled, false, '老用户全局关掉的音效不能因下沉而复活');
+    assert.equal(petAt(merged).clickSoundVolume, 0.3);
+    assert.equal('clickSoundEnabled' in merged.main, false, '成品顶层不再有全局点击音效键');
+    assert.equal('clickSoundVolume' in merged.main, false);
+  });
+
+  test('实例显式值优先于旧全局值', () => {
+    const merged = readAllConfig(
+      withBase(CLICK_BASE, { clickSoundEnabled: false, pets: [{ ...BASE.pets[0], clickSoundEnabled: true }] }),
+    );
+    assert.equal(petAt(merged).clickSoundEnabled, true);
+  });
+
+  test('旧全局值非法 → 视同没写，仍取内置默认', () => {
+    const bare: Record<string, unknown> = { ...BASE.pets[0] };
+    delete bare.clickSoundEnabled;
+    delete bare.clickSoundVolume;
+    const merged = readAllConfig(withBase(CLICK_BASE, { clickSoundEnabled: 'no', clickSoundVolume: 9, pets: [bare] }));
+    assert.equal(petAt(merged).clickSoundEnabled, true);
+    assert.equal(petAt(merged).clickSoundVolume, 0.5);
+  });
+
+  test('文件宠物也认主用户层的旧全局值（它当年对所有宠物生效）', () => {
+    const paths = withBase(CLICK_BASE, { clickSoundEnabled: false, clickSoundVolume: 0.25 });
+    mkdirSync(paths.petDir, { recursive: true });
+    writeFileSync(join(paths.petDir, 'pig-config.json'), JSON.stringify({ pets: [{ id: 'pig' }] }));
+    const merged = readAllConfig(paths);
+    const pig = (merged.pig.pets as Record<string, unknown>[])[0];
+    assert.equal(pig.clickSoundEnabled, false);
+    assert.equal(pig.clickSoundVolume, 0.25);
+  });
+});
+
+describe('saveUserConfig —— 点击音效（per-pet 白名单 + 顶层旧值透传保留）', () => {
+  const petAt = (out: Record<string, unknown> | null, n = 0): Record<string, unknown> =>
+    (out?.pets as Record<string, unknown>[])[n];
+
+  test('随请求体逐宠物写入（不在白名单就会被保存悄悄丢掉）', () => {
+    const out = saveOnce({ pets: [{ ...PETS[0], clickSoundEnabled: false, clickSoundVolume: 0.2 }] });
+    assert.equal(petAt(out).clickSoundEnabled, false);
+    assert.equal(petAt(out).clickSoundVolume, 0.2);
+  });
+
+  test('未传时落盘即缺失（读取侧取默认 / 旧全局回落，不凭空造值）', () => {
+    const bare: Record<string, unknown> = { ...PETS[0] };
+    delete bare.clickSoundEnabled;
+    delete bare.clickSoundVolume;
+    const pet = petAt(saveOnce({ pets: [bare] }));
+    assert.equal(pet.clickSoundEnabled, undefined);
+    assert.equal(pet.clickSoundVolume, undefined);
+  });
+
+  test('传非法值 → 整体拒绝（宿主回 400）', () => {
+    assert.equal(saveOnce({ pets: [{ ...PETS[0], clickSoundEnabled: 'yes' }] }), null);
+    assert.equal(saveOnce({ pets: [{ ...PETS[0], clickSoundVolume: 1.5 }] }), null);
+    assert.equal(saveOnce({ pets: [{ ...PETS[0], clickSoundVolume: '0.5' }] }), null);
+  });
+
+  test('逐实例独立：一只关一只开都按各自的值落盘', () => {
+    const out = saveOnce({
+      pets: [
+        { ...PETS[0], id: 'a', clickSoundEnabled: false },
+        { ...PETS[0], id: 'b', clickSoundEnabled: true },
+      ],
+    });
+    const pets = out?.pets as Record<string, unknown>[];
+    assert.equal(pets.find((p) => p.id === 'a')?.clickSoundEnabled, false);
+    assert.equal(pets.find((p) => p.id === 'b')?.clickSoundEnabled, true);
+  });
+
+  test('顶层旧全局键不再进白名单：既有旧值透传保留，不被一次保存抹掉', () => {
+    const out = saveOnce(
+      { pets: [PETS[0]], notificationsEnabled: true },
+      { clickSoundEnabled: false, clickSoundVolume: 0.3 },
+    );
+    assert.equal(out?.clickSoundEnabled, false, '旧全局值留着给读取侧回落，保存不得顺手删掉');
+    assert.equal(out?.clickSoundVolume, 0.3);
   });
 });
 

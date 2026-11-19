@@ -2,7 +2,7 @@
  * B 站直连弹幕监听器：换票（WBI 签名 + getInfoByRoom + getDanmuInfo）→ WSS 直连 →
  * 认证包 + 30s 心跳 → 二进制帧解码分发。
  *
- * 不走 CDP 旁听；最小链路只入库弹幕 + 礼物，进场 / 关注 / 点赞 / 在线人数 / 醒目留言留样本。
+ * 不走 CDP 旁听；入库弹幕 + 礼物 + 在线人数，进场 / 关注 / 点赞 / 醒目留言留样本。
  * 进房握手（登录 Cookie / WBI / 风控）只能桌面真机连直播间验证。
  * @module dsh-pet/src/host/danmaku/bilibili/monitor
  */
@@ -55,6 +55,8 @@ export type BiliMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /** 在线观众人数（ONLINE_RANK_COUNT 高能用户数）；-1 = 本场还没收到统计帧。 */
+  viewerCount: number;
   lastError: string;
   startedAt: number | null;
   replyChat: boolean;
@@ -99,6 +101,8 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
   let connecting = false;
   let chatCount = 0;
   let giftCount = 0;
+  /** 在线观众人数；-1 表示本场还没收到统计帧。 */
+  let viewerCount = -1;
   let feedSeq = 0;
   let lastError = '';
   let startedAt: number | null = null;
@@ -189,6 +193,11 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
   }
 
   function handleItem(item: BiliParsedItem): void {
+    if (item.kind === 'online') {
+      viewerCount = Math.max(0, item.count);
+      log.debug?.(`[blue-fish][bilibili] online viewers=${viewerCount}`);
+      return;
+    }
     if (item.kind === 'chat') {
       chatCount += 1;
       pushFeed('chat', item.nick, item.text);
@@ -377,6 +386,7 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
     seenIds.clear();
     chatCount = 0;
     giftCount = 0;
+    viewerCount = -1;
     feedSeq = 0;
     recentFeed.length = 0;
     startedAt = null;
@@ -415,6 +425,7 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
       anchor: info?.anchor || '',
       chatCount,
       giftCount,
+      viewerCount,
       lastError,
       startedAt,
       replyChat,

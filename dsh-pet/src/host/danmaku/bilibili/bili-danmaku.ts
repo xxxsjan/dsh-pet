@@ -2,8 +2,8 @@
  * B 站直连 WSS 弹幕解码（对齐 danmuapp `src/platforms/biliDanmaku.js`）。
  *
  * 帧为定长 16 字节头 + body：ver=2 业务包 zlib 解压（可嵌套）；op=5 MESSAGE 为 JSON，
- * 按 cmd 分发。最小链路只入库弹幕 `DANMU_MSG` 与礼物 `SEND_GIFT` / `GUARD_BUY`，
- * 进场 / 关注 / 点赞 / 在线人数 / 醒目留言等本轮留样本不入库。
+ * 按 cmd 分发。入库弹幕 `DANMU_MSG`、礼物 `SEND_GIFT` / `GUARD_BUY` 与在线人数
+ * `ONLINE_RANK_COUNT`；进场 / 关注 / 点赞 / 醒目留言等本轮留样本不入库。
  * @module dsh-pet/src/host/danmaku/bilibili/bili-danmaku
  */
 import { inflate } from 'pako';
@@ -24,10 +24,10 @@ export const BILI_AUTH_PROTOVER = 2;
 
 /** 归一到展示口径的一条消息。 */
 export type BiliParsedItem = {
-  kind: 'chat' | 'gift';
+  kind: 'chat' | 'gift' | 'online';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0。 */
+  /** 礼物件数；聊天为 0；online 为在线人数。 */
   count: number;
   giftName: string;
   /** 礼物原始 id；聊天为空。 */
@@ -224,7 +224,18 @@ export function parseBiliGift(raw: Record<string, unknown>): BiliParsedItem | nu
 }
 
 /**
- * 解析一帧 WS 二进制，返回归一后的弹幕 / 礼物条目（其余 cmd 忽略）。
+ * ONLINE_RANK_COUNT → 直播间在线人数（高能用户数，与直播页右上角同口径）。
+ * 非该 cmd 或缺字段返回 -1。
+ */
+export function parseBiliOnlineCount(raw: Record<string, unknown>): number {
+  const data = asRecord(raw.data) ?? {};
+  const n = Number(data.online_count ?? data.onlineCount);
+  if (!Number.isFinite(n) || n < 0) return -1;
+  return Math.floor(n);
+}
+
+/**
+ * 解析一帧 WS 二进制，返回归一后的弹幕 / 礼物 / 在线人数条目（其余 cmd 忽略）。
  * `seen` 为跨帧去重集合。
  */
 export function parseBiliWsFrame(raw: Uint8Array, seen: Set<string>): BiliParsedItem[] {
@@ -244,6 +255,21 @@ export function parseBiliWsFrame(raw: Uint8Array, seen: Set<string>): BiliParsed
     if (packet.cmd === 'SEND_GIFT' || packet.cmd === 'GUARD_BUY') {
       const item = parseBiliGift(packet.raw);
       if (item) items.push(item);
+      continue;
+    }
+    if (packet.cmd === 'ONLINE_RANK_COUNT') {
+      const online = parseBiliOnlineCount(packet.raw);
+      if (online >= 0) {
+        items.push({
+          kind: 'online',
+          nick: '',
+          text: '',
+          count: online,
+          giftName: '',
+          giftId: '',
+          principalId: '',
+        });
+      }
     }
   }
   return items;

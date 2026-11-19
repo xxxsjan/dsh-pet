@@ -142,7 +142,8 @@ export const fr: Record<Key, string> = {
   clickSoundEnabledHint:
     "Joue le son intégré (assets/sound/click-duck.wav) quand on clique sur ce compagnon ; les clics répétés en moins de 100 ms ne sonnent qu'une fois, donc plusieurs compagnons ne se superposent jamais. Désactivez-le pour rendre ce compagnon totalement silencieux. Écrit dans la configuration utilisateur avec « Enregistrer ».",
   clickSoundVolumeLabel: 'Volume du son au clic (0–1)',
-  clickSoundVolumeHint: "1 = 100 %, par défaut 0,5 ; les sons courts ne sont pas amplifiés. Ne s'applique qu'à ce compagnon.",
+  clickSoundVolumeHint:
+    "1 = 100 %, par défaut 0,5 ; les sons courts ne sont pas amplifiés. Ne s'applique qu'à ce compagnon.",
   whisperImageToggle: 'Images des murmures',
   whisperImageToggleHint:
     "Joindre un mème tiré au hasard dans le pool à chaque murmure (la correspondance des images se trouve dans le champ memes, au niveau supérieur de la configuration). Tokens : un murmure appelle déjà le modèle à chaque cycle ; l'image ajoute seulement le nom + la description de ce mème (environ 100 caractères / ~60 tokens) à la même requête — négligeable.",

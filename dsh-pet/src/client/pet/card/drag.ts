@@ -94,7 +94,8 @@ export function createCardDrag(rt: CardDragRuntime) {
         isFrozen: () => live.current.ownAnim.isFrozen(),
         releaseLock: () => live.current.releaseLock(),
         grabVelocity: () => (motion.flight.isFlying() ? motion.flight.velocity() : null),
-        playClickSound: () => playClickSound(cfgRef.current.clickSoundEnabled === true, cfgRef.current.clickSoundVolume),
+        playClickSound: () =>
+          playClickSound(cfgRef.current.clickSoundEnabled === true, cfgRef.current.clickSoundVolume),
         tipOn: () => live.current.tipOn(),
         placeTip: (x, y) => live.current.placeTip(x, y),
         setTipOn,

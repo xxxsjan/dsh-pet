@@ -6,14 +6,23 @@ import { test } from 'node:test';
 
 const sprite = readFileSync(new URL('../../runtime/electron-helper/sprite.js', import.meta.url), 'utf8');
 
-function fixture(base: string, enabled: boolean | undefined = true, failure?: 'construct' | 'play' | 'reject', volume?: number) {
+function fixture(
+  base: string,
+  enabled: boolean | undefined = true,
+  failure?: 'construct' | 'play' | 'reject',
+  volume?: number,
+) {
   let now = 1000;
   const sounds: Array<{ url: string; plays: number; currentTime: number; volume: number }> = [];
-  const config: { clickSoundEnabled: boolean | undefined; clickSoundVolume?: number } = { clickSoundEnabled: enabled, clickSoundVolume: volume };
+  // 实例级配置：开关与音量挂在宠物成品实例上，playClickSound 按宠物传入。
+  const pet: { clickSoundEnabled: boolean | undefined; clickSoundVolume?: number } = {
+    clickSoundEnabled: enabled,
+    clickSoundVolume: volume,
+  };
   const controls = runInNewContext(sprite + '\n({ play: playClickSound })', {
     BASE: base,
     ORIGIN: 'http://127.0.0.1:3080',
-    config,
+    config: null,
     navigator: { platform: 'Win32' },
     Date: { now: () => now },
     Audio: class {
@@ -32,11 +41,11 @@ function fixture(base: string, enabled: boolean | undefined = true, failure?: 'c
         return failure === 'reject' ? Promise.reject(new Error('autoplay rejected')) : Promise.resolve();
       }
     },
-  }) as { play(): void };
+  }) as { play(pet: unknown): void };
   return {
-    ...controls,
+    play: () => controls.play(pet),
     sounds,
-    config,
+    pet,
     advance: (ms: number) => {
       now += ms;
     },
@@ -58,7 +67,7 @@ test('desktop click sound retains direct HTTP in legacy mode', () => {
 test('disabled or absent click-sound settings never create an audio request', () => {
   const audio = fixture('blue-fish-bridge://dsh-pet/blue-fish', false);
   audio.play();
-  audio.config.clickSoundEnabled = undefined;
+  audio.pet.clickSoundEnabled = undefined;
   audio.advance(100);
   audio.play();
   assert.equal(audio.sounds.length, 0);
@@ -78,7 +87,7 @@ test('click sound reuses its audio element and throttles rapid clicks', () => {
   assert.equal(audio.sounds[0].volume, 0.5);
 });
 
-test('click sound volume follows config and clamps to 0-1', () => {
+test('click sound volume follows the pet instance and clamps to 0-1', () => {
   const quiet = fixture('blue-fish-bridge://dsh-pet/blue-fish', true, undefined, 0.2);
   quiet.play();
   assert.equal(quiet.sounds[0].volume, 0.2);

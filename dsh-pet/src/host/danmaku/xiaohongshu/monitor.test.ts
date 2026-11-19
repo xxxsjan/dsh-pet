@@ -7,7 +7,7 @@ import { describe, test } from 'node:test';
 
 import { createXhsMonitor } from './monitor.ts';
 import type { XhsCdpBridge } from './cdp-bridge.ts';
-import { classifyXhsItem, parseXhsWsPayload } from './xhs-danmaku.ts';
+import { classifyXhsItem, parseXhsCountText, parseXhsOnlineCount, parseXhsWsPayload } from './xhs-danmaku.ts';
 
 const noop = () => undefined;
 
@@ -141,6 +141,41 @@ describe('xiaohongshu monitor CDP 链路', () => {
   test('桥未就绪时 start 报错', async () => {
     const mon = createXhsMonitor(makeDeps(undefined));
     await assert.rejects(() => mon.start({}), /CDP 旁听桥未就绪/);
+  });
+});
+
+describe('xiaohongshu 在线统计', () => {
+  test('在线统计类 customData 更新 viewerCount', async () => {
+    const bridge = makeBridge();
+    const mon = createXhsMonitor(makeDeps(bridge));
+    await mon.start({});
+    bridge.subs.frame?.(
+      frameOf({ body: { customData: { type: 'online_statistics', online_count: 88, msgId: 's1' } } }),
+    );
+    assert.equal(mon.status().viewerCount, 88);
+    assert.equal(mon.status().chatCount, 0, '在线统计不计入弹幕数');
+    assert.equal(mon.status().giftCount, 0, '在线统计不计入礼物数');
+
+    bridge.subs.frame?.(
+      frameOf({ body: { customData: { type: 'room_online', onlineCount: '1.2万', msgId: 's2' } } }),
+    );
+    assert.equal(mon.status().viewerCount, 12000);
+    mon.stop();
+  });
+
+  test('type 语义命中但取不到数值时仍留样本，不改 viewerCount', () => {
+    assert.equal(parseXhsOnlineCount({ type: 'audience_join', profile: { nickname: 'D' } }), -1);
+    assert.deepEqual(classifyXhsItem({ type: 'audience_join', profile: { nickname: 'D' } }), null);
+  });
+
+  test('展示串换算：数字 / 万 / 亿 / 文案兜底', () => {
+    assert.equal(parseXhsCountText('1234'), 1234);
+    assert.equal(parseXhsCountText('1.2万'), 12000);
+    assert.equal(parseXhsCountText('3.4亿'), 340000000);
+    assert.equal(parseXhsCountText(56), 56);
+    assert.equal(parseXhsCountText(''), -1);
+    assert.equal(parseXhsCountText('abc'), -1);
+    assert.equal(parseXhsOnlineCount({ type: 'online_statistics', desc: '1.2万人在线' }), 12000);
   });
 });
 

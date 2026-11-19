@@ -20,6 +20,8 @@ const pet = (id: string, assetRoot?: string): Pet => ({
   whisperEnabled: false,
   workStatusEnabled: false,
   fixedEnabled: false,
+  clickSoundEnabled: true,
+  clickSoundVolume: 0.5,
   display: 'web',
   position: { corner: 'top-right', marginX: 0, marginY: 0 },
   ...(assetRoot === undefined ? {} : { assetRoot }),

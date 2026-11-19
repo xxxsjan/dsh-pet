@@ -8,7 +8,16 @@ import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
 import { DY_UA, fetchDyLiveInfo, normalizeDyCookieHeader, type DyLiveInfo } from './live-info.ts';
-import { ChatMessage, DyResponse, GiftMessage, PushFrame, encodeAck, encodeHeartbeat } from './proto.ts';
+import {
+  ChatMessage,
+  DyResponse,
+  LikeMessage,
+  PushFrame,
+  RoomUserSeqMessage,
+  encodeAck,
+  encodeHeartbeat,
+} from './proto.ts';
+import { numish, parseGiftMessage, parseLightGiftMessage } from './gift-parse.ts';
 import { readInProcessSignBaseUrl, requestDySignature } from './sign-client.ts';
 import type { DouyinCdpBridge } from './cdp-bridge.ts';
 
@@ -50,6 +59,10 @@ export type DouyinMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /** 本场累计点赞总数（WebcastLikeMessage.total）；0 = 本场还没收到点赞帧。 */
+  likeCount: number;
+  /** 在线观众人数（WebcastRoomUserSeqMessage.total）；-1 = 本场还没收到统计帧。 */
+  viewerCount: number;
   lastError: string;
   startedAt: number | null;
   replyChat: boolean;
@@ -104,21 +117,6 @@ function cookieMapToHeader(map: Map<string, string>): string {
   return [...map.entries()].map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
-function numish(v: unknown, fallback = 0): number {
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'bigint') return Number(v);
-  if (v && typeof v === 'object' && 'toNumber' in v && typeof (v as { toNumber: () => number }).toNumber === 'function') {
-    try {
-      const n = (v as { toNumber: () => number }).toNumber();
-      return Number.isFinite(n) ? n : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 function buildWsUrl(roomId: string, userUniqueId: string, signature: string): string {
   const sdkVer = '1.0.15.0';
   const now = Date.now();
@@ -159,6 +157,14 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let wantListen = false;
   let chatCount = 0;
   let giftCount = 0;
+  /**
+   * 本场累计点赞总数：取 `WebcastLikeMessage.total`，只增不减。
+   * 点赞帧高频（每秒多帧、每帧批量）且取 max 天然幂等，所以只维护这一个内存变量：
+   * 不 pushFeed、不写状态叶子、不发任何通知，避免 /status 与事件总线被打爆。
+   */
+  let likeTotal = 0;
+  /** 在线观众人数；-1 表示本场还没收到统计帧。 */
+  let viewerCount = -1;
   let feedSeq = 0;
   let lastError = '';
   let startedAt: number | null = null;
@@ -499,37 +505,12 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
   function handleGiftPayload(m: { method?: string; payload?: Uint8Array; msgId?: unknown }): void {
     if (!m.payload) return;
-    const giftMsg = GiftMessage.decode(m.payload) as {
-      giftId?: unknown;
-      repeatCount?: unknown;
-      comboCount?: unknown;
-      repeatEnd?: unknown;
-      groupId?: unknown;
-      user?: { nickName?: string; id?: unknown };
-      gift?: {
-        name?: string;
-        describe?: string;
-        combo?: boolean;
-        type?: number;
-        id?: unknown;
-      };
-    };
-    const nick = String(giftMsg.user?.nickName || '匿名').trim() || '匿名';
-    const giftObj = giftMsg.gift || {};
-    let giftName = String(giftObj.name || '').trim();
-    if (!giftName && giftObj.describe) {
-      giftName = String(giftObj.describe).replace(/^送出?/, '').trim();
-    }
-    const giftId = String(giftMsg.giftId ?? giftObj.id ?? '').trim();
-    if (!giftName) giftName = giftId ? `礼物#${giftId}` : '礼物';
-    const count = Math.max(1, numish(giftMsg.comboCount, 0) || numish(giftMsg.repeatCount, 0) || 1);
-    const repeatEnd = numish(giftMsg.repeatEnd, 0);
-    const giftType = numish(giftObj.type, 0);
-    const combo = !!giftObj.combo || giftType === 1;
-    const groupId = String(giftMsg.groupId ?? '').trim();
-    const key = `gift:${groupId || String(m.msgId ?? '') || `${nick}|${giftName}`}`;
+    const item = parseGiftMessage(m.payload);
+    const giftName = item.giftName;
+    const groupId = item.groupId;
+    const key = `gift:${groupId || String(m.msgId ?? '') || `${item.nick}|${giftName}`}`;
     const prev = giftCounts.get(key) || 0;
-    if (count > prev) giftCounts.set(key, count);
+    if (item.count > prev) giftCounts.set(key, item.count);
     while (giftCounts.size > 2000) {
       const first = giftCounts.keys().next().value;
       if (first == null) break;
@@ -537,23 +518,64 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     }
 
     // 可连击：中间帧只更新件数，定稿（repeatEnd=1）再感谢/计数
-    if (combo && repeatEnd !== 1) {
-      log.debug?.(`[blue-fish][douyin] gift combo pending nick=${nick} gift=${giftName} x${count}`);
+    if (item.combo && item.repeatEnd !== 1) {
+      log.debug?.(
+        `[blue-fish][douyin] gift combo pending nick=${item.nick} gift=${giftName} x${item.count}`,
+      );
       return;
     }
-    const finalCount = Math.max(count, giftCounts.get(key) || count);
+    const finalCount = Math.max(item.count, giftCounts.get(key) || item.count);
     const settleKey = `gift-settle:${key}`;
     if (isDup(settleKey)) return;
 
     giftCount += 1;
-    pushFeed('gift', nick, giftName, finalCount);
-    log.info?.(`[blue-fish][douyin] gift nick=${nick} gift=${giftName} x${finalCount}`);
+    pushFeed('gift', item.nick, giftName, finalCount);
+    log.info?.(`[blue-fish][douyin] gift nick=${item.nick} gift=${giftName} x${finalCount}`);
     if (thankGift) {
       enqueueChat(
-        `[直播礼物] 观众「${nick}」送出了「${giftName}」×${finalCount}。\n请用你的人设简短感谢对方（一两句即可）。`,
+        `[直播礼物] 观众「${item.nick}」送出了「${giftName}」×${finalCount}。\n请用你的人设简短感谢对方（一两句即可）。`,
         'gift',
       );
     }
+  }
+
+  /**
+   * 轻礼物（免费动画 / 点赞类）：结构里没有送礼人、没有连击会话，
+   * 只进互动消息区，不计数到礼物感谢队列（也没有对象可感谢）。
+   */
+  function handleLightGiftPayload(m: { method?: string; payload?: Uint8Array; msgId?: unknown }): void {
+    if (!m.payload) return;
+    const item = parseLightGiftMessage(m.payload);
+    const key = `light-gift:${String(m.msgId ?? '') || `${item.giftId}|${item.count}`}`;
+    if (isDup(key)) return;
+    giftCount += 1;
+    pushFeed('gift', item.nick, item.giftName, item.count);
+    log.info?.(`[blue-fish][douyin] light gift gift=${item.giftName} x${item.count}`);
+  }
+
+  /** 在线人数统计帧：total(3)=当前在线观众，totalUser(7)=本场累计观看；只取当前在线。 */
+  function handleRoomUserSeqPayload(m: { method?: string; payload?: Uint8Array }): void {
+    if (!m.payload) return;
+    const seq = RoomUserSeqMessage.decode(m.payload) as { total?: unknown; totalUser?: unknown };
+    const online = numish(seq.total, -1);
+    const totalUser = numish(seq.totalUser, 0);
+    // 只有 online>0 才认：total=0 的帧（空房 / 降级 / 只带累计观看）不覆盖已有在线人数。
+    if (online <= 0) return;
+    if (online === viewerCount) return;
+    viewerCount = online;
+    log.debug?.(`[blue-fish][douyin] online viewers=${viewerCount} totalUser=${totalUser}`);
+  }
+
+  /**
+   * 点赞帧（`WebcastLikeMessage`）：total(3)=本场累计总赞，count(2)=本帧新增点赞量。
+   * 只更新内存里的累计数供 status() 读取，不进弹幕流、不参与礼物感谢、不写任何状态叶子。
+   * 取 max 而非直接赋值：帧可能乱序到达，旧帧不许把已攒的总数往回抹。
+   */
+  function handleLikePayload(m: { payload?: Uint8Array }): void {
+    if (!m.payload) return;
+    const like = LikeMessage.decode(m.payload) as { total?: unknown };
+    const next = numish(like.total, -1);
+    if (next > likeTotal) likeTotal = next;
   }
 
   async function onBinary(data: WebSocket.RawData): Promise<void> {
@@ -595,9 +617,11 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       try {
         if (m.method === 'WebcastChatMessage') handleChatPayload(m);
         else if (m.method === 'WebcastGiftMessage') handleGiftPayload(m);
-        else if (m.method === 'WebcastLightGiftMessage') handleGiftPayload(m);
+        else if (m.method === 'WebcastLightGiftMessage') handleLightGiftPayload(m);
+        else if (m.method === 'WebcastLikeMessage') handleLikePayload(m);
+        else if (m.method === 'WebcastRoomUserSeqMessage') handleRoomUserSeqPayload(m);
         else {
-          // 进场 / 点赞 / 在线人数榜单 / 关注分享 / 下播等：本轮先不入库，留 method 样本便于后续补解码。
+          // 进场 / 在线榜排行 / 关注分享 / 下播等：本轮先不入库，留 method 样本便于后续补解码。
           log.debug?.(`[blue-fish][douyin] skip method=${m.method}`);
         }
       } catch (e) {
@@ -649,6 +673,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     clearCdp();
     chatCount = 0;
     giftCount = 0;
+    // 本场累计点赞只在 start() 清零；断线重连（scheduleReconnect）不清，否则数字会归零。
+    likeTotal = 0;
+    viewerCount = -1;
     feedSeq = 0;
     recentFeed.length = 0;
     startedAt = null;
@@ -691,6 +718,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       anchor: info?.anchor || cdpMeta.anchor || '',
       chatCount,
       giftCount,
+      likeCount: likeTotal,
+      viewerCount,
       lastError,
       startedAt,
       replyChat,

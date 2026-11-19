@@ -45,11 +45,13 @@ export function sendAsset(res: ServerResponse, body: string, type: string): void
 }
 
 /** 回本机图片二进制（图标 PNG / 控制台背景 WebP），不参与 CSP 与嗅探。 */
-export function sendIcon(res: ServerResponse, body: Buffer, contentType = 'image/png'): void {
+export function sendIcon(res: ServerResponse, body: Buffer, contentType = 'image/png', cacheSeconds = 0): void {
   res.writeHead(200, {
     'content-type': contentType,
     'content-length': body.length,
-    'cache-control': 'no-store',
+    // 只有内容随名字固定的图（礼物图、表情图）才传 cacheSeconds：弹幕区每次刷新都会重建
+    // 这些 <img>，带缓存才不会每次刷新都重新要一遍。
+    'cache-control': cacheSeconds > 0 ? `public, max-age=${cacheSeconds}` : 'no-store',
     'x-content-type-options': 'nosniff',
   });
   res.end(body);

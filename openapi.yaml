@@ -1389,7 +1389,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: '`POST /anim` 响应里的 `playbackId`。'
+          description: "`POST /anim` 响应里的 `playbackId`。"
           schema:
             type: string
           example: pb-mfh2k1-1
@@ -1456,7 +1456,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: '`playbackId`。'
+          description: "`playbackId`。"
           schema:
             type: string
           example: pb-mfh2k1-1
@@ -1471,7 +1471,7 @@ paths:
                 status:
                   type: string
                   enum: [playing, ended, failed, cancelled]
-                  description: '只接受这四个——`accepted` 是宿主受理态，上报它回 400。'
+                  description: "只接受这四个——`accepted` 是宿主受理态，上报它回 400。"
                 reason:
                   type: string
                   description: |
@@ -1867,14 +1867,18 @@ paths:
         有以下几点必须知道：
 
         - **只白名单字段会被保留**：`pets[]` 的 `id`/`name`/`size`/`sizePercent`/`balanceEnabled`/
-          `whisperEnabled`/`workStatusEnabled`/`fixedEnabled`/`display`/`position`，以及顶层
-          `notificationsEnabled`/`clickSoundEnabled`/`whisperImageEnabled`/`chatImageEnabled`/
+          `whisperEnabled`/`workStatusEnabled`/`fixedEnabled`/`clickSoundEnabled`/`clickSoundVolume`/
+          `display`/`position`，以及顶层
+          `notificationsEnabled`/`whisperImageEnabled`/`chatImageEnabled`/
           `chatAnimationEnabled`/`confineToScreen`/`trayEnabled`/`voiceEnabled`/`voiceName`/`voiceWhisperEnabled`/
           `voiceTodoEnabled`/`physics`/`font`/`whisperModel`/`chatModel`/`chatMemoryRounds`/
           `chatImageLimit`。
           其余字段会沿用磁盘上用户文件里的原值（透传保留），所以设置页保存
           **不会抹掉**你手写的精调配置（`whisperPrompt`/`memes`/`eventsRefreshSec` 等）。
           白名单字段也只在请求体**真的传了**时才算白名单：没传就走透传，不会被抹成默认值。
+        - **点击音效已下沉实例级**：开关与音量写在 `pets[]` 里，每只宠物各自一份。
+          旧配置写在顶层的 `clickSoundEnabled`/`clickSoundVolume` 仍被读取侧认账——
+          实例没写自己的值时按顶层旧值回落（透传保留、不回写）；顶层不再是可编辑的全局开关。
         - 用户层文件**存在但连 JSONC 都解析不了**（真损坏）时，默认**先不写盘**，
           返回 `200` + `reason: user-config-unparsable`（带 `needConfirm`、`userFile`）让调用方确认——
           因为白名单重建会把文件里剩下的内容整份丢掉且静默。确认要重建时加 `?force=1`。
@@ -1906,6 +1910,8 @@ paths:
                       whisperEnabled: true
                       workStatusEnabled: true
                       fixedEnabled: false
+                      clickSoundEnabled: true
+                      clickSoundVolume: 0.5
                       display: both
                       position:
                         corner: bottom-right
@@ -2052,7 +2058,8 @@ paths:
 
         - **整段替换**：`pets` 必须是该条目的**全部实例**，漏传一只等于把它删掉。
         - **白名单重建 + 透传保留**：实例只保留 `id`/`name`/`size`/`sizePercent`/`balanceEnabled`/
-          `whisperEnabled`/`workStatusEnabled`/`fixedEnabled`/`display`/`position`/`whisperPrompt`；
+          `whisperEnabled`/`workStatusEnabled`/`fixedEnabled`/`clickSoundEnabled`/`clickSoundVolume`/
+          `display`/`position`/`whisperPrompt`；
           该文件顶层的 `animations`/`animationWeights`/`whisperPrompt`/`memes` 等原样保留。
         - **不接受全局字段**：`notificationsEnabled`/`physics`/`font`/`whisperModel` 等即使传了
           也不写这一层——全局字段只归 `main`，经 `PUT /config` 写。
@@ -2476,7 +2483,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: '`voiceUtteranceId`。'
+          description: "`voiceUtteranceId`。"
           schema:
             type: string
           example: vu-mfh2k1-1
@@ -2491,7 +2498,7 @@ paths:
                 status:
                   type: string
                   enum: [ended, skipped, failed]
-                  description: 'ended=真正读完；skipped=本端不念（关开关/后台页等）；failed=合成或播放失败。'
+                  description: "ended=真正读完；skipped=本端不念（关开关/后台页等）；failed=合成或播放失败。"
                 reason:
                   type: string
                   description: 可选原因（自由字符串）。
@@ -2681,8 +2688,8 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
-                  - $ref: '#/components/schemas/FailureResponse'
+                  - $ref: "#/components/schemas/DouyinDanmakuStatusResponse"
+                  - $ref: "#/components/schemas/FailureResponse"
         "400":
           description: 请求体不是合法 JSON。
         "405":
@@ -2712,8 +2719,8 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
-                  - $ref: '#/components/schemas/FailureResponse'
+                  - $ref: "#/components/schemas/DouyinDanmakuStatusResponse"
+                  - $ref: "#/components/schemas/FailureResponse"
         "400":
           description: 请求体不是合法 JSON。
         "405":
@@ -2730,7 +2737,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
+                $ref: "#/components/schemas/DouyinDanmakuStatusResponse"
         "405":
           description: 方法不是 POST。
 
@@ -2745,7 +2752,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DouyinDanmakuStatusResponse'
+                $ref: "#/components/schemas/DouyinDanmakuStatusResponse"
         "405":
           description: 方法不是 GET。
 
@@ -3251,7 +3258,7 @@ paths:
                   example: 1793000000000
       responses:
         "200":
-          description: '新建结果；正文为空 / 超长或 `dueAt` 非法时回 `ok: false` + `bad-request`'
+          description: "新建结果；正文为空 / 超长或 `dueAt` 非法时回 `ok: false` + `bad-request`"
           content:
             application/json:
               schema:
@@ -3319,7 +3326,7 @@ paths:
       tags: [Action]
       operationId: deleteTodo
       summary: 删除一条待办
-      description: '幂等：id 不存在也回 `ok: true`，`removed: 0`。'
+      description: "幂等：id 不存在也回 `ok: true`，`removed: 0`。"
       parameters:
         - $ref: "#/components/parameters/TodoIdPath"
       responses:
@@ -3498,6 +3505,7 @@ components:
           anchor,
           chatCount,
           giftCount,
+          likeCount,
           lastError,
           startedAt,
           replyChat,
@@ -3529,6 +3537,12 @@ components:
           type: integer
           minimum: 0
           description: 本次监听累计定稿的礼物条数。
+        likeCount:
+          type: integer
+          minimum: 0
+          description: |
+            本场累计点赞总数（`WebcastLikeMessage.total`）；只增不减，start 时清零、断线重连保留。
+            该字段高频刷新，只写入状态快照，不进 `recent`。
         lastError:
           type: string
           description: 最近一次错误文案；无错误时为空串。
@@ -4617,6 +4631,17 @@ components:
             宠物固定：`true` = 随机动画链不再抽「转向 / 移动」两档（宠物不自己翻朝向、不自己走开，
             只播原地待机与随机小动作）。**只影响随机链**——右键菜单点播、`POST /anim`、
             事件动画（余额/碎碎念/工作状态）、点击回应与拖拽均不受影响。缺失默认 `false`。
+        clickSoundEnabled:
+          type: boolean
+          description: |
+            点击音效开关（实例级）：`true` = 点击这只宠物时播放内置 `click-duck.wav`
+            （音量见 `clickSoundVolume`，100ms 内去重），`false` = 这只宠物静音。缺失默认 `true`。
+            旧配置写在顶层的全局值在读取侧回落为缺省（实例没写自己的值时按顶层旧值生效）。
+        clickSoundVolume:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: 点击音效音量（实例级）：0–1（1 = 100%，无增益放大），缺省 0.5；非法值回退默认并告警。
         display:
           type: string
           enum: [web, desktop, both, none]
@@ -4696,6 +4721,12 @@ components:
         fixedEnabled:
           type: boolean
           description: 宠物固定（随机链不再抽「转向 / 移动」两档；主动触发不受影响）
+        clickSoundEnabled:
+          type: boolean
+          description: 点击音效开关（实例级；缺失默认 true，旧顶层全局值在读取侧回落）
+        clickSoundVolume:
+          type: number
+          description: 点击音效音量（实例级，0–1，缺省 0.5）
         display:
           type: string
           enum: [web, desktop, both, none]
@@ -4792,7 +4823,7 @@ components:
           $ref: "#/components/schemas/Todo"
         reason:
           type: string
-          description: '失败原因（如 `bad-request` / `todo-not-found`）'
+          description: "失败原因（如 `bad-request` / `todo-not-found`）"
         message:
           type: string
 
@@ -4805,5 +4836,3 @@ components:
         removed:
           type: integer
           description: 删掉的条数；0 = 本来就没有（幂等）
-
-

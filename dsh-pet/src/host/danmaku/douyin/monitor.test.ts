@@ -11,6 +11,7 @@ import { describe, test } from 'node:test';
 import { createDouyinMonitor } from './monitor.ts';
 import type { DouyinMonitorDeps } from './monitor.ts';
 import type { DouyinCdpBridge } from './cdp-bridge.ts';
+import { DyResponse, LikeMessage, PushFrame, RoomUserSeqMessage } from './proto.ts';
 
 const noop = () => undefined;
 
@@ -139,6 +140,74 @@ describe('douyin monitor CDP 链路', () => {
       () => mon.start({ url: 'https://live.douyin.com/123456789' }),
       /签名桥未就绪/,
     );
+  });
+
+  test('在线人数统计帧更新 viewerCount，累计观看不覆盖在线数', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    const started = await mon.start({ url: 'https://live.douyin.com/123456789' });
+    assert.equal(started.viewerCount, -1, '启动时还没有统计帧，应为 -1');
+
+    const seqFrame = (total: number, totalUser: number) => {
+      const seqPayload = RoomUserSeqMessage.encode(
+        RoomUserSeqMessage.create({ total, totalUser }),
+      ).finish();
+      const resp = DyResponse.encode(
+        DyResponse.create({
+          messagesList: [{ method: 'WebcastRoomUserSeqMessage', payload: seqPayload }],
+        }),
+      ).finish();
+      return PushFrame.encode(PushFrame.create({ payload: resp })).finish();
+    };
+
+    bridge.subs.frame?.(seqFrame(4321, 98765));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(mon.status().viewerCount, 4321, 'total(3) 是在线人数');
+
+    // 只看累计观看、total=0 的降级帧不应把在线人数抹成 0。
+    bridge.subs.frame?.(seqFrame(0, 98765));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(mon.status().viewerCount, 4321);
+    assert.equal(mon.status().chatCount, 0, '统计帧不计入弹幕数');
+    mon.stop();
+  });
+
+  test('点赞帧累计总数：只取 total 且单调不回退', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    const started = await mon.start({ url: 'https://live.douyin.com/123456789' });
+    assert.equal(started.likeCount, 0, '启动时本场还没收到点赞帧');
+
+    const likeFrame = (total: number, count: number) => {
+      const payload = LikeMessage.encode(LikeMessage.create({ total, count })).finish();
+      const resp = DyResponse.encode(
+        DyResponse.create({
+          messagesList: [{ method: 'WebcastLikeMessage', payload }],
+        }),
+      ).finish();
+      return PushFrame.encode(PushFrame.create({ payload: resp })).finish();
+    };
+
+    bridge.subs.frame?.(likeFrame(8000, 300));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(mon.status().likeCount, 8000, 'total(3) 是本场累计总赞');
+
+    bridge.subs.frame?.(likeFrame(8200, 200));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(mon.status().likeCount, 8200);
+
+    // 乱序旧帧不许把已攒的总数往回抹。
+    bridge.subs.frame?.(likeFrame(8100, 100));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(mon.status().likeCount, 8200, '旧帧不回退');
+    assert.equal(mon.status().chatCount, 0, '点赞帧不计入弹幕数');
+    assert.equal(mon.status().giftCount, 0, '点赞帧不计入礼物数');
+
+    // 重启监听 = 新的一场，必须清零；断线重连才保留。
+    mon.stop();
+    const restarted = await mon.start({ url: 'https://live.douyin.com/123456789' });
+    assert.equal(restarted.likeCount, 0, '重启监听后清零');
+    mon.stop();
   });
 
   test('CDP 旁听标题/主播：快照初值 + onMeta 更新，stop 清空', async () => {

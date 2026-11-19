@@ -2,8 +2,8 @@
  * 快手直连 longlink 弹幕解码（对齐 danmuapp `src/composables/live/useKuaishouLive.js`）。
  *
  * 入站二进制先解 `SocketMessage` 外壳：compressionType=2 时 gzip 解压（inflate 失败回退
- * inflateRaw）；`SC_FEED_PUSH(310)` 内 `commentFeeds` / `giftFeeds` 入库，点赞 / 进场 /
- * 在线榜 / 分享 / 系统通知本轮留样本不入库。礼物名无目录兜底为 `礼物#<giftId>`。
+ * inflateRaw）；`SC_FEED_PUSH(310)` 内 `displayWatchingCount` / `commentFeeds` / `giftFeeds`
+ * 入库，点赞 / 进场 / 在线榜 / 分享 / 系统通知本轮留样本不入库。礼物名无目录兜底为 `礼物#<giftId>`。
  * @module dsh-pet/src/host/danmaku/kuaishou/ks-danmaku
  */
 import { inflate, inflateRaw } from 'pako';
@@ -29,10 +29,10 @@ import {
 
 /** 归一到展示口径的一条消息。 */
 export type KsParsedItem = {
-  kind: 'chat' | 'gift';
+  kind: 'chat' | 'gift' | 'online';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0。 */
+  /** 礼物件数；聊天为 0；online 为在线观看数。 */
   count: number;
   giftName: string;
   /** 礼物原始 id；聊天为空。 */
@@ -50,6 +50,24 @@ export function decompressKsPayload(compressionType: number, payload: Uint8Array
   } catch {
     return inflateRaw(payload);
   }
+}
+
+/**
+ * 在线观看数展示串 → 整数：「1234」→1234、「1.2万」→12000、「3.4亿」→340000000。
+ * 解析不出（空串 / 「-」/ 纯文案）返回 -1。
+ */
+export function parseKsWatchCount(text: unknown): number {
+  const s = String(text == null ? '' : text)
+    .replace(/[,，\s]/g, '')
+    .trim();
+  if (!s) return -1;
+  const m = /^(\d+(?:\.\d+)?)(亿|万|w|W)?(?:人|在线|观看|观众)*$/.exec(s);
+  if (!m) return -1;
+  const base = Number(m[1]);
+  if (!Number.isFinite(base) || base < 0) return -1;
+  const unit = m[2];
+  const scale = unit === '亿' ? 1e8 : unit === '万' || unit === 'w' || unit === 'W' ? 1e4 : 1;
+  return Math.max(0, Math.floor(base * scale));
 }
 
 function principalIdOf(user: KsCommentFeed['user'] | KsGiftFeed['user']): string {
@@ -121,7 +139,7 @@ function giftItem(g: KsGiftFeed, seen: Set<string>): KsParsedItem | null {
 }
 
 /**
- * 解码一帧入站 WS 二进制，返回本轮入库的弹幕 / 礼物列表。
+ * 解码一帧入站 WS 二进制，返回本轮入库的弹幕 / 礼物 / 在线观看数列表。
  *
  * 非 FeedPush、未知载荷、解压 / 解码失败的帧一律返回空数组（日志样本由调用方记录）。
  */
@@ -191,6 +209,19 @@ export function parseKsWsFrame(raw: Uint8Array, seen: Set<string>): KsParsedItem
   for (const g of push.giftFeeds ?? []) {
     const item = giftItem(g, seen);
     if (item) out.push(item);
+  }
+  // 在线观看数：同一帧可能不带（空串），解析不出就跳过，不覆盖已有值。
+  const watching = parseKsWatchCount(push.displayWatchingCount);
+  if (watching >= 0) {
+    out.push({
+      kind: 'online',
+      nick: '',
+      text: '',
+      count: watching,
+      giftName: '',
+      giftId: '',
+      principalId: '',
+    });
   }
   return out;
 }

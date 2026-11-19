@@ -28,7 +28,6 @@ function flatten(node: unknown): Node[] {
 
 const allOff: GlobalFlags = {
   notificationsEnabled: false,
-  clickSoundEnabled: false,
   confineToScreen: false,
   trayEnabled: false,
   obsCaptureEnabled: false,
@@ -45,10 +44,10 @@ describe('GlobalCard —— 全局开关卡', () => {
       onChange: () => {},
     } as never);
     const found = boxes(tree);
-    assert.equal(found.length, 5);
+    assert.equal(found.length, 4);
     assert.deepEqual(
       found.map((box) => box.props.checked),
-      [true, false, false, true, true],
+      [true, false, true, true],
     );
   });
 
@@ -64,7 +63,8 @@ describe('GlobalCard —— 全局开关卡', () => {
     }
     assert.deepEqual(
       seen.map(([key]) => key),
-      ['notificationsEnabled', 'clickSoundEnabled', 'confineToScreen', 'trayEnabled', 'obsCaptureEnabled'],
+      // 点击音效已下沉宠物卡，全局开关里不再有它。
+      ['notificationsEnabled', 'confineToScreen', 'trayEnabled', 'obsCaptureEnabled'],
     );
     assert.ok(
       seen.every(([, value]) => value === true),

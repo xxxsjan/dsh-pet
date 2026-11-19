@@ -207,8 +207,7 @@ export function saveUserConfig(
   else if (typeof fishKeyRaw === 'string' && fishKeyRaw.trim() !== '') outConfig.fishApiKey = fishKeyRaw.trim();
   if (bv !== undefined) outConfig.breezeVoices = normalizeBreezeCustomVoices(bv);
   if (clearBreezeKey) outConfig.breezeApiKey = '';
-  else if (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '')
-    outConfig.breezeApiKey = breezeKeyRaw.trim();
+  else if (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '') outConfig.breezeApiKey = breezeKeyRaw.trim();
   if (te !== undefined) outConfig.trayEnabled = te;
   if (oce !== undefined) outConfig.obsCaptureEnabled = oce;
   if (ph !== undefined) outConfig.physics = ph;
@@ -239,8 +238,7 @@ export function saveUserConfig(
   if (fv !== undefined) bodyOwned.add('fishVoices');
   if (clearFishKey || (typeof fishKeyRaw === 'string' && fishKeyRaw.trim() !== '')) bodyOwned.add('fishApiKey');
   if (bv !== undefined) bodyOwned.add('breezeVoices');
-  if (clearBreezeKey || (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== ''))
-    bodyOwned.add('breezeApiKey');
+  if (clearBreezeKey || (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '')) bodyOwned.add('breezeApiKey');
   if (te !== undefined) bodyOwned.add('trayEnabled');
   if (oce !== undefined) bodyOwned.add('obsCaptureEnabled');
   if (ph !== undefined) bodyOwned.add('physics');

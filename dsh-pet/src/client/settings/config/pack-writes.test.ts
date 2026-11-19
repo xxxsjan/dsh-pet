@@ -22,6 +22,8 @@ const pet = (id: string, over: Partial<Pet> = {}): Pet => ({
   whisperEnabled: false,
   workStatusEnabled: false,
   fixedEnabled: false,
+  clickSoundEnabled: true,
+  clickSoundVolume: 0.5,
   display: 'web',
   position: { corner: 'top-right', marginX: 10, marginY: 10 },
   ...over,
@@ -71,6 +73,15 @@ describe('diffPackWrites —— 编辑列表 → 要写回的种类层', () => {
     const plan = diffPackWrites(loaded(), current);
     assert.equal(plan.length, 1);
     assert.equal(plan[0].pets[0].sizePercent, 40);
+  });
+
+  test('只改点击音效开关或音量也算改动（实例级字段，指纹漏了会静默不落盘）', () => {
+    for (const over of [{ clickSoundEnabled: false }, { clickSoundVolume: 0.2 }]) {
+      const current = [pet('m1', { assetRoot: 'main' }), pet('g1', { assetRoot: 'glm', ...over })];
+      const plan = diffPackWrites(loaded(), current);
+      assert.equal(plan.length, 1, `${JSON.stringify(over)} 应触发写回`);
+      assert.equal(plan[0].entry, 'glm');
+    }
   });
 
   test('只是调换实例顺序也算改动', () => {

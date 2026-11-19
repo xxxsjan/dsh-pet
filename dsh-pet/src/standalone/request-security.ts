@@ -57,7 +57,13 @@ function publicRead(req: IncomingMessage): boolean {
       '/standalone-console/console-bg.webp',
       '/standalone-console/console-bg-dark.webp',
       '/standalone-console/chat-panel.js',
-    ].includes(path) || path === ROUTE_SEGMENT || path.startsWith(`${ROUTE_SEGMENT}/`)
+      // 直播页的图：只按名字查内置表取官方图（不收 URL 参数，也没有用户数据），
+      // 与背景图同口径公开只读——否则 <img> 这类带不了请求头的子资源会被一律 403。
+      '/standalone-console/gift-icon',
+      '/standalone-console/emoji',
+    ].includes(path) ||
+    path === ROUTE_SEGMENT ||
+    path.startsWith(`${ROUTE_SEGMENT}/`)
   );
 }
 

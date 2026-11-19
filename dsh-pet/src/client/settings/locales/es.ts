@@ -144,7 +144,8 @@ export const es: Record<Key, string> = {
   clickSoundEnabledHint:
     'Reproduce el sonido de clic integrado (assets/sound/click-duck.wav) al hacer clic en esta mascota; los clics repetidos en menos de 100 ms solo suenan una vez, así que varias mascotas nunca se superponen. Desactívalo para silenciar esta mascota. Se escribe en la configuración del usuario al Guardar.',
   clickSoundVolumeLabel: 'Volumen del clic (0–1)',
-  clickSoundVolumeHint: '1 = 100 %, predeterminado 0.5; los avisos cortos no se amplifican. Solo afecta a esta mascota.',
+  clickSoundVolumeHint:
+    '1 = 100 %, predeterminado 0.5; los avisos cortos no se amplifican. Solo afecta a esta mascota.',
   whisperImageToggle: 'Imágenes en susurros',
   whisperImageToggleHint:
     'Adjunta un meme aleatorio del pool a cada susurro (el mapeo de imágenes está en el campo `memes` de la configuración de nivel superior). Tokens: un susurro ya llama al modelo en cada ciclo, así que la imagen solo añade el nombre + la descripción de ese meme (~100 caracteres / ~60 tokens) a la misma solicitud: insignificante.',

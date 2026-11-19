@@ -25,6 +25,8 @@ import { sendIcon } from '../standalone/server/respond.ts';
 import { readChatPanelScript } from '../standalone/chat-panel-asset.ts';
 import { readSettingsIcon } from '../standalone/icon.ts';
 import { readConsoleBackground, readConsoleBackgroundDark } from '../standalone/console-bg.ts';
+import { loadGiftIcon } from '../standalone/live-gift-icon.ts';
+import { loadDyEmoji } from '../standalone/dy-emoji.ts';
 import { readSettingsAssets } from '../standalone/settings-assets.ts';
 import { consolePage, consoleScript, consoleStyle } from '../standalone/console-page.ts';
 
@@ -131,6 +133,36 @@ export function startRouter(
           return;
         }
         sendIcon(res, backgroundDark, 'image/webp');
+        return;
+      }
+      if (url.pathname === '/standalone-console/gift-icon') {
+        if (method !== 'GET' && method !== 'HEAD') {
+          rejectRequest(res, 405, '仅支持 GET');
+          return;
+        }
+        // 同源代取礼物图：页面 CSP 只有 img-src 'self'，外链 CDN 直连会被拦。
+        // 参数只作查表用，真实地址一律取自内置白名单，不接受任意 URL。
+        const giftIcon = await loadGiftIcon(url.searchParams.get('p') ?? '', url.searchParams.get('n') ?? '');
+        if (!giftIcon) {
+          rejectRequest(res, 404, '该礼物暂无可用的官方图');
+          return;
+        }
+        sendIcon(res, giftIcon.body, giftIcon.contentType, 3600);
+        return;
+      }
+      if (url.pathname === '/standalone-console/emoji') {
+        if (method !== 'GET' && method !== 'HEAD') {
+          rejectRequest(res, 405, '仅支持 GET');
+          return;
+        }
+        // 抖音弹幕表情同样走同源代取：页面只给表情 token，真实地址取自固化表，
+        // 不接受任意 URL（否则就是个现成的 SSRF 入口）。
+        const emoji = await loadDyEmoji(url.searchParams.get('n') ?? '');
+        if (!emoji) {
+          rejectRequest(res, 404, '该表情暂无可用图');
+          return;
+        }
+        sendIcon(res, emoji.body, emoji.contentType, 3600);
         return;
       }
       if (url.pathname === '/standalone-ai/chat-panel.js' || url.pathname === '/standalone-console/chat-panel.js') {

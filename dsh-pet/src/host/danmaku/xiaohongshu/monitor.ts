@@ -1,8 +1,8 @@
 /**
  * 小红书中控台弹幕监听器：内嵌隐藏窗进中控台扫码登录 → CDP 抓 longlink 帧 → JSON 解码分发。
  *
- * 只听自己主播中控台这场直播；不填他人直播间链接。本轮只入库弹幕 + 礼物，
- * 进场 / 关注 / 在线人数 / 人气先留样本不展示。
+ * 只听自己主播中控台这场直播；不填他人直播间链接。入库弹幕 + 礼物 + 在线观看人数，
+ * 进场 / 关注 / 礼物托/结算先留样本不展示。
  * @module dsh-pet/src/host/danmaku/xiaohongshu/monitor
  */
 import type { LoggerLike } from '../../log-file.ts';
@@ -45,6 +45,8 @@ export type XhsMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /** 在线观看人数（中控台在线统计帧）；-1 = 本场还没收到统计帧。 */
+  viewerCount: number;
   lastError: string;
   startedAt: number | null;
   replyChat: boolean;
@@ -91,6 +93,8 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
   let wantListen = false;
   let chatCount = 0;
   let giftCount = 0;
+  /** 在线观看人数；-1 表示本场还没收到统计帧。 */
+  let viewerCount = -1;
   let feedSeq = 0;
   let lastError = '';
   let startedAt: number | null = null;
@@ -182,6 +186,11 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
   }
 
   function handleItem(item: XhsParsedItem): void {
+    if (item.kind === 'online') {
+      viewerCount = Math.max(0, item.count);
+      log.debug?.(`[blue-fish][xiaohongshu] online viewers=${viewerCount}`);
+      return;
+    }
     if (item.kind === 'chat') {
       chatCount += 1;
       pushFeed('chat', item.nick, item.text);
@@ -310,6 +319,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     seenIds.clear();
     chatCount = 0;
     giftCount = 0;
+    viewerCount = -1;
     feedSeq = 0;
     recentFeed.length = 0;
     startedAt = null;
@@ -350,6 +360,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
       anchor: '',
       chatCount,
       giftCount,
+      viewerCount,
       lastError,
       startedAt,
       replyChat,

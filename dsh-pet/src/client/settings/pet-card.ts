@@ -133,12 +133,15 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
             ),
             field(
               t('clickSoundVolumeLabel'),
-              h('input', numberInputProps(pet.clickSoundVolume ?? 0.5, (v) => props.onChange({ clickSoundVolume: v }), {
-                min: '0',
-                max: '1',
-                step: '0.05',
-                disabled: busy,
-              })),
+              h(
+                'input',
+                numberInputProps(pet.clickSoundVolume ?? 0.5, (v) => props.onChange({ clickSoundVolume: v }), {
+                  min: '0',
+                  max: '1',
+                  step: '0.05',
+                  disabled: busy,
+                }),
+              ),
               t('clickSoundVolumeHint'),
             ),
           ],

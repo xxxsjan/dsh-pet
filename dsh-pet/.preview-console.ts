@@ -94,6 +94,8 @@ const danmakuState = {
   roomId: '',
   chatCount: 0,
   giftCount: 0,
+  /** 本场累计点赞总数（mock）：随计时器单调递增，用于校验小窗第三格。 */
+  likeCount: 0,
   lastError: '',
   replyChat: false,
   thankGift: false,
@@ -276,6 +278,7 @@ function danmakuStatus() {
     roomId: danmakuState.roomId,
     chatCount: danmakuState.chatCount,
     giftCount: danmakuState.giftCount,
+    likeCount: danmakuState.likeCount,
     lastError: danmakuState.lastError,
     replyChat: danmakuState.replyChat,
     thankGift: danmakuState.thankGift,
@@ -457,9 +460,13 @@ const server = http.createServer(async (req, res) => {
     danmakuState.anchor = danmakuState.anchor || 'mock 主播';
     danmakuState.roomId = danmakuState.roomId || '123456789';
     danmakuState.lastError = '';
+    danmakuState.likeCount = 0;
     if (danmakuTimer) clearInterval(danmakuTimer);
     danmakuPush('chat');
-    danmakuTimer = setInterval(() => danmakuPush(danmakuSeq % 4 === 0 ? 'gift' : 'chat'), 3000);
+    danmakuTimer = setInterval(() => {
+      danmakuState.likeCount += 137;
+      danmakuPush(danmakuSeq % 4 === 0 ? 'gift' : 'chat');
+    }, 3000);
     send(200, 'application/json', JSON.stringify({ ok: true, ...danmakuStatus() }));
     return;
   }

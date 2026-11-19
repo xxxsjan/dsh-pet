@@ -33,11 +33,14 @@ interface Clock {
   now: number;
 }
 
-/** 换掉 Audio 与 Date.now，跑一段用例后还原。 */
+/** 换掉 Audio 与 Date.now，跑一段用例后还原。
+ *  模块级节流时间戳跨用例残留：每个用例的起始时钟递增一大截，保证永远越过上一次播放。 */
+let fakeClockBase = 10_000;
 function withFakeAudio(run: (clock: Clock) => void): void {
   const previousAudio = globalThis.Audio;
   const previousNow = Date.now;
-  const clock: Clock = { now: 10_000 };
+  fakeClockBase += 1_000_000;
+  const clock: Clock = { now: fakeClockBase };
   FakeAudio.constructed = 0;
   FakeAudio.plays = 0;
   FakeAudio.playedVolumes = [];
@@ -86,8 +89,6 @@ describe('playClickSound —— 点击音效（实例级开关与音量）', () 
 
   test('音量按传入值生效：缺省 0.5，配置值原样生效，越界截断到 0–1', () => {
     withFakeAudio((clock) => {
-      // 模块级节流时间戳跨用例残留：先拨快时钟越过上一次播放的节流窗口
-      clock.now += 1000;
       playClickSound(true);
       assert.equal(FakeAudio.playedVolumes[0], 0.5, '未传音量时回退缺省 0.5');
       clock.now += 200;
@@ -102,7 +103,8 @@ describe('playClickSound —— 点击音效（实例级开关与音量）', () 
   test('音频不可用：不抛（没有声音不该变成报错）', () => {
     const previousAudio = globalThis.Audio;
     const previousNow = Date.now;
-    const clock: Clock = { now: 30_000 };
+    // 时钟拨到远超前面所有用例的节流时间戳，确保这次真的走到音频构造。
+    const clock: Clock = { now: 100_000_000 };
     (globalThis as { Audio?: unknown }).Audio = class {
       volume = 0;
       currentTime = 0;

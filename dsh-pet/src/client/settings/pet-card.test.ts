@@ -54,6 +54,8 @@ const pet = {
   whisperEnabled: false,
   workStatusEnabled: true,
   fixedEnabled: false,
+  clickSoundEnabled: true,
+  clickSoundVolume: 0.5,
   position: { corner: 'bottom-left', marginX: 40, marginY: 60 },
   whisperPrompt: '你是一只猫',
 } as unknown as Pet;
@@ -129,11 +131,11 @@ describe('PetCard —— 宠物配置卡', () => {
     ]);
   });
 
-  test('四个功能开关各自回传自己的键', () => {
+  test('功能开关各自回传自己的键（含下沉到宠物卡的点击音效）', () => {
     const patches: PetPatch[] = [];
     const tree = render((patch) => patches.push(patch));
     const checkboxes = flatten(tree).filter((node) => node.tag === 'input' && node.props.type === 'checkbox');
-    assert.equal(checkboxes.length, 4);
+    assert.equal(checkboxes.length, 5);
     for (const box of checkboxes) {
       (box.props.onChange as (e: { target: { checked: boolean } }) => void)({ target: { checked: true } });
     }
@@ -142,7 +144,17 @@ describe('PetCard —— 宠物配置卡', () => {
       { whisperEnabled: true },
       { workStatusEnabled: true },
       { fixedEnabled: true },
+      { clickSoundEnabled: true },
     ]);
+  });
+
+  test('点击音效音量：回显当前值，失焦提交实例级补丁', () => {
+    const patches: PetPatch[] = [];
+    const tree = render((patch) => patches.push(patch));
+    const volume = control(tree, 'input', (props) => props.min === '0' && props.max === '1' && props.step === '0.05');
+    assert.equal(volume.props.defaultValue, '0.5');
+    (volume.props.onBlur as (e: { target: { value: string } }) => void)({ target: { value: '0.2' } });
+    assert.deepEqual(patches, [{ clickSoundVolume: 0.2 }]);
   });
 
   test('人设：回显当前值、占位符用条目人设、右下角显示字数', () => {

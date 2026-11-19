@@ -1,8 +1,9 @@
 /**
- * 快手直连最小 protobuf：SocketMessage 外壳 + 进房/心跳 + FeedPush 弹幕/礼物。
+ * 快手直连最小 protobuf：SocketMessage 外壳 + 进房/心跳 + FeedPush 弹幕/礼物/在线观看数。
  *
- * 字段号对齐 danmuapp `src/proto/ks.js`，只覆盖本轮「弹幕 + 礼物」链路；
- * 点赞 / 进场 / 在线榜 / 分享 / 系统通知等字段在解码时被 protobufjs 自动跳过。
+ * 字段号对齐 danmuapp `src/proto/ks.js` 与公开 KuaiShouPack，只覆盖本轮
+ * 「弹幕 + 礼物 + 在线观看数」链路；点赞 / 进场 / 在线榜 / 分享 / 系统通知等字段在解码时被
+ * protobufjs 自动跳过。
  * @module dsh-pet/src/host/danmaku/kuaishou/proto
  */
 import protobuf from 'protobufjs';
@@ -56,6 +57,8 @@ const root = protobuf.Root.fromJSON({
       },
       SCWebFeedPush: {
         fields: {
+          displayWatchingCount: { type: 'string', id: 1 },
+          displayLikeCount: { type: 'string', id: 2 },
           commentFeeds: { rule: 'repeated', type: 'WebCommentFeed', id: 5 },
           giftFeeds: { rule: 'repeated', type: 'WebGiftFeed', id: 9 },
         },
@@ -109,6 +112,9 @@ export type KsGiftFeed = {
 };
 
 export type KsFeedPush = {
+  /** 在线观看数展示串（"1234" / "1.2万"），解析见 parseKsWatchCount。 */
+  displayWatchingCount?: string;
+  displayLikeCount?: string;
   commentFeeds?: KsCommentFeed[];
   giftFeeds?: KsGiftFeed[];
 };

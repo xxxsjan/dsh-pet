@@ -17,6 +17,7 @@ import {
   encodeBiliPacket,
   parseBiliDanmaku,
   parseBiliGift,
+  parseBiliOnlineCount,
   parseBiliWsFrame,
   biliDanmakuDedupKey,
 } from './bili-danmaku.ts';
@@ -204,5 +205,36 @@ describe('B 站帧归一与去重', () => {
     });
     assert.ok(key.startsWith('f:42|你好|'));
     assert.equal(biliDanmakuDedupKey({ info: null }), '');
+  });
+});
+
+describe('B 站在线人数', () => {
+  test('ONLINE_RANK_COUNT 归一为 online 条目', () => {
+    const items = parseBiliWsFrame(
+      msgPacket('ONLINE_RANK_COUNT', { data: { online_count: 4321 } }),
+      new Set(),
+    );
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.kind, 'online');
+    assert.equal(items[0]?.count, 4321);
+  });
+
+  test('online_count 为字符串时也转成数字', () => {
+    assert.equal(parseBiliOnlineCount({ data: { online_count: '88' } }), 88);
+  });
+
+  test('缺字段 / 负数返回 -1', () => {
+    assert.equal(parseBiliOnlineCount({ data: {} }), -1);
+    assert.equal(parseBiliOnlineCount({}), -1);
+    assert.equal(parseBiliOnlineCount({ data: { online_count: -3 } }), -1);
+  });
+
+  test('同帧里弹幕与在线人数一起返回，顺序按 cmd 出现', () => {
+    const frame = Uint8Array.from([
+      ...msgPacket('ONLINE_RANK_COUNT', { data: { online_count: 10 } }),
+      ...msgPacket('DANMU_MSG', { info: [[], '来了', [7, '观众']] }),
+    ]);
+    const items = parseBiliWsFrame(frame, new Set());
+    assert.deepEqual(items.map((i) => i.kind), ['online', 'chat']);
   });
 });

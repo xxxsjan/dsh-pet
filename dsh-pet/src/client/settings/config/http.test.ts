@@ -224,7 +224,6 @@ describe('buildSaveBody —— 请求体字段', () => {
     const fields = {
       pets: [],
       notificationsEnabled: true,
-      clickSoundEnabled: false,
       whisperImageEnabled: false,
       chatImageEnabled: false,
       chatAnimationEnabled: false,
@@ -254,7 +253,6 @@ describe('buildSaveBody —— 请求体字段', () => {
       'chatImageLimit',
       'chatMemoryRounds',
       'chatModel',
-      'clickSoundEnabled',
       'confineToScreen',
       'fishTtsModel',
       'fishVoices',
@@ -278,9 +276,8 @@ describe('buildSaveBody —— 请求体字段', () => {
 
   test('值原样带出，不做二次包装', () => {
     const fields = {
-      pets: [{ id: 'pet-1' }],
+      pets: [{ id: 'pet-1', clickSoundEnabled: false, clickSoundVolume: 0.2 }],
       notificationsEnabled: false,
-      clickSoundEnabled: true,
       whisperImageEnabled: true,
       chatImageEnabled: true,
       chatAnimationEnabled: true,
@@ -298,5 +295,9 @@ describe('buildSaveBody —— 请求体字段', () => {
     assert.equal(body.chatMemoryRounds, 0);
     assert.deepEqual(body.physics, { gravity: 3 });
     assert.equal(body.notificationsEnabled, false);
+    // 点击音效已下沉实例级：开关与音量随 pets 原样带出，顶层不再有这两个键。
+    assert.deepEqual(body.pets, [{ id: 'pet-1', clickSoundEnabled: false, clickSoundVolume: 0.2 }]);
+    assert.equal('clickSoundEnabled' in body, false);
+    assert.equal('clickSoundVolume' in body, false);
   });
 });

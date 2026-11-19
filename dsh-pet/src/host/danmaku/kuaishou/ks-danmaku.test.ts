@@ -19,7 +19,7 @@ import {
   KS_SC_WEB_COMMENT_FEED,
   KS_SC_WEB_COMMENT_RICH_TEXT_MESSAGE,
 } from './proto.ts';
-import { decompressKsPayload, parseKsWsFrame } from './ks-danmaku.ts';
+import { decompressKsPayload, parseKsWatchCount, parseKsWsFrame } from './ks-danmaku.ts';
 
 const enc = new TextEncoder();
 
@@ -119,6 +119,31 @@ describe('快手帧分发', () => {
     parseKsWsFrame(frame(samplePush), seen);
     const again = parseKsWsFrame(frame(samplePush), seen);
     assert.equal(again.length, 0);
+  });
+
+  test('displayWatchingCount 归一为 online 条目', () => {
+    const seen = new Set<string>();
+    const items = parseKsWsFrame(frame({ displayWatchingCount: '1234' }), seen);
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.kind, 'online');
+    assert.equal(items[0]?.count, 1234);
+  });
+
+  test('在线观看数展示串换算：万/亿/千分位/空值', () => {
+    assert.equal(parseKsWatchCount('1.2万'), 12000);
+    assert.equal(parseKsWatchCount('3.4亿'), 340000000);
+    assert.equal(parseKsWatchCount('1,234'), 1234);
+    assert.equal(parseKsWatchCount('1234人'), 1234);
+    assert.equal(parseKsWatchCount(''), -1);
+    assert.equal(parseKsWatchCount('-'), -1);
+    assert.equal(parseKsWatchCount('abc'), -1);
+  });
+
+  test('同一帧里弹幕 + 礼物 + 在线观看数一起返回', () => {
+    const seen = new Set<string>();
+    const items = parseKsWsFrame(frame({ ...samplePush, displayWatchingCount: '1.2万' }), seen);
+    assert.deepEqual(items.map((i) => i.kind), ['chat', 'gift', 'online']);
+    assert.equal(items[2]?.count, 12000);
   });
 
   test('111 独立 WebCommentFeed 单条弹幕入库并去重', () => {

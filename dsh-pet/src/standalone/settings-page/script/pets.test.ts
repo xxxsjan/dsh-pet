@@ -14,8 +14,6 @@ import { petsScript } from './pets.ts';
 function globalsDraft() {
   return {
     notificationsEnabled: true,
-    clickSoundEnabled: false,
-    clickSoundVolume: 0.5,
     whisperImageEnabled: true,
     chatImageEnabled: false,
     chatAnimationEnabled: true,
@@ -38,7 +36,14 @@ function globalsDraft() {
     hasBreezeApiKey: false,
     breezeApiKeyDraft: 'bz-new-key',
     clearBreezeApiKey: false,
-    physics: { gravity: 1400, groundFriction: 2.5, restitution: 0.78, throwPower: 1, ceilingBounce: true, petCollision: true },
+    physics: {
+      gravity: 1400,
+      groundFriction: 2.5,
+      restitution: 0.78,
+      throwPower: 1,
+      ceilingBounce: true,
+      petCollision: true,
+    },
     font: { family: 'sans', size: 21, followPet: true },
     chatMemoryRounds: 5,
     chatImageLimit: 3,
@@ -48,7 +53,13 @@ function globalsDraft() {
 /** 在最小上下文里跑一遍片段，拿到里面的 tabBody / voiceBody / applySavedTab。 */
 function loadFixtures(physicsSource: Record<string, unknown> | null = null) {
   const context: Record<string, unknown> = {
-    state: { globals: globalsDraft(), pets: { main: [{ id: 'main', size: 462 }] }, entry: 'main', petIndex: 0, prompts: {} },
+    state: {
+      globals: globalsDraft(),
+      pets: { main: [{ id: 'main', size: 462 }] },
+      entry: 'main',
+      petIndex: 0,
+      prompts: {},
+    },
     physicsSource,
     clampNumber: (value: number, min: number, max: number, fallback: number) =>
       Math.min(max, Math.max(min, Number.isFinite(value) ? value : fallback)),
@@ -84,7 +95,10 @@ test('语音 Tab 只带语音段：引擎、音色、两家 Key 与自定义目�
 });
 
 test('清空 Key 优先于草稿：勾了清除只提交 clear 标记', () => {
-  const context = loadFixtures() as unknown as { state: { globals: Record<string, unknown> }; voiceBody: () => Record<string, unknown> };
+  const context = loadFixtures() as unknown as {
+    state: { globals: Record<string, unknown> };
+    voiceBody: () => Record<string, unknown>;
+  };
   context.state.globals.clearBreezeApiKey = true;
   const body = context.voiceBody();
   assert.equal(body.clearBreezeApiKey, true);
@@ -110,6 +124,9 @@ test('字体 / 物理 / 全局 Tab 各带各的段', () => {
   assert.equal(global.obsCaptureEnabled, true);
   assert.equal('voiceProvider' in global, false, '全局开关段不带语音字段');
   assert.equal('font' in global, false);
+  // 点击音效已下沉实例级：全局段不再带这两个键，它们随 pets 提交。
+  assert.equal('clickSoundEnabled' in global, false);
+  assert.equal('clickSoundVolume' in global, false);
 });
 
 test('物理段不凭空补出原配置没有的可选键', () => {

@@ -14,6 +14,8 @@
 import { ROUTE_SEGMENT } from '../shared/constants.ts';
 import { BREEZE_API_KEY_URL } from '../shared/voice-links.ts';
 import { PANEL_CSS } from '../client/chat/panel-css.ts';
+import { giftIconUrlMapJson } from './live-gift-icon.ts';
+import { dyEmojiNameMapJson } from './dy-emoji.ts';
 
 /** 控制台页面 HTML。 */
 export function consolePage(): string {
@@ -309,8 +311,8 @@ export function consolePage(): string {
 </div>
 <div class="chatMask" id="live-dialog" hidden>
 <div class="chatDialog liveDialog" role="dialog" aria-modal="true" aria-labelledby="live-dialog-title">
-<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间<span class="liveTitlePlat" id="live-title-plat"></span></h2><div class="liveHeadRight"><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
-<div class="miniStats" id="mini-stats"><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><b id="mini-stat-chat">0</b></span><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg><b id="mini-stat-gift">0</b></span></div>
+<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间<span class="liveTitlePlat" id="live-title-plat"></span></h2><div class="liveHeadRight"><button type="button" class="chatClose miniOpacityBtn" id="live-opacity" aria-label="调节窗口透明度" aria-expanded="false" title="调节透明度"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.2"/><path d="M8 2.8a5.2 5.2 0 0 1 0 10.4Z" fill="currentColor" stroke="none"/></svg></button><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="miniStats" id="mini-stats"><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><b id="mini-stat-viewer">—</b></span><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg><b id="mini-stat-gift">0</b></span><span class="miniStat" title="本场累计点赞"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg><b id="mini-stat-like">0</b></span></div>
 <div class="liveBody">
 <div class="liveConfigPane" id="live-config-pane"><div class="liveConfig" role="region" aria-labelledby="live-config-title"><span class="liveConfigTitle" id="live-config-title">抖音</span><div class="liveConfigBody">
 <div class="livePlatform" data-platform="dm">
@@ -405,6 +407,7 @@ export function consolePage(): string {
 </div>
 </div>
 </div>
+<div class="miniOpacityPop" id="mini-opacity-pop" role="group" aria-label="窗口透明度" hidden><span class="miniOpacityLabel">透明度</span><input class="miniOpacityRange" id="mini-opacity-range" type="range" min="20" max="100" step="5" value="100" aria-label="窗口透明度"><span class="miniOpacityValue" id="mini-opacity-value">100%</span></div>
 <noscript>需要启用 JavaScript 才能使用控制台。请从桌宠右键菜单打开本页。</noscript>
 <div id="toast-root" class="toastRoot" aria-live="polite"></div>
 </body></html>`;
@@ -424,6 +427,15 @@ export const consoleScript = `
   // p 是控制台「开始监听」时选中的平台，小窗按它显示对应平台的弹幕，窗口内不再提供切平台。
   var LIVE_MINI = new URLSearchParams(location.search).get('mini') === '1';
   var LIVE_MINI_PLATFORM = new URLSearchParams(location.search).get('p') || '';
+  // 礼物名 → 同源取图地址：表在 src/standalone/live-gift-icon.ts，页面 CSP 只有 img-src 'self'，
+  // 所以走本机 /standalone-console/gift-icon 代取，未收录的礼物继续用金色礼物托。
+  var GIFT_ICON_URLS = ${giftIconUrlMapJson()};
+  // 抖音自定义表情：表内 token 才挂图（表在 src/standalone/dy-emoji-table.ts），
+  // 未收录的 [名字] 原样显示文字，不会出现裂图。
+  var DY_EMOJI_NAMES = ${dyEmojiNameMapJson()};
+  var DY_EMOJI_TOKEN_RE = /\\[[^[\\]\\s]{1,20}\\]/g;
+  // 小窗礼物行的金色礼物托（取不到官方图时的占位）
+  var GIFT_TILE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
   var hasCloseLiveBridge = !!(window.petBridge && typeof window.petBridge.closeLive === 'function');
   history.replaceState(null, '', location.pathname);
 
@@ -455,6 +467,8 @@ export const consoleScript = `
   })();
 
   var THEME_KEY = 'blue_fish_ui_theme';
+  // 小窗透明度（20%–100%）存在本机，下次开小窗沿用；只影响小窗整块面板，不改字号与排版。
+  var MINI_ALPHA_KEY = 'blue_fish_live_mini_alpha';
   function readThemeCookie() {
     try {
       var hit = document.cookie.split(';').map(function (p) { return p.trim(); })
@@ -566,18 +580,49 @@ export const consoleScript = `
       window.petBridge.closeLiveMini(platform);
     }
   }
-  // 弹幕小窗统计行：只消费真实口径 chatCount/giftCount；点赞/观众/等级无数据源，不放死槽。
+  // 弹幕小窗统计行：在线观众人数 + 礼物数 + 本场累计点赞；弹幕数已从这里移除（主窗监控卡仍保留 chatCount）。
+  function miniFormatCount(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '0';
+    if (n >= 100000000) return (n / 100000000).toFixed(1).replace(/[.]0$/, '') + '亿';
+    if (n >= 10000) return (n / 10000).toFixed(1).replace(/[.]0$/, '') + '万';
+    return String(Math.floor(n));
+  }
   function miniSyncStats(platform, status) {
     if (!LIVE_MINI || platform !== liveCurrent) return;
-    var chatNode = byId('mini-stat-chat');
+    var viewerNode = byId('mini-stat-viewer');
     var giftNode = byId('mini-stat-gift');
-    if (chatNode) chatNode.textContent = String(Number(status && status.chatCount) || 0);
+    var likeNode = byId('mini-stat-like');
+    if (viewerNode) {
+      // 负数 / 缺字段 = 本场还没收到平台在线统计帧，用占位符，不冒充 0 人。
+      var viewers = Number(status && status.viewerCount);
+      viewerNode.textContent = viewers >= 0 ? String(viewers) : '—';
+    }
     if (giftNode) giftNode.textContent = String(Number(status && status.giftCount) || 0);
+    // 只有抖音回 likeCount（本场累计总赞）；其余平台缺字段时显示 0，不冒装有点赞。
+    if (likeNode) likeNode.textContent = miniFormatCount(status && status.likeCount);
   }
-  // 小窗礼物行的金色礼物托：静态 SVG，不含用户数据。
-  function dmGiftTile() {
+  // 小窗礼物行的礼物托：礼物名在图标表里就放真实礼物图，否则保持金色礼盒占位。
+  function dmGiftTile(giftName, platform) {
     var tile = dmNode('span', 'dmGiftTile');
-    tile.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+    var key = String(platform || '') + '|' + String(giftName == null ? '' : giftName).trim();
+    var src = giftName ? GIFT_ICON_URLS[key] || '' : '';
+    if (!src) {
+      tile.innerHTML = GIFT_TILE_SVG;
+      return tile;
+    }
+    tile.classList.add('dmGiftReal');
+    var img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    // 取图失败（离线或上游 404）：退回金色礼盒，不留白框
+    img.addEventListener('error', function () {
+      tile.classList.remove('dmGiftReal');
+      tile.textContent = '';
+      tile.innerHTML = GIFT_TILE_SVG;
+    });
+    tile.appendChild(img);
     return tile;
   }
   function setStatus(node, text, kind) {
@@ -658,6 +703,44 @@ export const consoleScript = `
     if (cls) node.className = cls;
     if (text !== undefined && text !== null) node.textContent = String(text);
     return node;
+  }
+  /**
+   * 弹幕正文：把抖音的 [微笑] 这类 token 换成表情图，其余原样按文本节点渲染。
+   * 只动已知 token（DY_EMOJI_NAMES），取图失败退回原 token，不留裂图或空位。
+   */
+  function dmRichText(text) {
+    var node = dmNode('span', 'dmFeedText');
+    var raw = String(text == null ? '' : text);
+    if (raw.indexOf('[') < 0) {
+      node.textContent = raw;
+      return node;
+    }
+    var last = 0;
+    var m;
+    DY_EMOJI_TOKEN_RE.lastIndex = 0;
+    while ((m = DY_EMOJI_TOKEN_RE.exec(raw)) !== null) {
+      var token = m[0];
+      if (!DY_EMOJI_NAMES[token]) continue;
+      if (m.index > last) node.appendChild(document.createTextNode(raw.slice(last, m.index)));
+      node.appendChild(dmEmojiImg(token));
+      last = m.index + token.length;
+    }
+    if (last < raw.length) node.appendChild(document.createTextNode(raw.slice(last)));
+    return node;
+  }
+  /** 单个表情图：alt 保留 [名字] 语义，加载失败就地换回文字。 */
+  function dmEmojiImg(token) {
+    var img = document.createElement('img');
+    img.className = 'dmEmoji';
+    img.alt = token;
+    img.title = token.slice(1, -1);
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.src = '/standalone-console/emoji?n=' + encodeURIComponent(token);
+    img.addEventListener('error', function () {
+      var text = document.createTextNode(token);
+      if (img.parentNode) img.parentNode.replaceChild(text, img);
+    });
+    return img;
   }
   /**
    * 配置页那一行监听状态：一个小圆点 + 一行摘要；只有扫码/报错这类需要用户动手的提示才补第二行。
@@ -826,8 +909,8 @@ export const consoleScript = `
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile());
+        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile(item.text, 'douyin'));
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
@@ -847,7 +930,7 @@ export const consoleScript = `
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
+      bodyBox.appendChild(dmRichText(item.text));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
       feedBox.appendChild(row);
@@ -1082,8 +1165,8 @@ export const consoleScript = `
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile());
+        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile(item.text, 'xiaohongshu'));
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
@@ -1325,8 +1408,8 @@ export const consoleScript = `
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile());
+        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile(item.text, 'kuaishou'));
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
@@ -1586,8 +1669,8 @@ export const consoleScript = `
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：金托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile());
+        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
+        row.appendChild(dmGiftTile(item.text, 'bilibili'));
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
@@ -3447,6 +3530,62 @@ export const consoleScript = `
       setLiveDialog(false);
     }
 
+    // 小窗透明度：滑块只调底色 alpha（--mini-panel-alpha），文字、图标、描边不跟着变；
+    // 底色是 rgb(41,41,41)，100% = 不透明度 1（纯 #292929），20% = 0.2。值同时落本机 localStorage。
+    function miniAlphaSaved() {
+      var saved = 100;
+      try { saved = Number(localStorage.getItem(MINI_ALPHA_KEY)); } catch (_) {}
+      if (!(saved >= 20 && saved <= 100)) saved = 100;
+      return Math.round(saved);
+    }
+    function applyMiniAlpha(percent) {
+      var value = Math.min(100, Math.max(20, Math.round(Number(percent) || 100)));
+      var alpha = Math.round(value) / 100;
+      document.documentElement.style.setProperty('--mini-panel-alpha', String(alpha));
+      var valueNode = byId('mini-opacity-value');
+      if (valueNode) valueNode.textContent = value + '%';
+      var rangeNode = byId('mini-opacity-range');
+      if (rangeNode && Number(rangeNode.value) !== value) rangeNode.value = String(value);
+    }
+    function setMiniOpacityPop(open) {
+      var pop = byId('mini-opacity-pop');
+      var btn = byId('live-opacity');
+      if (!pop) return;
+      if (open) pop.removeAttribute('hidden');
+      else pop.setAttribute('hidden', '');
+      if (btn) {
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) btn.classList.add('is-on');
+        else btn.classList.remove('is-on');
+      }
+    }
+    function wireMiniOpacity() {
+      if (!LIVE_MINI) return;
+      applyMiniAlpha(miniAlphaSaved());
+      var btn = byId('live-opacity');
+      var range = byId('mini-opacity-range');
+      if (btn) btn.addEventListener('click', function (event) {
+        event.stopPropagation();
+        var pop = byId('mini-opacity-pop');
+        setMiniOpacityPop(!!pop && pop.hasAttribute('hidden'));
+      });
+      if (range) range.addEventListener('input', function () {
+        var percent = Number(range.value) || 100;
+        applyMiniAlpha(percent);
+        try { localStorage.setItem(MINI_ALPHA_KEY, String(percent)); } catch (_) {}
+      });
+      document.addEventListener('pointerdown', function (event) {
+        var pop = byId('mini-opacity-pop');
+        if (!pop || pop.hasAttribute('hidden')) return;
+        var target = event.target;
+        if (pop.contains(target) || (btn && btn.contains(target))) return;
+        setMiniOpacityPop(false);
+      });
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') setMiniOpacityPop(false);
+      });
+    }
+
     function wireLiveDialog() {
       var openBtn = byId('live-open');
       var dialog = liveDialogEl();
@@ -3523,6 +3662,8 @@ export const consoleScript = `
     wireBiliDialog();
     // 统一直播间弹窗：控制台四张平台入口卡各自打开对应平台配置，窗内不再切平台。
     wireLiveDialog();
+    // 小窗头部的透明度滑块（非小窗形态内部直接 return）
+    wireMiniOpacity();
 
     // 保存与重置
     byId('pet-save').addEventListener('click', savePet);
@@ -3910,6 +4051,8 @@ box-shadow:inset 0 1px 0 rgba(255,255,255,.55),var(--shadow)}
 .dmFeedNick.nk4{color:#6b46c9}
 .dmFeedNick.nk5{color:#c93d69}
 .dmFeedText{display:inline;color:var(--label-primary);word-break:break-word}
+/* 抖音表情图：跟着正文行高走，别撑高行距 */
+.dmEmoji{display:inline-block;width:1.15em;height:1.15em;object-fit:contain;vertical-align:-0.22em;margin:0 1px}
 .dmFeedItem.gift .dmFeedText{color:#a86100}
 .dmFeedTime{align-self:start;margin-top:3px;font-size:11px;color:var(--label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
 @keyframes dmFeedIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
@@ -3959,50 +4102,73 @@ body.live-standalone .liveDialog .chatClose{-webkit-app-region:no-drag}
 body.live-mini{background:transparent;color:#e8eaed}
 /* 暗色主题 body 的背景图选择器优先级更高，必须在小窗显式关掉，否则控制台背景图会透进浮窗 */
 body.live-mini,html[data-theme=dark] body.live-mini{background-image:none}
-body.live-mini #live-dialog{padding:0;align-items:stretch;justify-content:stretch;background:rgba(32,33,36,.4);border-radius:16px;overflow:hidden}
+/* 小窗底色：rgb(41,41,41)，滑块调的是这一层底色自身的不透明度（100% = 纯 #292929），
+   文字、图标、描边不跟着变。注意两点：必须用 background-color 长写（background 简写里 var() 不替换）；
+   这层不能挂 transition，带过渡时 var 换出来的颜色不落地，读到的只是旧值。 */
+body.live-mini #live-dialog{padding:0;align-items:stretch;justify-content:stretch;background-color:rgba(41,41,41,var(--mini-panel-alpha,1));border:1px solid rgba(255,255,255,.24);border-radius:10px;overflow:hidden}
 body.live-mini .liveDialog{width:100%;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none;background:transparent;color:#e8eaed}
 /* 独立模式的 align-items:center 会把子元素缩成内容宽；小窗可见的礼物/弹幕区在 .liveMain 里，
    不在上面 chatHead/liveBody/liveFoot 的补宽名单中，这里补满整窗宽度，头部同步去掉 980px 上限 */
 body.live-mini .liveDialog .chatHead,body.live-mini .liveDialog .liveMain{width:100%;max-width:none}
-body.live-mini .liveDialog .chatHead{padding:14px 18px 10px;gap:10px;border-bottom:0;background:transparent}
-body.live-mini .liveDialog .chatTitle{display:inline-flex;align-items:center;gap:0;font-size:15px;font-weight:700;letter-spacing:.02em;color:#f2f3f5}
+body.live-mini .liveDialog .chatHead{padding:12px 18px 4px;gap:10px;border-bottom:0;background:transparent}
+body.live-mini .liveDialog .chatTitle{display:inline-flex;align-items:center;gap:0;font-size:17px;font-weight:700;letter-spacing:.02em;color:#f2f3f5}
 body.live-mini .liveStatusLight{display:none!important}
 body.live-mini .chatClose{width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:#c9cdd3}
 body.live-mini .chatClose:hover{color:#f2f3f5;background:rgba(255,255,255,.08)}
+/* 透明度入口：只在小窗出现，外观跟随关闭按钮；点开在头部下方浮出滑块 */
+.miniOpacityBtn{display:none}
+body.live-mini .miniOpacityBtn{display:inline-flex;align-items:center;justify-content:center}
+body.live-mini .miniOpacityBtn.is-on{color:#f2f3f5;background:rgba(255,255,255,.12)}
+/* 滑块浮层挂在整页上（不在 #live-dialog 里），窗口调淡后它仍保持原亮度，低透明度下也点得动 */
+.miniOpacityPop{position:fixed;top:52px;right:14px;z-index:70;display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:12px;background:rgba(28,29,32,.94);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 30px rgba(0,0,0,.45);color:#e8eaed;font-size:13.5px;line-height:18px}
+.miniOpacityPop[hidden]{display:none}
+.miniOpacityLabel{color:#c9cdd3;white-space:nowrap}
+.miniOpacityRange{width:110px;height:16px;margin:0;accent-color:#4fc3f7;cursor:pointer}
+.miniOpacityValue{min-width:38px;text-align:right;color:#9aa0a6;font-variant-numeric:tabular-nums}
+/* 小窗透明度：--mini-panel-alpha（满格 .12）只作用在上面那层底色的 alpha 上，不对整块元素用 opacity，
+   否则文字/图标会跟背景一起淡掉。 */
 body.live-mini .liveBody{display:none!important}
 body.live-mini .liveFoot{display:none!important}
-/* 统计行只放真实口径（弹幕/礼物）；点赞/观众/等级无数据源，不放死槽 */
+/* 统计行只放真实口径（在线观众人数/礼物数/本场累计点赞数）；弹幕数不再展示，等级无数据源，不放死槽；抖音点赞由 likeCount 提供 */
 .miniStats{display:none}
-body.live-mini .miniStats{display:flex;width:100%;align-items:center;gap:22px;padding:0 18px 10px;color:#9aa0a6}
+body.live-mini .miniStats{display:flex;width:100%;align-items:center;gap:20px;padding:0 18px 8px;color:#9aa0a6}
 body.live-mini .miniStat{display:inline-flex;align-items:center;gap:6px}
-body.live-mini .miniStat svg{width:16px;height:16px;display:block}
-body.live-mini .miniStat b{font-size:12.5px;line-height:16px;font-weight:500;color:#e8eaed}
-body.live-mini .liveFeedPanel.is-active{padding:0 18px 12px;border:0;border-radius:0;background:transparent;gap:0}
+/* 小窗字号整体放大一档（正文/昵称 12.5→14.5，统计 12.5→14，标题 15→17），按 380×560 的窗口可视距离读 */
+body.live-mini .miniStat svg{width:17px;height:17px;display:block}
+body.live-mini .miniStat b{font-size:14px;line-height:18px;font-weight:500;color:#e8eaed}
+body.live-mini .liveFeedPanel.is-active{padding:0 18px 10px;border:0;border-radius:0;background:transparent;gap:0}
 body.live-mini .liveFeedPanel .dmGiftCard,
 body.live-mini .liveFeedPanel .dmFeedCard{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 /* 设计稿无「礼物/弹幕」小标题，计数收进顶部统计行 */
 body.live-mini .dmCardHead{display:none}
-body.live-mini .dmGift{gap:6px;padding:2px 0 0;border:0;background:transparent;border-radius:0;max-height:32vh;min-height:132px}
-body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息";margin:auto;font-size:12px;color:#6b7076}
+/* 礼物区不再预留固定高度：空态时按内容收缩，有礼物时按条数自然增长（上限 32vh 内滚动），
+   否则空态那 132px 会凭空把统计行和弹幕区拉开 */
+body.live-mini .dmGift{gap:6px;padding:0;border:0;background:transparent;border-radius:0;max-height:32vh;min-height:0}
+body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息";margin:0;padding:2px 0 0;align-self:flex-start;font-size:13px;color:#6b7076}
 /* 礼物区与弹幕区之间的发丝分隔线（ specificity 需压过上面 border:0 名单） */
-body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-top:10px}
-body.live-mini .dmFeed{gap:4px;padding:0;border:0;background:transparent;border-radius:0}
-body.live-mini .dmFeed:empty::before{font-size:12px;color:#6b7076}
-body.live-mini .dmFeedItem{display:flex;align-items:center;gap:8px;padding:6px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
+body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
+body.live-mini .dmFeed{gap:4px;padding:0;border:0;background:transparent;border-radius:0;min-height:0}
+body.live-mini .dmFeed:empty::before{font-size:13px;color:#6b7076}
+/* 小窗弹幕行：昵称与内容作为同一段文本流，右边没位置了再从左边第二行开始（不悬挂缩进）。
+   容器保持 flex 是为了让礼物行的金色礼物托与文字区并排；文字区内部是文本流。 */
+body.live-mini .dmFeedItem{display:flex;align-items:start;gap:8px;padding:5px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
 body.live-mini .dmFeedItem.chat:hover{border-color:transparent;background:transparent}
 body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.45);background:rgba(255,179,64,.10);border-radius:12px;padding:8px 12px;margin-bottom:6px}
 /* 设计稿弹幕行无左侧头像；礼物行用金色礼物托 */
 body.live-mini .dmFeedAva{display:none}
-body.live-mini .dmGiftTile{flex:none;width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
-body.live-mini .dmGiftTile svg{width:12px;height:12px;display:block}
-body.live-mini .dmFeedBody{display:flex;align-items:center;gap:6px;min-width:0;font-size:12.5px;line-height:1.5;color:#e8eaed}
-body.live-mini .dmFeedItem.chat .dmFeedNick{font-size:12.5px;font-weight:500;color:#4fc3f7}
-body.live-mini .dmFeedItem.gift .dmFeedNick{font-size:12.5px;font-weight:500;color:#4fc3f7}
+body.live-mini .dmGiftTile{flex:none;width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
+body.live-mini .dmGiftTile svg{width:13px;height:13px;display:block}
+/* 命中官方礼物图时不铺金色底：礼物图自带留白与圆角，按 contain 塞进同一个 22px 方框 */
+body.live-mini .dmGiftTile.dmGiftReal{background:none;border-radius:0}
+body.live-mini .dmGiftTile.dmGiftReal img{width:22px;height:22px;object-fit:contain;display:block}
+body.live-mini .dmFeedBody{display:block;min-width:0;font-size:14.5px;line-height:1.5;color:#e8eaed;white-space:normal}
+body.live-mini .dmFeedItem.chat .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
+body.live-mini .dmFeedItem.gift .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
 body.live-mini .dmFeedItem.chat .dmFeedNick::after{color:#4fc3f7}
 body.live-mini .dmFeedItem.gift .dmFeedNick::after,body.live-mini .dmFeedItem.entry .dmFeedNick::after{content:none}
 body.live-mini .dmFeedVerb{color:#e8eaed}
 body.live-mini .dmFeedGiftName{color:#ffc06a;font-weight:500}
-body.live-mini .dmFeedCount{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,192,106,.45);background:rgba(255,192,106,.12);color:#ffc06a;font-size:11px;line-height:16px;font-weight:700}
+body.live-mini .dmFeedCount{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:10px;border:1px solid rgba(255,192,106,.45);background:rgba(255,192,106,.12);color:#ffc06a;font-size:12px;line-height:18px;font-weight:700}
 body.live-mini .dmFeedText{color:#e8eaed}
 body.live-mini .dmFeedItem.entry .dmFeedNick{color:#4fc3f7}
 body.live-mini .dmFeedItem.entry .dmFeedText{color:#e8eaed}

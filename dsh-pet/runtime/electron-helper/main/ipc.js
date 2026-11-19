@@ -427,12 +427,14 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       minWidth: Math.round(300 * scale),
       minHeight: Math.round(320 * scale),
       autoHideMenuBar: true,
-      backgroundColor: '#20212466',
+      // 窗底色全透明：面板那层淡白半透明由页面自己画，窗底再垫一层深色会把中性灰又压回偏黑，
+      // 圆角之外的四角也会留下深色方块。
+      backgroundColor: '#00000000',
       title: '弹幕小窗',
       icon: path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
       // 无边框 + 置顶：头部由页面自绘并当拖动区，关闭按钮走页内 pet:close-live。
       frame: false,
-      // 整窗背景带 66 透明度，透出后方桌面；透明窗必须开 transparent，否则背景色 alpha 不生效。
+      // 透明窗必须开 transparent，否则页面那层半透明面板不生效、只会糊死成实色。
       transparent: true,
       alwaysOnTop: true,
       maximizable: false,
