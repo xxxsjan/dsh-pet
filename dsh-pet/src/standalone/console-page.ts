@@ -3453,12 +3453,7 @@ export const consoleScript = `
     Array.prototype.forEach.call(document.querySelectorAll('.deskEntry[data-panel]'), function (entry) {
       entry.addEventListener('click', function () { openPanel(entry.getAttribute('data-panel')); });
     });
-    // 面板关闭：点遮罩空白处 / 关闭按钮；Esc 优先收起设置面板
-    panelMasks().forEach(function (mask) {
-      mask.addEventListener('click', function (event) {
-        if (event.target === mask) closePanels();
-      });
-    });
+    // 面板关闭：只认右上角关闭按钮与 Esc；点遮罩空白处不关，避免手滑把正在编辑的配置关掉
     Array.prototype.forEach.call(document.querySelectorAll('[data-panel-close]'), function (btn) {
       btn.addEventListener('click', function () {
         var mask = btn.closest ? btn.closest('.panelMask') : null;
@@ -3948,13 +3943,7 @@ export const consoleScript = `
         if (liveMonitorIsCenter) xsShowCenter();
         else liveOpenRoom(liveMonitorPlatform);
       });
-      if (dialog) {
-        dialog.addEventListener('click', function (event) {
-          // 独立窗口里直播间就是整页主体，点空白不关闭；只在页内弹窗模式下点遮罩才收弹窗。
-          if (LIVE_STANDALONE) return;
-          if (event.target === dialog) setLiveDialog(false);
-        });
-      }
+      // 直播间弹窗只认右上角关闭按钮与 Esc；点遮罩空白处不关闭，避免手滑丢失正在填的配置。
       document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape' || !liveIsOpen()) return;
         if (LIVE_STANDALONE) closeLiveWindow();
