@@ -400,6 +400,34 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
   };
   let liveMiniWindow = null;
   let liveMiniPlatform = '';
+  // 折叠态：记下展开时的高度与最小尺寸，展开时原样还原；窗口被销毁就清空，别把上一扇窗的尺寸带到下一扇。
+  let liveMiniCollapsed = null;
+  const liveMiniSetCollapsed = (win, collapsed, cssHeight) => {
+    if (!win || win.isDestroyed()) return;
+    const bounds = win.getBounds();
+    if (collapsed) {
+      if (!liveMiniCollapsed) {
+        liveMiniCollapsed = { height: bounds.height, minSize: win.getMinimumSize() };
+      }
+      // cssHeight 是页面量到的标题栏高度（CSS px）：乘上 zoomFactor 才是窗口 DIP。
+      const height = Math.max(1, Math.round((Number(cssHeight) > 0 ? Number(cssHeight) : 40) * uiScale()));
+      // 折叠态高度锁在标题栏上（min=max），但保留可缩放：用户只能拖左右调宽度。
+      win.setMinimumSize(liveMiniCollapsed.minSize[0], height);
+      win.setMaximumSize(10000, height);
+      win.setResizable(true);
+      win.setBounds({ x: bounds.x, y: bounds.y, width: bounds.width, height });
+      return;
+    }
+    const saved = liveMiniCollapsed;
+    liveMiniCollapsed = null;
+    if (!saved) return;
+    win.setMinimumSize(saved.minSize[0], saved.minSize[1]);
+    // 解除高度锁：10000 相当于不限，Windows 拖拽时会自己受屏幕边界约束。
+    win.setMaximumSize(10000, 10000);
+    win.setResizable(true);
+    // 宽度保留用户折叠期间拖出来的值，只还原高度。
+    win.setBounds({ x: bounds.x, y: bounds.y, width: bounds.width, height: saved.height });
+  };
   const openLiveMiniWindow = (platform) => {
     const wanted = LIVE_MINI_PLATFORMS.includes(platform) ? platform : 'dm';
     const target = liveMiniUrlFromConsole(wanted);
@@ -411,6 +439,8 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     if (liveMiniWindow && !liveMiniWindow.isDestroyed()) {
       if (liveMiniPlatform !== wanted) {
         liveMiniPlatform = wanted;
+        // 换平台会整页重载：折叠态下的 DOM 会被新页面重置成展开，窗口也先还原，免得新内容被挤在标题栏里。
+        liveMiniSetCollapsed(liveMiniWindow, false);
         liveMiniWindow.loadURL(target).catch((error) => {
           console.error('[blue-fish-desktop-helper] live mini load failed:', error);
         });
@@ -453,10 +483,13 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       if (liveMiniWindow === win) {
         liveMiniWindow = null;
         liveMiniPlatform = '';
+        liveMiniCollapsed = null;
       }
     });
     win.webContents.on('did-finish-load', () => {
       if (!win.isDestroyed()) win.webContents.setZoomFactor(scale);
+      // 页面重载后 body 会回到展开态：窗口这边也还原，别让新页面被挤在折叠后的标题栏高度里。
+      liveMiniSetCollapsed(win, false);
     });
     win.webContents.setWindowOpenHandler(({ url: next }) => {
       if (/^https?:[/][/]/.test(next)) {
@@ -532,6 +565,16 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     if (openTarget !== 'standalone') return;
     const platform = payload && typeof payload === 'object' ? String(payload.platform || '') : '';
     closeLiveMiniWindow(platform);
+  });
+
+  // 弹幕小窗折叠/展开：页面点标题栏箭头时把窗口收成一行标题栏（展开高度在第一次折叠时记下）。
+  // 只接受小窗自己发来的请求：主窗口/设置窗不该有权限改小窗尺寸。
+  ipcMain.on('pet:live-mini-collapse', (event, payload) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed() || win !== liveMiniWindow) return;
+    const collapsed = !!(payload && payload.collapsed);
+    const height = payload && Number(payload.height) > 0 ? Number(payload.height) : 0;
+    liveMiniSetCollapsed(win, collapsed, height);
   });
 
   // 直播间配置页「打开直播间」：用系统默认浏览器打开直播间地址，只接受 http(s) 链接。

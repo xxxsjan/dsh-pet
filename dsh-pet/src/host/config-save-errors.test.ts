@@ -28,7 +28,7 @@ before(async () => {
   previousHome = process.env.DSH_HOME;
   home = mkdtempSync(join(tmpdir(), 'blue-fish-save-errors-'));
   process.env.DSH_HOME = home;
-  file = join(home, 'dsh-pet', 'main-config.jsonc');
+  file = join(home, 'blue-fish', 'main-config.jsonc');
   mkdirSync(join(home, 'blue-fish'), { recursive: true });
   const routes: ReturnType<typeof createStandaloneContext>['routes'] = [];
   context = createStandaloneContext({ port: 0, routes, logger });

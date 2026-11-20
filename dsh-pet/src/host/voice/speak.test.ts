@@ -103,6 +103,29 @@ test('同一输入第二次：命中缓存，不再调用合成', async () => {
   }
 });
 
+test('fresh：跳过缓存命中，强制重新合成（结果仍写入缓存）', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-fresh-'));
+  try {
+    let calls = 0;
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesize: async (input) => {
+        calls += 1;
+        await writeFile(input.target, fakeMp3());
+      },
+    });
+    await voice.speak({ text: '同一句话' });
+    const second = await voice.speak({ text: '同一句话', fresh: true });
+    assert.equal(second.ok, true);
+    assert.equal(calls, 2, 'fresh 不读旧缓存，必须重新合成');
+    const third = await voice.speak({ text: '同一句话' });
+    assert.equal(third.ok, true);
+    assert.equal(calls, 2, 'fresh 的结果仍要落盘，后续请求继续命中缓存');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('合成失败：判 generate-error，不把上游细节回给调用方', () =>
   withService(
     async (voice) => {

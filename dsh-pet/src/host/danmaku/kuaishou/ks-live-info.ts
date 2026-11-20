@@ -124,6 +124,22 @@ export function extractKsTitle(body: string): string {
   return title?.[1]?.trim() ?? '';
 }
 
+/**
+ * 页面里的限流提示：`playList[].errorType.title`，如「请求过快，请稍后重试」。
+ *
+ * 限流时 websocketUrls 与 token 都是空的，继续走换票只会把「限流」误报成「需要 Cookie」。
+ * @returns 命中的提示文案；没命中返回空串。
+ */
+export function extractKsRateLimit(body: string): string {
+  const re = /"errorType"\s*:\s*\{[^{}]*"title"\s*:\s*"([^"]+)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body))) {
+    const title = m[1] ?? '';
+    if (/请求过快|操作频繁|访问频繁|稍后重试/.test(title)) return title;
+  }
+  return '';
+}
+
 /** 表情图地址归一：页面里是 `//ali2.a.yximgs.com/...` 这类协议相对地址。 */
 function normalizeEmojiUrl(value: unknown): string {
   if (typeof value !== 'string') return '';
@@ -295,6 +311,10 @@ export async function resolveKsWsInfo(
   if (!pageResp.ok) throw new Error(`打开直播间失败 HTTP ${pageResp.status}`);
   if (body.includes('captcha') && body.length < 30_000) {
     throw new Error('快手要求验证：请用浏览器打开直播间完成验证后，复制 Cookie 粘贴到面板再试');
+  }
+  const rateLimit = extractKsRateLimit(body);
+  if (rateLimit) {
+    throw new Error(`快手限流：${rateLimit}（稍等几分钟再点开始监听，别连续重试）`);
   }
 
   const title = extractKsTitle(body);

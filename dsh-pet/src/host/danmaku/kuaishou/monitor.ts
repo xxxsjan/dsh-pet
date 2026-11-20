@@ -1,7 +1,7 @@
 /**
  * 快手直连弹幕监听器：进房换票 → WSS 直连 → 进房帧 + 20s 心跳 → protobuf 解码分发。
  *
- * 不走 CDP 旁听；入库弹幕 + 礼物 + 在线观看数，进场 / 点赞 / 在线榜 / 分享 / 系统通知留样本不展示。
+ * 不走 CDP 旁听；入库弹幕 + 礼物 + 在线观看数 + 本场累计点赞，进场 / 在线榜 / 分享 / 系统通知留样本不展示。
  * 进房握手（登录 Cookie / 换票 / 风控）只能桌面真机连直播间验证。
  * @module dsh-pet/src/host/danmaku/kuaishou/monitor
  */
@@ -53,6 +53,8 @@ export type KsMonitorStatus = {
   giftCount: number;
   /** 在线观看数（displayWatchingCount）；-1 = 本场还没收到统计帧。 */
   viewerCount: number;
+  /** 本场累计点赞数（displayLikeCount）；0 = 本场还没收到点赞统计帧，只增不减。 */
+  likeCount: number;
   lastError: string;
   startedAt: number | null;
   replyChat: boolean;
@@ -114,6 +116,8 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   let giftCount = 0;
   /** 在线观看数；-1 表示本场还没收到统计帧。 */
   let viewerCount = -1;
+  /** 本场累计点赞：快手只下发展示串累计值，取 max 防上游回退抖动；start 时清零。 */
+  let likeCount = 0;
   let feedSeq = 0;
   let lastError = '';
   let startedAt: number | null = null;
@@ -215,6 +219,11 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     if (item.kind === 'online') {
       viewerCount = Math.max(0, item.count);
       log.debug?.(`[blue-fish][kuaishou] online viewers=${viewerCount}`);
+      return;
+    }
+    if (item.kind === 'like') {
+      likeCount = Math.max(likeCount, Math.max(0, item.count));
+      log.debug?.(`[blue-fish][kuaishou] likes=${likeCount}`);
       return;
     }
     if (item.kind === 'chat') {
@@ -489,6 +498,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     chatCount = 0;
     giftCount = 0;
     viewerCount = -1;
+    likeCount = 0;
     feedSeq = 0;
     recentFeed.length = 0;
     startedAt = null;
@@ -539,6 +549,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       chatCount,
       giftCount,
       viewerCount,
+      likeCount,
       lastError,
       startedAt,
       replyChat,

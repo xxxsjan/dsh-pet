@@ -67,7 +67,7 @@ export function extractChatImage(text: string, pool: MemeEntry[]): { text: strin
   if (!m) return { text };
   const body = text.slice(0, m.index).trim();
   const hit = matchMeme(pool, m[1] ?? '');
-  if (!hit || !body) return { text: body || text };
+  if (!hit || !body) return { text };
   return { text: body, image: hit.name };
 }
 

@@ -77,6 +77,13 @@ contextBridge.exposeInMainWorld('petBridge', {
   closeLiveMini(platform) {
     ipcRenderer.send('pet:close-live-mini', platform ? { platform: String(platform) } : null);
   },
+  // 弹幕小窗折叠：collapsed 为 true 时 height 是标题栏高度（CSS px），主进程按 UI 缩放换算成窗口高度。
+  setLiveMiniCollapsed(collapsed, height) {
+    ipcRenderer.send('pet:live-mini-collapse', {
+      collapsed: !!collapsed,
+      height: Number(height) || 0,
+    });
+  },
   // 无边框窗口的头部拖动：渲染端只报阶段（start/move/end）与屏幕坐标，窗口位移在主进程做。
   // 不走 -webkit-app-region:drag 是因为系统拖动区会把光标接管成箭头，抓手样式挂不上去。
   windowDrag(phase, screenX, screenY) {

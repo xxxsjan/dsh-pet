@@ -2,8 +2,9 @@
  * 快手直连 longlink 弹幕解码（对齐 danmuapp `src/composables/live/useKuaishouLive.js`）。
  *
  * 入站二进制先解 `SocketMessage` 外壳：compressionType=2 时 gzip 解压（inflate 失败回退
- * inflateRaw）；`SC_FEED_PUSH(310)` 内 `displayWatchingCount` / `commentFeeds` / `giftFeeds`
- * 入库，点赞 / 进场 / 在线榜 / 分享 / 系统通知本轮留样本不入库。礼物名无目录兜底为 `礼物#<giftId>`。
+ * inflateRaw）；`SC_FEED_PUSH(310)` 内 `displayWatchingCount` / `displayLikeCount` /
+ * `commentFeeds` / `giftFeeds` 入库，进场 / 在线榜 / 分享 / 系统通知本轮留样本不入库。
+ * 礼物名无目录兜底为 `礼物#<giftId>`。
  * @module dsh-pet/src/host/danmaku/kuaishou/ks-danmaku
  */
 import { inflate, inflateRaw } from 'pako';
@@ -29,10 +30,10 @@ import {
 
 /** 归一到展示口径的一条消息。 */
 export type KsParsedItem = {
-  kind: 'chat' | 'gift' | 'online';
+  kind: 'chat' | 'gift' | 'online' | 'like';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0；online 为在线观看数。 */
+  /** 礼物件数；聊天为 0；online 为在线观看数；like 为本场累计点赞数。 */
   count: number;
   giftName: string;
   /** 礼物原始 id；聊天为空。 */
@@ -218,6 +219,19 @@ export function parseKsWsFrame(raw: Uint8Array, seen: Set<string>): KsParsedItem
       nick: '',
       text: '',
       count: watching,
+      giftName: '',
+      giftId: '',
+      principalId: '',
+    });
+  }
+  // 本场累计点赞：与在线人数同帧的展示串（"1234" / "1.2万"），口径同 parseKsWatchCount。
+  const likes = parseKsWatchCount(push.displayLikeCount);
+  if (likes >= 0) {
+    out.push({
+      kind: 'like',
+      nick: '',
+      text: '',
+      count: likes,
       giftName: '',
       giftId: '',
       principalId: '',

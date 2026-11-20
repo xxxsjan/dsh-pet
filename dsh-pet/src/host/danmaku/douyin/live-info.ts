@@ -66,17 +66,51 @@ function cookieMapToHeader(map: Map<string, string>): string {
 
 /** 登录会话键：任一非空才算带了会话凭证。 */
 const DY_SESSION_KEYS = ['sessionid', 'sessionid_ss', 'sid_tt'];
-/** 登录账号 uid 键：按优先级取第一个非空值。 */
-const DY_UID_KEYS = ['uid_tt', 'uid_tt_ss', 'uid_ss', 'uid'];
+
+/**
+ * enter 接口回显这个 uid 说明 Cookie 里的 session 已经过期 / 被打回游客态。
+ * 是抖音硬编码的游客占位账号，不是真实用户。
+ */
+const DY_GUEST_PLACEHOLDER_UID = '3677211856479552';
 
 /** Cookie 校验失败的原因码；文案由调用方（monitor）映射，纯函数不拼用户文案。 */
-export type DyCookieCheckReason = 'no-session' | 'no-uid' | 'no-server-uid' | 'mismatch';
+export type DyCookieCheckReason = 'no-session' | 'no-server-uid' | 'guest-placeholder';
+
+/** 本地结构预检的原因码：只涉及 Cookie 本身，不发请求。 */
+export type DyCookieShapeReason = 'no-session';
+
+/** Cookie 里有没有登录会话。 */
+function cookieHasSession(cookieHeader: string): boolean {
+  const jar = parseCookieMap(normalizeDyCookieHeader(cookieHeader));
+  return DY_SESSION_KEYS.some((k) => String(jar.get(k) ?? '').trim());
+}
+
+/**
+ * 只检查 Cookie 结构（有没有会话键），不发网络请求。
+ *
+ * 启动时先跑这一步：贴错 / 贴漏的 Cookie 不必等进房结果就能当场拦下，
+ * 下播场景至少也能给出「这不是登录态 Cookie」的结论。
+ *
+ * 注意：不再要求 Cookie 里必须有 uid 字段——抖音现代版本只在 Cookie 里放
+ * `uid_tt` / `uid_tt_ss` 这种加密 hash，根本没法和服务端回显的明文 uid 比对。
+ */
+export function checkDyCookieShape(
+  cookieHeader: string,
+): { ok: true } | { ok: false; reason: DyCookieShapeReason } {
+  if (!cookieHasSession(cookieHeader)) return { ok: false, reason: 'no-session' };
+  return { ok: true };
+}
 
 /**
  * 校验手填登录 Cookie 是否真有效。
  *
- * 不能只看键名：游客态调 enter 也会回一个固定占位 user，所以必须比对「Cookie 自带的登录 uid」
- * 与「enter 接口回显的当前用户 uid」是否一致——一致才说明会话被服务端认可；过期/未登录都对不上。
+ * 以前靠「Cookie 里的 uid_tt 和 enter 回显的 user.id_str 比对」——但抖音现在
+ * 已经不在 Cookie 里放明文 uid 了，uid_tt 只是加密 hash，永远和服务端对不上。
+ *
+ * 新逻辑：只看服务端回显的 user.id_str。
+ * - 空：进房接口异常，没法确认
+ * - 游客占位 UID：session 被打回游客，Cookie 过期
+ * - 其他值：真实用户，Cookie 有效
  *
  * @param cookieHeader - 用户填入的原始 Cookie。
  * @param serverUid - 本次进房 enter 接口回显的 `data.user.id_str`。
@@ -85,14 +119,55 @@ export function checkDyCookie(
   cookieHeader: string,
   serverUid: string,
 ): { ok: true } | { ok: false; reason: DyCookieCheckReason } {
-  const jar = parseCookieMap(normalizeDyCookieHeader(cookieHeader));
-  const claimedUid = DY_UID_KEYS.map((k) => jar.get(k)).find((v) => String(v ?? '').trim()) ?? '';
-  const hasSession = DY_SESSION_KEYS.some((k) => String(jar.get(k) ?? '').trim());
-  if (!hasSession) return { ok: false, reason: 'no-session' };
-  if (!claimedUid) return { ok: false, reason: 'no-uid' };
+  const shape = checkDyCookieShape(cookieHeader);
+  if (!shape.ok) return shape;
   if (!serverUid) return { ok: false, reason: 'no-server-uid' };
-  if (serverUid !== claimedUid) return { ok: false, reason: 'mismatch' };
+  if (serverUid === DY_GUEST_PLACEHOLDER_UID)
+    return { ok: false, reason: 'guest-placeholder' };
   return { ok: true };
+}
+
+/** 下播判定的原始依据；只进 debug 日志，不给用户看。 */
+export type DyRoomOfflineDetail = {
+  /** 判定路径：进房没拿到 room / 进房说未开播 / 回落页面解析后说未开播。 */
+  reason: 'no-room' | 'not-living' | 'page-fallback';
+  roomId: string;
+  status?: number;
+  finishTime?: number;
+  reflow: boolean;
+  enterRoomStatus?: number | null;
+};
+
+/**
+ * 房间已下播（或拿不到房间）时抛出。
+ *
+ * 仍带上 enter 接口回显的当前用户 uid：下播场景服务端照样会回显 user，
+ * 调用方据此可以先给 Cookie 定性，再决定报「Cookie 失效」还是「主播已下播」。
+ */
+export class DyRoomOfflineError extends Error {
+  /** enter API 回显的当前用户 uid；拿不到时为空串。 */
+  declare readonly loginUid: string;
+  /** 判定依据快照；用于排查「真下播」与瞬时 reflow 的误判。 */
+  declare readonly detail?: DyRoomOfflineDetail;
+
+  constructor(message: string, loginUid = '', detail?: DyRoomOfflineDetail) {
+    super(message);
+    this.name = 'DyRoomOfflineError';
+    this.loginUid = loginUid;
+    this.detail = detail;
+  }
+}
+
+/**
+ * 进房接口没给出可用结果（空 body / 非 JSON / 风控），页面也确认不了在播状态。
+ *
+ * 它不代表下播：调用方必须把它当「状态未知」处理，绝不能提示「主播已下播」。
+ */
+export class DyLivenessUnknownError extends Error {
+  constructor(message = '抖音进房接口暂时不可用，无法确认直播间状态') {
+    super(message);
+    this.name = 'DyLivenessUnknownError';
+  }
 }
 
 function mergeSetCookie(map: Map<string, string>, res: Response): void {
@@ -180,6 +255,29 @@ function roomLooksReflow(room: Record<string, unknown>): boolean {
   }
 }
 
+/** 房间对象里是否有能判定在播的字段（status / live_status / finish_time）。 */
+function hasLivingSignal(room: Record<string, unknown>): boolean {
+  return (
+    fieldI64(room, ['status', 'live_status']) !== undefined ||
+    fieldI64(room, ['finish_time', 'finishTime']) !== undefined
+  );
+}
+
+/** 下播判定的字段快照：只用于 debug 日志，便于区分真下播与瞬时 reflow。 */function offlineDetail(
+  room: Record<string, unknown>,
+  enterRoomStatus: number | null,
+  reason: DyRoomOfflineDetail['reason'],
+): DyRoomOfflineDetail {
+  return {
+    reason,
+    roomId: jsonValueToString(room.id_str) || jsonValueToString(room.id),
+    status: fieldI64(room, ['status', 'live_status']),
+    finishTime: fieldI64(room, ['finish_time', 'finishTime']),
+    reflow: roomLooksReflow(room),
+    enterRoomStatus,
+  };
+}
+
 /** 是否在播（对齐 danmu-ji）。 */
 export function isDyRoomLiving(
   room: Record<string, unknown>,
@@ -209,20 +307,25 @@ function extractUniqueIdFromBody(body: string): string {
   return '';
 }
 
-function extractIdStrFromBody(body: string): string {
-  const patterns = [/"id_str"\s*:\s*"(\d+)"/, /id_str\\":\\"(\d+)\\"/, /roomId\\":\\"(\d+)\\"/];
-  for (const re of patterns) {
-    const m = body.match(re);
-    if (m?.[1]) return m[1];
-  }
-  return '';
-}
-
 function isCaptchaPage(body: string): boolean {
   return (body.includes('captcha/index.js') || body.includes('sec_sdk_build')) && body.length < 20_000;
 }
 
-function parsePageRoom(body: string): { roomInfo: string; uniqueId: string } | undefined {
+/** 页面解析结果：livingKnown=false 表示只拿到了房间号、拿不到在播状态。 */
+type DyPageRoom = {
+  roomInfo: string;
+  uniqueId: string;
+  livingKnown: boolean;
+};
+
+/**
+ * 从直播间页面解析房间；只认 RENDER_DATA 里的完整 room 对象。
+ *
+ * 不能用「页面里随便抓个 id_str」兜底：页面里混着用户/评论等大量 id，
+ * 抓到的假房间没有 status，会被误判成「未开播」。判不了就返回 undefined，
+ * 让调用方报「状态未知」而不是下播。
+ */
+function parsePageRoom(body: string): DyPageRoom | undefined {
   const render = body.match(/<script id="RENDER_DATA"[^>]*>([\s\S]*?)<\/script>/i);
   if (render?.[1]) {
     try {
@@ -254,21 +357,14 @@ function parsePageRoom(body: string): { roomInfo: string; uniqueId: string } | u
                 return '';
               }
             })();
-          return { roomInfo: JSON.stringify(cur), uniqueId };
+          return { roomInfo: JSON.stringify(cur), uniqueId, livingKnown: true };
         }
       }
     } catch {
       /* fall through */
     }
   }
-  const idStr = extractIdStrFromBody(body);
-  if (!idStr) return undefined;
-  const titleM = body.match(/"title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
-  const title = titleM?.[1]?.replace(/\\"/g, '"') || '';
-  return {
-    roomInfo: JSON.stringify({ id_str: idStr, title }),
-    uniqueId: extractUniqueIdFromBody(body),
-  };
+  return undefined;
 }
 
 function roomMeta(room: Record<string, unknown>): { roomId: string; title: string; anchor: string } {
@@ -333,6 +429,9 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
     const enterRes = await fetchViaOutboundProxy(enterUrl, { headers: pageHeaders(cookieMapToHeader(jar)) });
     mergeSetCookie(jar, enterRes);
     const enterJson: unknown = await enterRes.json();
+    // 先取服务端回显的当前用户 uid：它是 Cookie 校验的唯一依据，
+    // 且下播时 enter 依然会回显（room 数据为空也照样有 user），不能等判完在播再读。
+    const enterUid = uniqueIdFromEnter(enterJson);
     const status =
       enterJson && typeof enterJson === 'object'
         ? Number((enterJson as Record<string, unknown>).status_code ?? -1)
@@ -355,13 +454,24 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
       return Number.isFinite(n) ? n : null;
     })();
     const room = pickRoomFromEnter(enterJson);
-    if (!room) throw new Error('enter API 响应中无 room 对象，可能未开播');
-    if (!isDyRoomLiving(room, enterRoomStatus)) throw new Error('主播未开播');
+    // 下播也带着 uid 抛出：调用方要先用它校验 Cookie，再决定提示哪条错误。
+    if (!room) {
+      throw new DyRoomOfflineError(
+        'enter API 响应中无 room 对象，可能未开播',
+        enterUid,
+        offlineDetail({}, enterRoomStatus, 'no-room'),
+      );
+    }
+    if (!isDyRoomLiving(room, enterRoomStatus)) {
+      throw new DyRoomOfflineError(
+        '主播未开播',
+        enterUid,
+        offlineDetail(room, enterRoomStatus, 'not-living'),
+      );
+    }
     roomInfo = JSON.stringify(room);
-    uniqueId = uniqueIdFromEnter(enterJson);
-    const enterData = (enterJson as Record<string, unknown>).data as Record<string, unknown> | undefined;
-    const enterUser = enterData?.user as Record<string, unknown> | undefined;
-    loginUid = jsonValueToString(enterUser?.id_str);
+    uniqueId = enterUid;
+    loginUid = enterUid;
     livingVerified = true;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -369,20 +479,20 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
     // 回落页面解析
   }
 
+  let livingKnown = livingVerified;
   if (!roomInfo) {
     const parsed = parsePageRoom(body);
-    if (!parsed) {
-      throw new Error(
-        'roomInfo 未找到：页面结构可能已变化，或直播间未开播；请确认链接为 live.douyin.com/数字',
-      );
-    }
+    if (!parsed) throw new DyLivenessUnknownError();
     roomInfo = parsed.roomInfo;
     uniqueId = parsed.uniqueId;
+    livingKnown = parsed.livingKnown;
   }
 
   const room = JSON.parse(roomInfo) as Record<string, unknown>;
+  // 页面解析拿不到在播字段时，只能算「状态未知」：不能拿它当「未开播」。
+  if (!livingVerified && (!livingKnown || !hasLivingSignal(room))) throw new DyLivenessUnknownError();
   if (!livingVerified && !isDyRoomLiving(room, null)) {
-    throw new Error('主播未开播');
+    throw new DyRoomOfflineError('主播未开播', loginUid, offlineDetail(room, null, 'page-fallback'));
   }
 
   if (!uniqueId) uniqueId = extractUniqueIdFromBody(body);

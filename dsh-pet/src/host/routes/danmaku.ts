@@ -1,5 +1,5 @@
 /**
- * 抖音弹幕监听：start / stop / status / options。
+ * 抖音弹幕监听：start / stop / status / options / check-cookie。
  *
  * 控制面板挂在「桌宠控制台」的头像区入口（抖音弹窗，见 standalone/console-page），
  * 旧设置页 `/standalone-ai/` 已不再保留该分区；这里只留 JSON 接口。契约见 HTTP_API.md；
@@ -10,6 +10,18 @@ import type { RouteResult } from '../http.ts';
 import type { SectionName } from '../state.ts';
 import type { PetRouteDeps, RouteInput } from './types.ts';
 import { failResult, invalidJson, methodNotAllowed, okResult } from './result.ts';
+import {
+  checkDyCookieShape,
+  checkDyCookie,
+  fetchDyLiveInfo,
+  normalizeLiveUrl,
+  type DyCookieCheckReason,
+} from '../danmaku/douyin/live-info.ts';
+
+/** Cookie 校验结果：前端按 reason 渲染文案。 */
+type DyCheckResult =
+  | { ok: true; loginUid: string; title: string; anchor: string; message: string }
+  | { ok: false; reason: 'no-session' | 'no-server-uid' | 'guest-placeholder' | 'liveness-unknown' | 'network' | 'bad-url' | 'unknown'; message: string; loginUid?: string };
 
 /** 弹幕领域：未命中返回 undefined，命中返回应答。 */
 
@@ -34,6 +46,137 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
   if (rest === 'danmaku/douyin/status') {
     if (method !== 'GET') return methodNotAllowed();
     return okResult({ ok: true, ...deps.douyinDanmaku.status() });
+  }
+
+  if (rest === 'danmaku/douyin/check-cookie') {
+    if (method !== 'POST') return methodNotAllowed();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body ?? 'null');
+    } catch {
+      return invalidJson();
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      return failResult('bad-request', '请求体须为 JSON 对象');
+    }
+    const cookie = String((parsed as { cookie?: unknown }).cookie ?? '');
+    const url = String((parsed as { url?: unknown }).url ?? '').trim();
+
+    // Step 1: 本地结构预检——没 session 键直接拦，省一个请求。
+    const shape = checkDyCookieShape(cookie);
+    if (!shape.ok) {
+      return okResult({
+        ok: false,
+        reason: 'no-session' as const,
+        message: 'Cookie 里缺少登录会话键（sessionid / sessionid_ss / sid_tt 任一即可），请确认完整复制',
+      } satisfies DyCheckResult);
+    }
+
+    // 额外本地检查：Cookie 长度 + 关键辅助键（ttwid、odin_tt）
+    const hasKey = (k: string) => new RegExp('(?:^|[;&;])' + k + '=').test(cookie);
+    const hasTtwid = hasKey('ttwid');
+    const hasOdin = hasKey('odin_tt');
+    const lenOk = cookie.length >= 200;
+    const localVerdicts: string[] = [];
+    if (hasTtwid) localVerdicts.push('ttwid');
+    if (hasOdin) localVerdicts.push('odin_tt');
+    const localSummary = localVerdicts.length
+      ? '（含 ' + localVerdicts.join(' + ') + '）'
+      : lenOk
+        ? '（完整 Cookie）'
+        : '（可能截断，建议重新复制）';
+
+    // Step 2: 没 URL 就只停在结构预检——不必强行跑进房接口（会被抖音风控）。
+    if (!url) {
+      return okResult({
+        ok: true,
+        loginUid: '',
+        title: '',
+        anchor: '',
+        message: 'Cookie 结构有效' + localSummary + '，填上直播间链接可做完整校验',
+      } satisfies DyCheckResult);
+    }
+
+    let normalizedUrl: string;
+    try {
+      normalizedUrl = normalizeLiveUrl(url);
+    } catch (e) {
+      return okResult({
+        ok: false,
+        reason: 'bad-url' as const,
+        message: e instanceof Error ? e.message : '直播间链接格式不对',
+      } satisfies DyCheckResult);
+    }
+
+    try {
+      const info = await fetchDyLiveInfo(normalizedUrl, cookie);
+      const verdict = checkDyCookie(cookie, info.loginUid);
+      if (verdict.ok) {
+        return okResult({
+          ok: true,
+          loginUid: info.loginUid,
+          title: info.title,
+          anchor: info.anchor,
+          message: `Cookie 有效（UID: ${info.loginUid}），主播「${info.anchor || '未知'}」正在${info.title ? `《${info.title}》` : '直播'}`,
+        } satisfies DyCheckResult);
+      }
+      const reasonMap: Record<DyCookieCheckReason, string> = {
+        'no-session': 'Cookie 里缺少登录会话键',
+        'no-server-uid': '进房接口没回显用户 ID，可能 Cookie 过期或被风控',
+        'guest-placeholder': 'Cookie 已失效（登录态被打回游客），请重新从浏览器复制最新 Cookie',
+      };
+      return okResult({
+        ok: false,
+        reason: verdict.reason,
+        message: reasonMap[verdict.reason],
+        loginUid: info.loginUid || undefined,
+      } satisfies DyCheckResult);
+    } catch (e) {
+      const name = (e as Error)?.name || '';
+      const msg = (e as Error)?.message || String(e);
+      // DyLivenessUnknownError：进房接口/页面都拿不到直播状态，但 Cookie 结构已过。
+      // 这大概率是抖音接口风控（缺签名头），不是 Cookie 真无效。
+      if (name === 'DyLivenessUnknownError') {
+        return okResult({
+          ok: true,
+          loginUid: '',
+          title: '',
+          anchor: '',
+          message:
+            'Cookie 结构有效' +
+            localSummary +
+            '（进房接口暂时被风控/页面结构变化，不影响 Cookie 有效性判定）',
+        } satisfies DyCheckResult);
+      }
+      if (name === 'DyRoomOfflineError') {
+        const loginUid = (e as { loginUid?: string }).loginUid;
+        const cookieOk = loginUid && loginUid !== '3677211856479552';
+        if (cookieOk) {
+          return okResult({
+            ok: true,
+            loginUid: loginUid!,
+            title: '',
+            anchor: '',
+            message: `Cookie 有效（UID: ${loginUid}），但该直播间当前未开播 / 已下播`,
+          } satisfies DyCheckResult);
+        }
+        return okResult({
+          ok: false,
+          reason: 'guest-placeholder' as const,
+          message: 'Cookie 已失效（进房接口回显游客账号），请重新复制最新 Cookie',
+          loginUid: loginUid || undefined,
+        } satisfies DyCheckResult);
+      }
+      // 其他网络/签名错误：也不报 Cookie 无效，只报"结构 OK 但进房接口请求失败"
+      return okResult({
+        ok: true,
+        loginUid: '',
+        title: '',
+        anchor: '',
+        message:
+          'Cookie 结构有效' + localSummary + '，但请求进房接口失败：' + msg + '（不影响 Cookie 结构判定）',
+      } satisfies DyCheckResult);
+    }
   }
 
   if (rest === 'danmaku/douyin/options') {

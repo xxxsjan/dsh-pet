@@ -149,11 +149,15 @@ describe('插件宿主半边在独立模式下跑起来了', () => {
     };
     assert.deepEqual(Object.keys(body.sections).sort(), [
       'balance',
+      'bili-danmaku',
       'config',
+      'danmaku',
       'focusSession',
+      'ks-danmaku',
       'menu',
       'notify',
       'workStatus',
+      'xhs-danmaku',
     ]);
     assert.equal(body.sections.balance?.counter, 0);
     assert.equal(body.sections.balance?.data, null);
@@ -175,7 +179,7 @@ describe('插件宿主半边在独立模式下跑起来了', () => {
     // 这三条就是独立模式体检（--check）所依赖的推导；插件改了路径而 options.ts 没跟，这里会红
     assert.equal(meta.user, paths.userFile);
     assert.equal(meta.default, paths.defaultFile);
-    assert.equal(meta.animations, join(home, 'dsh-pet', 'main-animation'));
+    assert.equal(meta.animations, join(home, 'blue-fish', 'main-animation'));
   });
 });
 

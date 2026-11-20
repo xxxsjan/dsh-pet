@@ -4,12 +4,16 @@
  * @module dsh-pet/src/host/danmaku/douyin/monitor
  */
 import { inflate } from 'pako';
+import { brotliDecompressSync } from 'node:zlib';
 import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
 import {
   DY_UA,
+  DyLivenessUnknownError,
+  DyRoomOfflineError,
   checkDyCookie,
+  checkDyCookieShape,
   fetchDyLiveInfo,
   normalizeDyCookieHeader,
   type DyCookieCheckReason,
@@ -165,6 +169,8 @@ const IDLE_PROBE_TICK_MS = 90_000;
 const PREFLIGHT_TIMEOUT_MS = 8000;
 /** 带 Cookie 启动时的登录态校验超时：需在前端请求超时（12s）内给出明确结论。 */
 const COOKIE_VERIFY_TIMEOUT_MS = 10_000;
+/** 下播可能只是瞬时状态（切流 / reflow）：首次判下播后等这么久再确认一次。 */
+const OFFLINE_RETRY_DELAY_MS = 700;
 
 /**
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
@@ -322,7 +328,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   async function probeRoomLiving(): Promise<boolean> {
     if (!wantListen || ended) return false;
     try {
-      await fetchLiveInfo(currentUrl, currentCookie);
+      await probeLive(currentUrl, currentCookie);
       reconnectAttempts = 0;
       return true;
     } catch (e) {
@@ -755,12 +761,28 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       payload?: Uint8Array;
       logId?: unknown;
       payloadType?: string;
+      payloadEncoding?: string;
     };
     let payload = frame.payload && frame.payload.length ? frame.payload : buf;
+    let decompressed = false;
+    let decompressError = '';
     if (frame.payload && frame.payload.length) {
+      const enc = (frame.payloadEncoding || '').toLowerCase();
       try {
-        payload = inflate(frame.payload);
-      } catch {
+        if (enc === 'br' || enc === 'brotli') {
+          payload = new Uint8Array(brotliDecompressSync(Buffer.from(frame.payload)));
+          decompressed = true;
+        } else if (enc === 'zstd') {
+          // zstd：不支持，跳过
+          decompressError = 'zstd-not-supported';
+          payload = frame.payload;
+        } else {
+          // 默认 gzip / deflate / 空
+          payload = inflate(frame.payload);
+          decompressed = true;
+        }
+      } catch (e) {
+        decompressError = e instanceof Error ? e.message : String(e);
         payload = frame.payload;
       }
     }
@@ -769,6 +791,20 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       internalExt?: string;
       messagesList?: Array<{ method?: string; payload?: Uint8Array; msgId?: unknown }>;
     };
+    // 每帧都打 payloadEncoding / 解压状态 / messagesList 数量——info 级别确保进日志。
+    const methods = (resp.messagesList || []).map((m) => m.method).filter(Boolean);
+    const methodCounter: Record<string, number> = {};
+    for (const n of methods) methodCounter[n] = (methodCounter[n] || 0) + 1;
+    const methodSummary = Object.entries(methodCounter)
+      .map(([n, c]) => (c > 1 ? `${n}×${c}` : n))
+      .join(',');
+    // info 级别：每帧都打一次，方便确认 payloadEncoding 和 messagesList 数量
+    log.info?.(
+      `[blue-fish][douyin] frame enc=${frame.payloadEncoding || '-'} dec=${decompressed} pType=${frame.payloadType || '-'} count=${methods.length} [${methodSummary}]`,
+    );
+    if (decompressError) {
+      log.warn?.(`[blue-fish][douyin] decompress failed err=${decompressError}`);
+    }
     if (resp.needAck && ws && ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(encodeAck(frame.logId, resp.internalExt || ''));
@@ -779,6 +815,11 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     }
     for (const m of resp.messagesList || []) {
       try {
+        // 每帧包含的所有 method 首次打出来（30s 限频），方便确认 GiftMessage 是否真到了。
+        if (m.method && !seenMethods.has(m.method)) {
+          seenMethods.add(m.method);
+          log.info?.(`[blue-fish][douyin] first method=${m.method}`);
+        }
         if (m.method === 'WebcastChatMessage') handleChatPayload(m);
         else if (m.method === 'WebcastGiftMessage') handleGiftPayload(m);
         else if (m.method === 'WebcastLightGiftMessage') handleLightGiftPayload(m);
@@ -788,12 +829,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         else if (m.method) {
           // 进场 / 在线榜排行 / 关注分享等：不入库，但每个 method 首次出现打 info。
           // 默认日志级别下也能确认「礼物到底有没有来、来的是哪个 method」。
-          if (!seenMethods.has(m.method)) {
-            seenMethods.add(m.method);
-            log.info?.(`[blue-fish][douyin] first skip method=${m.method}（同类型后续不再记录）`);
-          } else {
-            log.debug?.(`[blue-fish][douyin] skip method=${m.method}`);
-          }
+          log.debug?.(`[blue-fish][douyin] skip method=${m.method}`);
         }
       } catch (e) {
         const method = String(m.method || '');
@@ -834,6 +870,70 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     return { replyChat, thankGift };
   }
 
+  /** 是否「明确未开播」：只有这种错误值得二次确认，超时/风控/网络错误按原语义处理。 */
+  function isOfflineError(e: unknown): boolean {
+    if (e instanceof DyRoomOfflineError) return true;
+    const msg = e instanceof Error ? e.message : String(e);
+    return /未开播|直播已结束|已结束|下播/.test(msg);
+  }
+
+  /** 进房结果不可用（空 body / 风控）：状态未知，绝不能当未开播。 */
+  function isUnknownLiveness(e: unknown): boolean {
+    return e instanceof DyLivenessUnknownError;
+  }
+
+  /** 把下播判定的字段快照压成一行 debug 日志，便于区分真下播与瞬时抖动。 */
+  function offlineLogText(e: unknown): string {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!(e instanceof DyRoomOfflineError) || !e.detail) return msg;
+    const d = e.detail;
+    return (
+      `${msg} reason=${d.reason} room=${d.roomId || '-'} status=${d.status ?? '-'}` +
+      ` finish=${d.finishTime ?? '-'} reflow=${d.reflow} enterRoomStatus=${d.enterRoomStatus ?? '-'}`
+    );
+  }
+
+  /**
+   * 探活（开始监听前与运行中静默探活共用，带一次确认）：
+   * 抖音在切流 / 重算房间信息时会短暂回「未开播」，进房接口也可能偶发空响应；
+   * 两种都等一拍再进一次，只有第二次仍是「明确未开播」才算下播。
+   */
+  async function probeLive(url: string, cookie: string): Promise<DyLiveInfo> {
+    try {
+      return await fetchLiveInfo(url, cookie);
+    } catch (e) {
+      const unknown = isUnknownLiveness(e);
+      if (!unknown && !isOfflineError(e)) throw e;
+      log.debug?.(
+        `[blue-fish][douyin] liveness ${unknown ? 'unknown' : 'offline'} #1: ${offlineLogText(e)}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, OFFLINE_RETRY_DELAY_MS));
+      try {
+        const info = await fetchLiveInfo(url, cookie);
+        log.debug?.(`[blue-fish][douyin] liveness retry live: room=${info.roomId || '-'}`);
+        return info;
+      } catch (retryError) {
+        if (isUnknownLiveness(retryError)) {
+          // 空响应/风控属于「状态未知」，要让人在日志里看得到，而不是静默当成下播。
+          const detail = retryError instanceof Error ? retryError.message : String(retryError);
+          log.info?.(`[blue-fish][douyin] liveness unavailable after retry: ${detail}`);
+        } else if (isOfflineError(retryError)) {
+          log.debug?.(`[blue-fish][douyin] liveness offline #2 (confirmed): ${offlineLogText(retryError)}`);
+        }
+        throw retryError;
+      }
+    }
+  }
+
+  /** 下播结论的统一出口：先落 ended 状态再抛文案，两条前置校验共用。 */
+  function failRoomEnded(url: string, cookie: string, cause?: unknown): never {
+    currentUrl = url;
+    currentCookie = cookie;
+    const reason = '主播已下播（直播结束）';
+    markEnded(reason);
+    throw new Error(`${reason}，等开播后再点开始监听`, { cause });
+  }
+
   /**
    * 开始监听前的探活：房间已经下播就不必起内嵌浏览器、更不必让前端干等 12 秒报「连接超时」。
    * - 拿到「主播未开播」：落成 ended 状态并抛出明确文案（前端状态行直接显示「已下播」）；
@@ -841,7 +941,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
    */
   async function assertRoomLiving(url: string, cookie: string): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const probe = fetchLiveInfo(url, cookie);
+    const probe = probeLive(url, cookie);
     // 超时后探活仍可能在后台失败，挂个 catch 免得变成未处理的 rejection。
     probe.catch(() => undefined);
     const timeout = new Promise<void>((_, reject) => {
@@ -856,13 +956,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         log.debug?.('[blue-fish][douyin] preflight timeout, continue start');
         return;
       }
-      if (/未开播|直播已结束|已结束|下播/.test(msg)) {
-        currentUrl = url;
-        currentCookie = cookie;
-        const reason = '主播已下播（直播结束）';
-        markEnded(reason);
-        throw new Error(`${reason}，等开播后再点开始监听`, { cause: e });
-      }
+      if (/未开播|直播已结束|已结束|下播/.test(msg)) failRoomEnded(url, cookie, e);
       log.debug?.(`[blue-fish][douyin] preflight unknown: ${msg}`);
     } finally {
       if (timer) clearTimeout(timer);
@@ -873,20 +967,38 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   const COOKIE_REASON_TEXT: Record<DyCookieCheckReason, string> = {
     'no-session':
       'Cookie 缺少登录凭证（sessionid），这不是登录态 Cookie，请重新从已登录浏览器复制完整 Cookie',
-    'no-uid': 'Cookie 缺少账号标识（uid），请重新从已登录浏览器复制完整 Cookie',
     'no-server-uid': '抖音未确认登录态（进房未回显用户），请稍后重试或检查 Cookie 是否完整',
-    mismatch: 'Cookie 已失效或未被抖音认可（可能已过期），请重新登录后复制新的 Cookie',
+    'guest-placeholder': 'Cookie 登录态已失效（被抖音打回游客），请重新登录后复制新的 Cookie',
   };
 
+  /** Cookie 校验失败的统一出口：先记到 lastError（状态行会显示「最近问题」），再抛给前端 toast。 */
+  function failCookie(message: string, cause?: unknown): never {
+    lastError = message;
+    throw new Error(message, { cause });
+  }
+
   /**
-   * 带登录 Cookie 启动时的严格前置校验：
-   * 进房（fetchLiveInfo 内部已确认在播）拿到服务端回显的当前用户 uid，再与 Cookie 自带的登录 uid 比对。
+   * 带登录 Cookie 启动时的严格前置校验，顺序固定为「先 Cookie、后房间」：
+   * 1. 本地结构预检（不发请求）：缺会话键 / 缺 uid 直接拦下；
+   * 2. 进房一趟（fetchLiveInfo）：下播时服务端照样回显当前用户 uid，先拿它比对 Cookie；
+   * 3. Cookie 无效 → 报 Cookie 错误（优先于下播）；Cookie 有效且房间未开播 → 再报下播。
    * 与 assertRoomLiving 的「超时放行」不同，这里校验不通过就直接抛错、绝不进入监听——
    * 否则用户以为填了登录态，实际礼物帧仍拿不到。
+   *
+   * CDP 内嵌窗可用（degradeUnknown）时例外：登录态由内嵌页确认，进房接口的
+   * 风控 / 超时 / 网络错误只记警告照常启动，只有 Cookie 明确失效才拦。
    */
-  async function assertCookieValid(url: string, cookie: string): Promise<void> {
+  async function assertCookieValid(
+    url: string,
+    cookie: string,
+    opts: { degradeUnknown?: boolean } = {},
+  ): Promise<void> {
+    const degradeUnknown = opts.degradeUnknown === true;
+    const shape = checkDyCookieShape(cookie);
+    if (!shape.ok) failCookie(COOKIE_REASON_TEXT[shape.reason]);
+
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const probe = fetchLiveInfo(url, cookie);
+    const probe = probeLive(url, cookie);
     // 超时后校验仍可能在后台失败，挂个 catch 免得变成未处理的 rejection。
     probe.catch(() => undefined);
     const timeout = new Promise<never>((_, reject) => {
@@ -899,31 +1011,51 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg === '__cookie_verify_timeout__') {
-        throw new Error('Cookie 校验超时，请检查网络后重试', { cause: e });
+        if (degradeUnknown) {
+          log.warn?.('[blue-fish][douyin] cookie preflight timeout, continue via cdp');
+          return;
+        }
+        failCookie('Cookie 校验超时，请检查网络后重试', e);
       }
-      if (/未开播|直播已结束|已结束|下播/.test(msg)) {
-        currentUrl = url;
-        currentCookie = cookie;
-        const reason = '主播已下播（直播结束）';
-        markEnded(reason);
-        throw new Error(`${reason}，等开播后再点开始监听`, { cause: e });
+      // 下播错误里带着服务端回显的 uid：先给 Cookie 定性，无效就报 Cookie，有效才报下播。
+      if (e instanceof DyRoomOfflineError) {
+        if (e.loginUid) {
+          const verdict = checkDyCookie(cookie, e.loginUid);
+          if (!verdict.ok) failCookie(COOKIE_REASON_TEXT[verdict.reason], e);
+        }
+        failRoomEnded(url, cookie, e);
       }
-      throw new Error(`Cookie 校验失败：${msg}`, { cause: e });
+      if (isUnknownLiveness(e)) {
+        if (degradeUnknown) {
+          // 登录态由内嵌页确认：进房风控不该拦死整条 CDP 旁听链路。
+          log.warn?.(`[blue-fish][douyin] cookie preflight unavailable, continue via cdp: ${msg}`);
+          return;
+        }
+        failCookie('抖音进房接口暂时不可用（可能触发风控），请稍后重试', e);
+      }
+      if (/未开播|直播已结束|已结束|下播/.test(msg)) failRoomEnded(url, cookie, e);
+      if (degradeUnknown) {
+        log.warn?.(`[blue-fish][douyin] cookie preflight failed, continue via cdp: ${msg}`);
+        return;
+      }
+      failCookie(`Cookie 校验失败：${msg}`, e);
     } finally {
       if (timer) clearTimeout(timer);
     }
     const verdict = checkDyCookie(cookie, info.loginUid);
-    if (!verdict.ok) throw new Error(COOKIE_REASON_TEXT[verdict.reason]);
+    if (!verdict.ok) failCookie(COOKIE_REASON_TEXT[verdict.reason]);
   }
 
   async function start(input: DouyinMonitorStartInput): Promise<DouyinMonitorStatus> {
     const url = String(input.url || '').trim();
     if (!url) throw new Error('缺少直播间 url');
     const cookie = String(input.cookie || '');
+    const bridge = getCdpBridge?.();
     // 填了 Cookie：先严格校验登录态（进房同时确认在播），无效直接拦下；
     // 没填 Cookie：保持原有「在播探活、超时放行」的宽松行为（游客也能看纯聊天）。
+    // CDP 可用时把「进房接口不可用」降级为警告：登录态由内嵌页确认，不因风控拦死启动。
     if (cookie.trim()) {
-      await assertCookieValid(url, cookie);
+      await assertCookieValid(url, cookie, { degradeUnknown: !!bridge });
     } else {
       await assertRoomLiving(url, cookie);
     }
@@ -950,7 +1082,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     ended = false;
     reconnectAttempts = 0;
     lastFrameAt = Date.now();
-    const bridge = getCdpBridge?.();
     if (bridge) {
       await startCdp(bridge);
     } else {

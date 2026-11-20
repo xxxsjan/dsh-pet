@@ -10,6 +10,7 @@ import {
   extractKsEmojiPanel,
   extractKsLiveStreamId,
   extractKsPrincipalId,
+  extractKsRateLimit,
   extractKsTitle,
   extractKsWsBundle,
   normalizeKsRoomUrl,
@@ -61,6 +62,20 @@ describe('快手 URL 归一化', () => {
   test('从短链提取 principalId', () => {
     assert.equal(extractKsPrincipalId('https://live.kuaishou.com/u/abc_123/'), 'abc_123');
     assert.equal(extractKsPrincipalId('https://live.kuaishou.com/r/999'), '');
+  });
+});
+
+describe('快手页面限流识别', () => {
+  test('playList 里的「请求过快」应被识别为限流', () => {
+    const body =
+      '"playList":[{"liveStream":{},"isLiving":false,"errorType":{"type":2,"title":"请求过快，请稍后重试","content":"浏览其他内容"}}]';
+    assert.equal(extractKsRateLimit(body), '请求过快，请稍后重试');
+  });
+
+  test('其它 errorType 不算限流', () => {
+    const body = '"errorType":{"type":9,"title":"主播暂时离开","content":"稍后再来"}';
+    assert.equal(extractKsRateLimit(body), '');
+    assert.equal(extractKsRateLimit(''), '');
   });
 });
 

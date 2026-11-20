@@ -59,7 +59,7 @@ before(async () => {
   process.env.DSH_HOME = home;
   process.env.BLUE_FISH_IN_PROCESS = '1';
   mkdirSync(join(home, 'blue-fish/pet'), { recursive: true });
-  file = join(home, 'dsh-pet/main-config.jsonc');
+  file = join(home, 'blue-fish/main-config.jsonc');
   packFile = join(home, 'blue-fish/pet/pack-config.jsonc');
   writeFileSync(file, JSON.stringify({ trayEnabled: false, pets: [pet('alpha'), pet('beta')] }));
   const logger = { info() {}, warn() {}, error() {}, debug() {} };
@@ -70,7 +70,7 @@ before(async () => {
   const security = createRequestSecurity();
   token = security.token;
   server = await listenStandaloneServer({ routes: context.routes, logger, port: 0, security });
-  base = `http://127.0.0.1:${server.port}/pet/`;
+  base = `http://127.0.0.1:${server.port}/blue-fish/`;
 });
 
 beforeEach(() => {

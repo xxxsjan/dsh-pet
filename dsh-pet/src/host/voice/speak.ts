@@ -68,6 +68,11 @@ interface SpeakInput {
    * 不写盘、不进缓存键、不进日志；空串等于没传（回落磁盘上的已保存 Key）。
    */
   readonly oneShotApiKey: string;
+  /**
+   * 跳过缓存命中（请求体 `fresh`）——试听用：上游偶尔返回异常低电平的音频，
+   * 固定试听句命中旧缓存后会一直「没声音」；每次重新合成才听得到真实效果。
+   */
+  readonly fresh: boolean;
 }
 
 /** 一次性 API Key 的长度上限：真 Key 只有几十字符，超出按非法拦掉（防止拿请求体当存储使）。 */
@@ -103,7 +108,7 @@ export interface VoiceCatalog {
 
 /** 语音服务：路由层只依赖这两个方法。 */
 export interface VoiceService {
-  /** 合成一段文本；同一输入命中缓存时不再联网。 */
+  /** 合成一段文本；同一输入命中缓存时不再联网（请求体 `fresh` / `apiKey` 例外）。 */
   speak(raw: unknown): Promise<SpeakResult>;
   /** 可选音色目录（与白名单同源）。 */
   listVoices(): VoiceCatalog;
@@ -123,7 +128,7 @@ const DEFAULT_RUNTIME: VoiceRuntimeConfig = {
   voiceRate: DEFAULT_VOICE_RATE,
 };
 
-/** 校验请求体；只认 `text` / `voice` / `rate` / `apiKey` 四个字段，其余忽略。 */
+/** 校验请求体；只认 `text` / `voice` / `rate` / `apiKey` / `fresh` 五个字段，其余忽略。 */
 function parseSpeakInput(raw: unknown, runtime: VoiceRuntimeConfig): ParseResult {
   const body = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const text = typeof body.text === 'string' ? body.text.trim() : '';
@@ -173,7 +178,11 @@ function parseSpeakInput(raw: unknown, runtime: VoiceRuntimeConfig): ParseResult
   if (/\s/.test(oneShotApiKey)) {
     return { ok: false, message: 'apiKey must not contain whitespace' };
   }
-  return { ok: true, value: { text, voice, rate, oneShotApiKey } };
+  const rawFresh = body.fresh;
+  if (rawFresh !== undefined && typeof rawFresh !== 'boolean') {
+    return { ok: false, message: 'fresh must be a boolean' };
+  }
+  return { ok: true, value: { text, voice, rate, oneShotApiKey, fresh: rawFresh === true } };
 }
 
 /** 断言用：`SpeakResult` 的构造点都经过这里，避免各处手写同一句文案。 */
@@ -280,7 +289,7 @@ export function createVoiceService(options: {
     const runtime = readRuntime();
     const parsed = parseSpeakInput(raw, runtime);
     if (!parsed.ok) return { ok: false, reason: 'bad-request', message: parsed.message };
-    const { text, voice, rate, oneShotApiKey } = parsed.value;
+    const { text, voice, rate, oneShotApiKey, fresh } = parsed.value;
     // 每次请求现查一次：第三方可能运行中才注册、也可能被卸载，启动快照会漏掉这两种
     const registered = activeVoiceProvider();
     // 第三方注册优先于内置引擎（与旧行为一致：单槽覆盖）
@@ -297,9 +306,9 @@ export function createVoiceService(options: {
     // 第三方没有音色概念，缓存键里把 voice 置空；来源进键，换实现 / 换模型不会命中旧音频
     const target = cachePath(userRoot, cacheKey(source, provider ? '' : voice, rate, text));
     const startedMs = Date.now();
-    // 带一次性 Key 时不读缓存：设置页试听要回答的是「这把 Key 现在能不能合成」，
-    // 命中旧缓存（哪怕上次是用别的 Key 合成的）会掩盖「Key 无效」。
-    const cached = oneShotApiKey ? undefined : await findCached(target);
+    // 带一次性 Key 或 fresh 时不读缓存：设置页试听要回答的是「这把 Key / 这个音色现在听起来怎么样」，
+    // 命中旧缓存（哪怕上次是用别的 Key 合成的、或上游曾返回异常低电平）会让试听结果失真。
+    const cached = oneShotApiKey || fresh ? undefined : await findCached(target);
     if (cached) {
       log?.info?.(`[blue-fish] voice speak: cache=hit chars=${text.length} voice=${source}`);
       return { ok: true, file: cached };

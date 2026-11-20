@@ -15,9 +15,13 @@ import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
 
+/** 最近一次 fake app：用例结束时触发 before-quit，让 helper 里起的本地服务随测试一起关掉。 */
+let lastFakeApp: { quit?: () => void } = {};
+
 /** 替身 electron：任意未实现的方法都当空函数，避免逐个补齐。 */
 function createFakeElectron(created: Array<{ loaded?: { file: string } }>): unknown {
   const noop = (): void => {};
+  const quitHandlers: Array<() => void> = [];
   const makeWindow = (): unknown => {
     const win = {
       id: created.length + 1,
@@ -49,6 +53,21 @@ function createFakeElectron(created: Array<{ loaded?: { file: string } }>): unkn
       isPackaged: false,
       commandLine: { appendSwitch: noop },
       dock: { hide: noop },
+      // helper 会用 once('before-quit') 注册各桥的清理；测试结束时 quit() 把本地服务关掉，
+      // 否则签名桥的 127.0.0.1 监听会让测试进程一直不退出（曾把整套测试挂住）。
+      once: (event: string, handler: () => void) => {
+        if (event !== 'before-quit') return;
+        quitHandlers.push(handler);
+      },
+      quit: () => {
+        for (const handler of quitHandlers.splice(0)) {
+          try {
+            handler();
+          } catch {
+            /* ignore */
+          }
+        }
+      },
     },
     BrowserWindow: Object.assign(
       function BrowserWindow() {
@@ -71,6 +90,7 @@ function createFakeElectron(created: Array<{ loaded?: { file: string } }>): unkn
   const fallback = (obj: object): unknown =>
     new Proxy(obj, { get: (target, prop) => (prop in target ? target[prop as keyof typeof target] : noop) });
   const wrapped = Object.fromEntries(Object.entries(plain).map(([key, value]) => [key, fallback(value as object)]));
+  lastFakeApp = plain.app;
   return new Proxy(wrapped, {
     get: (target, prop) => (prop in target ? target[prop as keyof typeof target] : fallback({})),
   });
@@ -100,13 +120,19 @@ test('给定一只宠物：主进程会建窗，并加载存在的 index.html', 
     // whenReady 的回调是微任务链：等一拍宏任务让它跑完
     await new Promise((resolve) => setTimeout(resolve, 50));
   } finally {
+    // helper 现在还会为抖音签名桥预建一个隐藏窗、并监听 127.0.0.1：先走 before-quit 收干净，
+    // 再还原桩，否则测试进程会带着这些句柄不退出。
+    lastFakeApp.quit?.();
+    lastFakeApp = {};
     (Module as unknown as { _load: (...args: unknown[]) => unknown })._load = originalLoad;
     globalThis.setInterval = originalSetInterval;
     process.env = originalEnv;
   }
 
-  assert.equal(created.length, 1, '一只宠物必须建出一个窗口（0 个就是桌面上什么都没有）');
-  const loaded = created[0]?.loaded;
+  // 除了宠物窗，helper 还会建一个抖音签名页的隐藏窗：只数加载了 index.html 的宠物窗。
+  const petWindows = created.filter((win) => win.loaded?.file.endsWith('index.html'));
+  assert.equal(petWindows.length, 1, '一只宠物必须建出一个窗口（0 个就是桌面上什么都没有）');
+  const loaded = petWindows[0]?.loaded;
   assert.ok(loaded, '窗口必须调用 loadFile（否则窗口是空的）');
   assert.match(loaded.file, /index\.html$/, '加载的必须是渲染端页面');
   assert.ok(existsSync(loaded.file), '页面文件必须真实存在');

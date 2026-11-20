@@ -70,9 +70,9 @@ describe('configPathsFor —— 配置路径推导（host/index.ts 那份的镜�
     const paths = configPathsFor('/pkg', '/tmp/custom-dsh');
     assert.deepEqual(paths, {
       defaultFile: join('/pkg', 'assets', 'config.jsonc'),
-      userFile: join('/tmp/custom-dsh', 'dsh-pet', 'main-config.jsonc'),
-      legacyUserFile: join('/tmp/custom-dsh', 'dsh-pet', 'main-config.json'),
-      petDir: join('/tmp/custom-dsh', 'dsh-pet', 'pet'),
+      userFile: join('/tmp/custom-dsh', 'blue-fish', 'main-config.jsonc'),
+      legacyUserFile: join('/tmp/custom-dsh', 'blue-fish', 'main-config.json'),
+      petDir: join('/tmp/custom-dsh', 'blue-fish', 'pet'),
     });
   });
 });

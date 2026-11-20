@@ -208,11 +208,15 @@ describe('/state + /balance —— 轮询统一状态与余额动作端点', () 
     };
     assert.deepEqual(Object.keys(body.sections).sort(), [
       'balance',
+      'bili-danmaku',
       'config',
+      'danmaku',
       'focusSession',
+      'ks-danmaku',
       'menu',
       'notify',
       'workStatus',
+      'xhs-danmaku',
     ]);
     assert.equal(body.sections.balance.counter, 0, '没人写过时 counter=0（前端首拉当基线）');
     assert.equal(body.sections.balance.data, null);

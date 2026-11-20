@@ -11,6 +11,7 @@ import { describe, test } from 'node:test';
 import { createDouyinMonitor } from './monitor.ts';
 import type { DouyinMonitorDeps, DouyinMonitorStatus } from './monitor.ts';
 import type { DouyinCdpBridge } from './cdp-bridge.ts';
+import { DyLivenessUnknownError, DyRoomOfflineError } from './live-info.ts';
 import {
   ControlMessage,
   DyResponse,
@@ -439,7 +440,8 @@ describe('douyin monitor CDP 链路', () => {
       }),
     );
     await assert.rejects(
-      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'ttwid=abc' }),
+      // 不带 Cookie 走宽松探活；带 Cookie 的严格校验由下面的 Cookie 用例覆盖。
+      () => mon.start({ url: 'https://live.douyin.com/123456789' }),
       /主播已下播（直播结束），等开播后再点开始监听/,
       '应直接报下播，而不是让前端干等超时',
     );
@@ -473,12 +475,12 @@ describe('douyin monitor CDP 链路', () => {
         roomId: '',
         title: '',
         anchor: '',
-        loginUid: '3677211856479552',
+        loginUid: '3677211856479552', // 抖音硬编码的游客占位账号
       })),
     );
     await assert.rejects(
       () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
-      /Cookie 已失效或未被抖音认可/,
+      /Cookie 登录态已失效/,
     );
     assert.equal(bridge.starts.length, 0, '校验失败不许启动内嵌浏览器');
     assert.equal(mon.status().listening, false);
@@ -505,10 +507,25 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(bridge.starts.length, 0);
   });
 
-  test('带 Cookie 启动：校验请求网络异常时拦下并透传原因，不静默放行', async () => {
+  test('带 Cookie 启动：校验请求网络异常（有 CDP 桥）降级放行，不静默丢登录态', async () => {
     const bridge = makeBridge();
     const mon = createDouyinMonitor(
       makeDeps(bridge, async () => {
+        throw new Error('网络中断');
+      }),
+    );
+    const status = await mon.start({
+      url: 'https://live.douyin.com/123456789',
+      cookie: 'sessionid=s; uid_tt=123'
+    });
+    assert.equal(status.listening, true, 'CDP 可用时网络异常不拦启动');
+    assert.equal(bridge.starts.length, 1, 'Cookie 仍要注入内嵌窗');
+    mon.stop();
+  });
+
+  test('带 Cookie 启动：校验请求网络异常（无 CDP 桥）拦下并透传原因', async () => {
+    const mon = createDouyinMonitor(
+      makeDeps(undefined, async () => {
         throw new Error('网络中断');
       }),
     );
@@ -516,6 +533,196 @@ describe('douyin monitor CDP 链路', () => {
       () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
       /Cookie 校验失败：网络中断/,
     );
+  });
+
+  test('带 Cookie 启动：房间已下播也先校验 Cookie，失效时报 Cookie 而不是下播', async () => {
+    const bridge = makeBridge();
+    let calls = 0;
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        calls += 1;
+        // 下播时 enter 仍会回显当前用户 uid：这里模拟“被服务端打回游客”。
+        throw new DyRoomOfflineError('主播未开播', '3677211856479552');
+      }),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
+      /Cookie 登录态已失效/,
+      'Cookie 无效应优先于下播提示',
+    );
+    assert.equal(calls, 2, '首次判下播要再进房确认一次，第二次仍下播才报 Cookie 失效');
+    assert.equal(bridge.starts.length, 0, 'Cookie 失败不许启动内嵌浏览器');
+    const status = mon.status();
+    assert.equal(status.ended, false, 'Cookie 报错时不应同时落成下播态');
+    assert.equal(status.listening, false);
+    assert.match(status.lastError, /Cookie.*失效/, '状态行要保留 Cookie 失效原因，不能被刷新抹掉');
+  });
+
+  test('下播判定二次确认：首次误报未开播、重试在播则继续启动并记录判定字段', async () => {
+    const bridge = makeBridge();
+    const logs: string[] = [];
+    let calls = 0;
+    const deps = makeDeps(bridge, async () => {
+      calls += 1;
+      if (calls === 1) {
+        // 切流 / reflow 时抖音会短暂回「未开播」，字段快照要能看出这是瞬时态。
+        throw new DyRoomOfflineError('主播未开播', '123', {
+          reason: 'not-living',
+          roomId: '7710046867756829466',
+          status: 4,
+          finishTime: 0,
+          reflow: true,
+          enterRoomStatus: 0,
+        });
+      }
+      return {
+        roomInfo: '',
+        ttwid: '',
+        uniqueId: '',
+        cookie: '',
+        roomId: '7710046867756829466',
+        title: 't',
+        anchor: 'a',
+        loginUid: '123',
+      };
+    });
+    deps.log = {
+      info: noop,
+      warn: noop,
+      debug: (message = '') => {
+        logs.push(message);
+        return undefined;
+      },
+    };
+    const mon = createDouyinMonitor(deps);
+    const status = await mon.start({
+      url: 'https://live.douyin.com/167773402498',
+      cookie: 'sessionid=s; uid_tt=123'
+    });
+    assert.ok(calls >= 2, '首次未开播应再进房确认一次（CDP 元数据补拉可能再进一次）');
+    assert.equal(status.listening, true, '重试在播时应继续启动');
+    assert.equal(bridge.starts.length, 1);
+    assert.ok(
+      logs.some(
+        (line) =>
+          line.includes('liveness offline #1') && line.includes('status=4') && line.includes('reflow=true'),
+      ),
+      '首次误报要把判定字段写进 debug 日志',
+    );
+    mon.stop();
+  });
+
+  test('进房接口偶发空响应：状态未知不能当成下播（无 Cookie 放行启动）', async () => {
+    const bridge = makeBridge();
+    let calls = 0;
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        calls += 1;
+        throw new DyLivenessUnknownError();
+      }),
+    );
+    const status = await mon.start({ url: 'https://live.douyin.com/167773402498' });
+    assert.ok(calls >= 2, '状态未知也要再试一次');
+    assert.equal(status.ended, false, '进房不可用不等于下播');
+    assert.equal(status.listening, true, '状态未知按原「探活放行」处理');
+    assert.doesNotMatch(status.lastError, /下播/);
+    mon.stop();
+  });
+
+  test('进房接口偶发空响应（带 Cookie，有 CDP 桥）：降级放行，登录态交给内嵌页', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        throw new DyLivenessUnknownError();
+      }),
+    );
+    const status = await mon.start({
+      url: 'https://live.douyin.com/167773402498',
+      cookie: 'sessionid=s; uid_tt=123',
+    });
+    assert.equal(status.listening, true, 'CDP 可用时不因进房风控拦死启动');
+    assert.equal(bridge.starts.length, 1);
+    assert.equal(status.ended, false, '不能因为进房不可用就落成下播态');
+    assert.doesNotMatch(status.lastError, /下播/);
+    mon.stop();
+  });
+
+  test('进房接口偶发空响应（带 Cookie，无 CDP 桥）：仍报「暂时不可用」', async () => {
+    const mon = createDouyinMonitor(
+      makeDeps(undefined, async () => {
+        throw new DyLivenessUnknownError();
+      }),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/167773402498', cookie: 'sessionid=s; uid_tt=123' }),
+      /进房接口暂时不可用/,
+    );
+    const status = mon.status();
+    assert.equal(status.ended, false, '不能因为进房不可用就落成下播态');
+    assert.doesNotMatch(status.lastError, /下播/);
+  });
+
+  test('带 Cookie 启动：首次进房不可用、重试成功则继续启动', async () => {
+    const bridge = makeBridge();
+    let calls = 0;
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        calls += 1;
+        if (calls === 1) throw new DyLivenessUnknownError();
+        return {
+          roomInfo: '',
+          ttwid: '',
+          uniqueId: '',
+          cookie: '',
+          roomId: '7710046867756829466',
+          title: 't',
+          anchor: 'a',
+          loginUid: '123',
+        };
+      }),
+    );
+    const status = await mon.start({
+      url: 'https://live.douyin.com/167773402498',
+      cookie: 'sessionid=s; uid_tt=123'
+    });
+    assert.ok(calls >= 2, '空响应应重试一次');
+    assert.equal(status.listening, true);
+    assert.equal(bridge.starts.length, 1);
+    mon.stop();
+  });
+
+  test('带 Cookie 启动：房间已下播但 Cookie 有效，确认有效后再报下播', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        // 回显 uid 与 Cookie 自带 uid 一致 = 登录态被服务端认可。
+        throw new DyRoomOfflineError('主播未开播', '123');
+      }),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
+      /主播已下播（直播结束），等开播后再点开始监听/,
+    );
+    assert.equal(bridge.starts.length, 0);
+    const status = mon.status();
+    assert.equal(status.ended, true, 'Cookie 有效时仍应落到下播态');
+    assert.equal(status.listening, false);
+  });
+
+  test('带 Cookie 启动：结构不全的 Cookie 本地直接拦下，不发进房请求', async () => {
+    const bridge = makeBridge();
+    let calls = 0;
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        calls += 1;
+        throw new Error('不该被调用');
+      }),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'ttwid=t' }),
+      /Cookie 缺少登录凭证/,
+    );
+    assert.equal(calls, 0, '本地预检失败不该浪费一次进房请求');
     assert.equal(bridge.starts.length, 0);
   });
 

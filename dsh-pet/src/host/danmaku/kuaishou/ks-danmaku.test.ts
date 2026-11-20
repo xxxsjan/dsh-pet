@@ -129,6 +129,36 @@ describe('快手帧分发', () => {
     assert.equal(items[0]?.count, 1234);
   });
 
+  test('displayLikeCount 归一为 like 条目（展示串同在线数口径）', () => {
+    const seen = new Set<string>();
+    const items = parseKsWsFrame(frame({ displayLikeCount: '1.2万' }), seen);
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.kind, 'like');
+    assert.equal(items[0]?.count, 12000);
+  });
+
+  test('同一帧里在线观看数与累计点赞一起返回', () => {
+    const seen = new Set<string>();
+    const items = parseKsWsFrame(
+      frame({ displayWatchingCount: '88', displayLikeCount: '1,234' }),
+      seen,
+    );
+    assert.deepEqual(items.map((i) => i.kind), ['online', 'like']);
+    assert.equal(items[1]?.count, 1234);
+  });
+
+  test('点赞展示串缺失或解析不出：不产出 like 条目', () => {
+    const seen = new Set<string>();
+    assert.deepEqual(
+      parseKsWsFrame(frame({ displayWatchingCount: '1' }), seen).map((i) => i.kind),
+      ['online'],
+    );
+    assert.deepEqual(
+      parseKsWsFrame(frame({ displayWatchingCount: '2', displayLikeCount: '-' }), seen).map((i) => i.kind),
+      ['online'],
+    );
+  });
+
   test('在线观看数展示串换算：万/亿/千分位/空值', () => {
     assert.equal(parseKsWatchCount('1.2万'), 12000);
     assert.equal(parseKsWatchCount('3.4亿'), 340000000);

@@ -25,7 +25,69 @@ const STREAM_RE = /\.(flv|m3u8|ts|m4s|mp4)(\?|$)|pull-flv|pull-hls|live-play/i;
 /** 轮询登录态间隔。 */
 const LOGIN_POLL_MS = 2000;
 
-/** 省流初始化脚本：不拉直播画面、静音、藏播放器控件，只留弹幕通道。 */
+/** DOM 探测：页面加载 15s 后把礼物面板 / 弹幕 / 进场 / 点赞 的 DOM 结构打出来。
+ * 等拿到真实选择器后再换成稳定的 MutationObserver。 */
+const DY_DOM_PROBE_SCRIPT = `
+(function(){
+  if (!/douyin\\.com$/.test(location.hostname)) return;
+  if (window.__dyDomProbeDone) return;
+  window.__dyDomProbeDone = true;
+  setTimeout(function(){
+    function describe(el, depth){
+      if (!el || depth <= 0) return '';
+      if (el.nodeType !== 1) return '';
+      var tag = el.tagName.toLowerCase();
+      var cls = (el.className && typeof el.className === 'string') ? el.className.split(/\\s+/).filter(Boolean).slice(0,3).join('.') : '';
+      var id = el.id ? '#'+el.id : '';
+      return '<'+tag+id+(cls?'.'+cls:'')+'>';
+    }
+    function findAllByKeyword(keyword, limit){
+      var all = document.querySelectorAll('*');
+      var hits = [];
+      var re = new RegExp(keyword, 'i');
+      for (var i = 0; i < all.length && hits.length < limit; i++) {
+        var el = all[i];
+        var cls = (el.className && typeof el.className === 'string') ? el.className : '';
+        var id = el.id || '';
+        if (re.test(cls) || re.test(id)) {
+          hits.push({ selector: describe(el), text: (el.textContent||'').trim().slice(0,60), cls: cls, id: id });
+        }
+      }
+      return hits;
+    }
+
+    // 关键词分组：礼物、弹幕、进场、点赞
+    var groups = [
+      ['gift|礼物|Gift|gift-panel|gift-list', 'GIFT关键字'],
+      ['chat|barrage|danmaku|comment|弹幕', 'CHAT关键字'],
+      ['enter|member|进场|MemberMessage', 'MEMBER关键字'],
+      ['like|点赞|Like', 'LIKE关键字'],
+      ['webcast|live-pc|live-room', 'LIVE关键字']
+    ];
+    var result = {};
+    for (var g = 0; g < groups.length; g++) {
+      result[groups[g][1]] = findAllByKeyword(groups[g][0], 15);
+    }
+
+    // 另外直接扫所有 DOM，收集 class 里含 gift 的节点
+    var giftSpecific = [];
+    var all = document.querySelectorAll('[class*="gift"],[class*="Gift"],[id*="gift"],[id*="Gift"]');
+    for (var j = 0; j < all.length && giftSpecific.length < 20; j++) {
+      var el = all[j];
+      giftSpecific.push({
+        selector: describe(el),
+        cls: typeof el.className === 'string' ? el.className : '',
+        childCount: el.children.length,
+        sampleChild: el.children[0] ? describe(el.children[0]) : '',
+        text: (el.textContent||'').trim().slice(0,80)
+      });
+    }
+    result['ALL_GIFT_ATTR'] = giftSpecific;
+
+    console.log('[DY-DOM-PROBE]', JSON.stringify(result));
+  }, 15000);
+})();
+`;
 const DY_INIT_SCRIPT = `
 (function () {
   try {
@@ -359,8 +421,12 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   function handleFrame(params) {
     const requestId = params?.requestId;
     const url = requestId ? wsUrls.get(requestId) : undefined;
-    // 未知 requestId 放行：页面可能在 Network.enable 之前就建好连接，收不到 webSocketCreated。
-    if (url && !url.includes(DY_WS_URL_NEEDLE)) return;
+    // 移除 URL 过滤：抖音可能把礼物 / 点赞 / 在线人数分流到不同 WS URL，
+    // 以前只放行 /webcast/im/push/ 会导致这些高频业务帧被丢弃。
+    // 保留 info 日志帮我们确认实际抓到了哪些 WS。
+    if (url) {
+      log?.debug?.(`[blue-fish][douyin-cdp] frame from rid=${requestId} url=${url}`);
+    }
     const payloadData = params?.response?.payloadData;
     if (!payloadData) return;
     let buf;
@@ -375,10 +441,22 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
 
   function attachDebugger(contents) {
     contents.debugger.on('message', (_event, method, params) => {
-      if (method === 'Network.webSocketCreated') {
+      if (method === 'Runtime.consoleAPICalled') {
+        // 把页面 console.log 透传到宿主日志——DOM probe 结果从这里出来
+        try {
+          const args = params?.args || [];
+          const first = args[0]?.value ?? String(args[0]?.description || '');
+          if (String(first).startsWith('[DY-DOM-PROBE]')) {
+            log?.info?.(`[blue-fish][douyin-cdp] DOM PROBE: ${String(first).slice(0, 8000)}`);
+          }
+        } catch {}
+      } else if (method === 'Network.webSocketCreated') {
         const rid = params?.requestId;
         const url = params?.url;
-        if (rid && url) wsUrls.set(String(rid), String(url));
+        if (rid && url) {
+          wsUrls.set(String(rid), String(url));
+          log?.info?.(`[blue-fish][douyin-cdp] ws created rid=${rid} url=${url}`);
+        }
       } else if (method === 'Network.webSocketFrameReceived') {
         handleFrame(params);
       } else if (method === 'Network.responseReceived') {
@@ -397,6 +475,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     });
     contents.debugger.attach('1.3');
     attached = true;
+    send(contents.debugger, 'Runtime.enable');
     send(contents.debugger, 'Network.enable');
     send(contents.debugger, 'Page.setWebLifecycleState', { state: 'active' });
     send(contents.debugger, 'Network.setBlockedURLs', {
@@ -431,6 +510,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   function injectScript() {
     if (!win || win.isDestroyed()) return;
     win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
+    // DOM 探测脚本：15s 后打 DOM 结构
+    win.webContents.executeJavaScript(DY_DOM_PROBE_SCRIPT).catch(() => undefined);
   }
 
   /** 暂停页面内播放（隐藏窗口时再兜底一次省流）。 */

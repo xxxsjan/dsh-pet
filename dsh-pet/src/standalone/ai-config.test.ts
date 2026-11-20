@@ -89,14 +89,14 @@ test('persists only in isolated home, redacts keys, supports keep and clear, rel
     assert.equal(saved.whisperIntervalSec, 300);
     assert.equal((await store.save({ apiKey: '', automaticWhispers: true })).hasKey, true);
     assert.equal(createAiConfig(home).publicSettings().model, 'chosen-model');
-    assert.match(readFileSync(join(home, 'dsh-pet', 'standalone-ai.json'), 'utf8'), /test-secret/);
+    assert.match(readFileSync(join(home, 'blue-fish', 'standalone-ai.json'), 'utf8'), /test-secret/);
     // 启用位只为旧文件保留：无论传什么，落盘一律为 true，对外视图也不再暴露。
     const forced = await store.save({ enabled: false });
     assert.equal('enabled' in forced, false);
-    assert.match(readFileSync(join(home, 'dsh-pet', 'standalone-ai.json'), 'utf8'), /"enabled":true/);
+    assert.match(readFileSync(join(home, 'blue-fish', 'standalone-ai.json'), 'utf8'), /"enabled":true/);
     assert.equal((await store.save({ clearApiKey: true })).hasKey, false);
     assert.equal(createAiConfig(home).publicSettings().hasKey, false);
-    writeFileSync(join(home, 'dsh-pet', 'standalone-ai.json'), '{broken');
+    writeFileSync(join(home, 'blue-fish', 'standalone-ai.json'), '{broken');
     assert.throws(() => createAiConfig(home), /^Error: Cannot securely load standalone AI settings\.$/);
   } finally {
     rmSync(home, { recursive: true, force: true });
@@ -109,7 +109,7 @@ test('旧配置文件缺后加字段：铺默认值后仍可读，不因 strict 
     mkdirSync(join(home, 'blue-fish'), { recursive: true });
     // 升级前的落盘形状：没有 balanceProvider。
     writeFileSync(
-      join(home, 'dsh-pet', 'standalone-ai.json'),
+      join(home, 'blue-fish', 'standalone-ai.json'),
       JSON.stringify({
         protocol: 'openai-compatible',
         baseUrl: 'https://example.test/v1',
