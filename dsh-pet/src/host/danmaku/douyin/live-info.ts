@@ -20,6 +20,8 @@ export type DyLiveInfo = {
   roomId: string;
   title: string;
   anchor: string;
+  /** enter 接口回显的当前用户 uid（登录态校验用）；游客态或回落页面解析时为空串。 */
+  loginUid: string;
 };
 
 /** 规范化 Cookie 头：去掉换行、合并分号。 */
@@ -60,6 +62,37 @@ function parseCookieMap(cookieStr: string): Map<string, string> {
 
 function cookieMapToHeader(map: Map<string, string>): string {
   return [...map.entries()].map(([k, v]) => `${k}=${v}`).join('; ');
+}
+
+/** 登录会话键：任一非空才算带了会话凭证。 */
+const DY_SESSION_KEYS = ['sessionid', 'sessionid_ss', 'sid_tt'];
+/** 登录账号 uid 键：按优先级取第一个非空值。 */
+const DY_UID_KEYS = ['uid_tt', 'uid_tt_ss', 'uid_ss', 'uid'];
+
+/** Cookie 校验失败的原因码；文案由调用方（monitor）映射，纯函数不拼用户文案。 */
+export type DyCookieCheckReason = 'no-session' | 'no-uid' | 'no-server-uid' | 'mismatch';
+
+/**
+ * 校验手填登录 Cookie 是否真有效。
+ *
+ * 不能只看键名：游客态调 enter 也会回一个固定占位 user，所以必须比对「Cookie 自带的登录 uid」
+ * 与「enter 接口回显的当前用户 uid」是否一致——一致才说明会话被服务端认可；过期/未登录都对不上。
+ *
+ * @param cookieHeader - 用户填入的原始 Cookie。
+ * @param serverUid - 本次进房 enter 接口回显的 `data.user.id_str`。
+ */
+export function checkDyCookie(
+  cookieHeader: string,
+  serverUid: string,
+): { ok: true } | { ok: false; reason: DyCookieCheckReason } {
+  const jar = parseCookieMap(normalizeDyCookieHeader(cookieHeader));
+  const claimedUid = DY_UID_KEYS.map((k) => jar.get(k)).find((v) => String(v ?? '').trim()) ?? '';
+  const hasSession = DY_SESSION_KEYS.some((k) => String(jar.get(k) ?? '').trim());
+  if (!hasSession) return { ok: false, reason: 'no-session' };
+  if (!claimedUid) return { ok: false, reason: 'no-uid' };
+  if (!serverUid) return { ok: false, reason: 'no-server-uid' };
+  if (serverUid !== claimedUid) return { ok: false, reason: 'mismatch' };
+  return { ok: true };
 }
 
 function mergeSetCookie(map: Map<string, string>, res: Response): void {
@@ -288,6 +321,7 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
   let roomInfo = '';
   let uniqueId = '';
   let livingVerified = false;
+  let loginUid = '';
 
   const enterUrl =
     `https://live.douyin.com/webcast/room/web/enter/?aid=6383&app_name=douyin_web&live_id=1` +
@@ -325,6 +359,9 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
     if (!isDyRoomLiving(room, enterRoomStatus)) throw new Error('主播未开播');
     roomInfo = JSON.stringify(room);
     uniqueId = uniqueIdFromEnter(enterJson);
+    const enterData = (enterJson as Record<string, unknown>).data as Record<string, unknown> | undefined;
+    const enterUser = enterData?.user as Record<string, unknown> | undefined;
+    loginUid = jsonValueToString(enterUser?.id_str);
     livingVerified = true;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -370,5 +407,6 @@ export async function fetchDyLiveInfo(liveUrlOrRid: string, userCookie = ''): Pr
     roomId,
     title,
     anchor,
+    loginUid,
   };
 }

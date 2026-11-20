@@ -106,22 +106,43 @@ function makeDeps(bridge: DouyinCdpBridge | undefined, fetchLiveInfo?: DouyinMon
     // 默认假进房：空元数据，避免测试打真实网络
     fetchLiveInfo:
       fetchLiveInfo ??
-      (async () => ({ roomInfo: '', ttwid: '', uniqueId: '', cookie: '', roomId: '', title: '', anchor: '' })),
+      (async () => ({
+        roomInfo: '',
+        ttwid: '',
+        uniqueId: '',
+        cookie: '',
+        roomId: '',
+        title: '',
+        anchor: '',
+        loginUid: '',
+      })),
   };
 }
 
 describe('douyin monitor CDP 链路', () => {
   test('有 CDP 桥时走 cdp 路径，桥收到 url 与 cookie', async () => {
     const bridge = makeBridge();
-    const mon = createDouyinMonitor(makeDeps(bridge));
+    // 有效登录 Cookie：进房回显 uid 与 Cookie 自带 uid 一致，校验通过后才启动桥。
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => ({
+        roomInfo: '',
+        ttwid: '',
+        uniqueId: '',
+        cookie: '',
+        roomId: '',
+        title: '',
+        anchor: '',
+        loginUid: '998877',
+      })),
+    );
     const status = await mon.start({
       url: 'https://live.douyin.com/123456789',
-      cookie: 'sessionid=abc',
+      cookie: 'sessionid=abc; uid_tt=998877',
     });
     assert.equal(status.mode, 'cdp');
     assert.equal(status.listening, true);
     assert.equal(bridge.starts[0]?.url, 'https://live.douyin.com/123456789');
-    assert.equal(bridge.starts[0]?.cookie, 'sessionid=abc');
+    assert.equal(bridge.starts[0]?.cookie, 'sessionid=abc; uid_tt=998877');
   });
 
   test('stop 时停止 CDP 桥，状态回到 idle', async () => {
@@ -330,6 +351,7 @@ describe('douyin monitor CDP 链路', () => {
         roomId: '999',
         title: 'enter 标题',
         anchor: 'enter 主播',
+        loginUid: '',
       })),
     );
     await mon.start({ url: 'https://live.douyin.com/123456789' });
@@ -438,6 +460,63 @@ describe('douyin monitor CDP 链路', () => {
     const started = await mon2.start({ url: 'https://live.douyin.com/123456789' });
     assert.equal(started.listening, true, '未知错误应放行，按原链路继续启动');
     mon2.stop();
+  });
+
+  test('带 Cookie 启动：服务端回显游客占位 uid（登录态失效）时拦下，不起桥', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => ({
+        roomInfo: '',
+        ttwid: '',
+        uniqueId: '',
+        cookie: '',
+        roomId: '',
+        title: '',
+        anchor: '',
+        loginUid: '3677211856479552',
+      })),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
+      /Cookie 已失效或未被抖音认可/,
+    );
+    assert.equal(bridge.starts.length, 0, '校验失败不许启动内嵌浏览器');
+    assert.equal(mon.status().listening, false);
+  });
+
+  test('带 Cookie 启动：Cookie 里没有登录会话键时拦下，提示复制完整 Cookie', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => ({
+        roomInfo: '',
+        ttwid: '',
+        uniqueId: '',
+        cookie: '',
+        roomId: '',
+        title: '',
+        anchor: '',
+        loginUid: '3677211856479552',
+      })),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'ttwid=abc' }),
+      /Cookie 缺少登录凭证/,
+    );
+    assert.equal(bridge.starts.length, 0);
+  });
+
+  test('带 Cookie 启动：校验请求网络异常时拦下并透传原因，不静默放行', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(
+      makeDeps(bridge, async () => {
+        throw new Error('网络中断');
+      }),
+    );
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
+      /Cookie 校验失败：网络中断/,
+    );
+    assert.equal(bridge.starts.length, 0);
   });
 
   test('Helper 内嵌页读元数据：RENDER_DATA 提取 + onMeta 出口 + stop 重置', () => {

@@ -7,7 +7,14 @@ import { inflate } from 'pako';
 import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
-import { DY_UA, fetchDyLiveInfo, normalizeDyCookieHeader, type DyLiveInfo } from './live-info.ts';
+import {
+  DY_UA,
+  checkDyCookie,
+  fetchDyLiveInfo,
+  normalizeDyCookieHeader,
+  type DyCookieCheckReason,
+  type DyLiveInfo,
+} from './live-info.ts';
 import {
   ChatMessage,
   ControlMessage,
@@ -156,6 +163,8 @@ const IDLE_PROBE_SILENT_MS = 180_000;
 const IDLE_PROBE_TICK_MS = 90_000;
 /** 开始监听前的探活超时：超过就当作「状态未知」放行，不拖住启动流程。 */
 const PREFLIGHT_TIMEOUT_MS = 8000;
+/** 带 Cookie 启动时的登录态校验超时：需在前端请求超时（12s）内给出明确结论。 */
+const COOKIE_VERIFY_TIMEOUT_MS = 10_000;
 
 /**
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
@@ -860,14 +869,67 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     }
   }
 
+  /** 带 Cookie 启动时，校验失败原因 → 给用户看的中文文案。 */
+  const COOKIE_REASON_TEXT: Record<DyCookieCheckReason, string> = {
+    'no-session':
+      'Cookie 缺少登录凭证（sessionid），这不是登录态 Cookie，请重新从已登录浏览器复制完整 Cookie',
+    'no-uid': 'Cookie 缺少账号标识（uid），请重新从已登录浏览器复制完整 Cookie',
+    'no-server-uid': '抖音未确认登录态（进房未回显用户），请稍后重试或检查 Cookie 是否完整',
+    mismatch: 'Cookie 已失效或未被抖音认可（可能已过期），请重新登录后复制新的 Cookie',
+  };
+
+  /**
+   * 带登录 Cookie 启动时的严格前置校验：
+   * 进房（fetchLiveInfo 内部已确认在播）拿到服务端回显的当前用户 uid，再与 Cookie 自带的登录 uid 比对。
+   * 与 assertRoomLiving 的「超时放行」不同，这里校验不通过就直接抛错、绝不进入监听——
+   * 否则用户以为填了登录态，实际礼物帧仍拿不到。
+   */
+  async function assertCookieValid(url: string, cookie: string): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const probe = fetchLiveInfo(url, cookie);
+    // 超时后校验仍可能在后台失败，挂个 catch 免得变成未处理的 rejection。
+    probe.catch(() => undefined);
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('__cookie_verify_timeout__')), COOKIE_VERIFY_TIMEOUT_MS);
+      timer.unref?.();
+    });
+    let info: DyLiveInfo;
+    try {
+      info = await Promise.race([probe, timeout]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === '__cookie_verify_timeout__') {
+        throw new Error('Cookie 校验超时，请检查网络后重试', { cause: e });
+      }
+      if (/未开播|直播已结束|已结束|下播/.test(msg)) {
+        currentUrl = url;
+        currentCookie = cookie;
+        const reason = '主播已下播（直播结束）';
+        markEnded(reason);
+        throw new Error(`${reason}，等开播后再点开始监听`, { cause: e });
+      }
+      throw new Error(`Cookie 校验失败：${msg}`, { cause: e });
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+    const verdict = checkDyCookie(cookie, info.loginUid);
+    if (!verdict.ok) throw new Error(COOKIE_REASON_TEXT[verdict.reason]);
+  }
+
   async function start(input: DouyinMonitorStartInput): Promise<DouyinMonitorStatus> {
     const url = String(input.url || '').trim();
     if (!url) throw new Error('缺少直播间 url');
-    // 先确认房间在播，已下播直接给结论，不走后面的起窗/连 WS 流程。
-    await assertRoomLiving(url, String(input.cookie || ''));
+    const cookie = String(input.cookie || '');
+    // 填了 Cookie：先严格校验登录态（进房同时确认在播），无效直接拦下；
+    // 没填 Cookie：保持原有「在播探活、超时放行」的宽松行为（游客也能看纯聊天）。
+    if (cookie.trim()) {
+      await assertCookieValid(url, cookie);
+    } else {
+      await assertRoomLiving(url, cookie);
+    }
     wantListen = true;
     currentUrl = url;
-    currentCookie = String(input.cookie || '');
+    currentCookie = cookie;
     applyOptions({
       replyChat: input.replyChat === true,
       thankGift: input.thankGift === true,

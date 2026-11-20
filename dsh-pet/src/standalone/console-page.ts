@@ -712,9 +712,9 @@ export const consoleScript = `
   /** 下播提示只弹一次：状态里 ended 由 false→true 时提示，回到非 ended 时重置。 */
   var dmEndedNotified = false;
   /** 小红书/快手/B站通用的下播提示去重表：platform → 是否已弹过。 */
-  var endedNotifiedMap: Record<string, boolean> = {};
+  var endedNotifiedMap = {};
   /** 下播自动停听的一次性提示（与抖音 dmEndedNotified 同语义，三平台共用）。 */
-  function platformEndedToast(platform: string, status: Record<string, unknown>): void {
+  function platformEndedToast(platform, status) {
     var isEnded = status.ended === true;
     if (!isEnded) {
       delete endedNotifiedMap[platform];
