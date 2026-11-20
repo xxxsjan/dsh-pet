@@ -9,6 +9,8 @@
  * 版本号在构建前定死：控制台询问是否递增 patch，递增则先写 package.json 再构建，
  * 构建失败滚回递增前；package.json 在 files 白名单里会进 asar，构建后再改包内仍是旧号。
  * 打包成功后询问是否压成分发 zip（默认不压，自用只需解包目录）；选择压缩才调用 pack-win-zip.mjs，压缩失败即整体失败。
+ * 递增版本号且构建成功时，自动把 package.json 提交到 git（chore: 更新项目版本号至X.Y.Z），
+ * 免得版本变更散在工作树里；提交失败只告警不阻塞，产物已生成。
  * @module dsh-pet/scripts/dist
  */
 import { spawn, spawnSync } from 'node:child_process';
@@ -137,6 +139,22 @@ if (bump) {
 const cli = join(root, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js');
 const args = [cli, '--win', target];
 if (electronDist) args.push(`--config.electronDist=${electronDist}`);
+/** 构建成功后把版本号变更提交到 git；失败只告警不阻塞（产物已生成，可手动补提交）。 */
+function commitVersionBump(ver) {
+  const add = spawnSync('git', ['add', 'package.json'], { cwd: root, stdio: 'inherit' });
+  if (add.error || add.status !== 0) {
+    console.warn('[dist] git add package.json 失败，请手动提交版本号变更');
+    return;
+  }
+  const message = `chore: 更新项目版本号至${ver}`;
+  const commit = spawnSync('git', ['commit', '-m', message], { cwd: root, stdio: 'inherit' });
+  if (commit.error || commit.status !== 0) {
+    console.warn('[dist] git commit 失败，请手动提交版本号变更');
+    return;
+  }
+  console.log(`[dist] 已提交版本号变更：${message}`);
+}
+
 const child = spawn(process.execPath, args, {
   cwd: root,
   env,
@@ -150,6 +168,7 @@ child.on('exit', (code) => {
     }
     process.exit(code ?? 1);
   }
+  if (bump) commitVersionBump(version);
   // 压缩是分发用的额外产物：自用时只要解包目录，默认跳过，免得白等一遍大文件拷贝
   if (!/^y(es)?$/i.test(ask('[dist] 构建完成，是否压成分发 zip？(y/N) '))) {
     console.log('[dist] 跳过压缩，产物：dist-app/win-unpacked');
