@@ -36,6 +36,18 @@ test('语音分区控件与本机端点接线齐备；保存体带回 pets', () 
   for (const id of ['voice-provider', 'voice-name', 'voice-rate', 'voice-volume', 'voice-save', 'voice-preview-btn']) {
     assert.match(html, new RegExp(`id="${id}"`), `语音控件 ${id} 应存在于静态壳`);
   }
+  assert.match(
+    html,
+    /id="voice-volume" min="0" max="3" step="0\.05" aria-label="音量（0–3，最高 300%）"/,
+    '语音音量应是 0–3、步进 0.05 的滑块',
+  );
+  assert.match(html, /id="voice-volume-value"/, '语音音量滑块应显示当前数值');
+  assert.match(
+    html,
+    /id="voice-rate" min="0\.5" max="2" step="0\.05" aria-label="语速（0\.5–2）"/,
+    '语速应是 0.5–2、步进 0.05 的滑块',
+  );
+  assert.match(html, /id="voice-rate-value"/, '语速滑块应显示当前数值');
   for (const key of ['voice-enabled', 'voice-whisper', 'voice-todo']) {
     assert.match(html, new RegExp(`data-switch="${key}"`), `语音开关 ${key} 应存在于静态壳`);
   }
@@ -101,7 +113,12 @@ test('其余分区全部接真控件：宠物、全局、物理、字体、模�
   for (const key of ['pet-balance', 'pet-whisper', 'pet-work', 'pet-fixed', 'pet-click']) {
     assert.match(html, new RegExp(`data-switch="${key}"`), `宠物开关 ${key} 应存在于静态壳`);
   }
-  assert.match(html, /id="pet-click-volume"/, '点击音效音量（实例级）应在宠物面板');
+  assert.match(
+    html,
+    /id="pet-click-volume" type="range" min="0" max="1" step="0\.05"/,
+    '点击音效音量应是 0–1、步进 0.05 的滑块',
+  );
+  assert.match(html, /id="pet-click-volume-value"/, '滑块应显示当前音量值');
   for (const corner of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
     assert.match(html, new RegExp(`data-corner="${corner}"`), `角落按钮 ${corner} 应存在`);
   }
@@ -177,7 +194,7 @@ test('其余分区全部接真控件：宠物、全局、物理、字体、模�
   assert.match(consoleScript, /'pet-click': 'clickSoundEnabled'/, '点击音效开关应映射到宠物实例字段');
   assert.match(
     consoleScript,
-    /'pet-click-volume': function \(pet, value\) \{ pet\.clickSoundVolume/,
+    /'pet-click-volume': function \(pet, value\) \{[\s\S]*pet\.clickSoundVolume = clamp\(value, 0, 1, 0\.5\)[\s\S]*pet-click-volume-value/,
     '点击音效音量应写进宠物实例',
   );
   for (const sub of ['gravity', 'restitution', 'groundFriction', 'throwPower', 'ceilingBounce', 'petCollision']) {

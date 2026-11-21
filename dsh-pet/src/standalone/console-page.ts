@@ -86,33 +86,55 @@ export function consolePage(): string {
 <div class="card">
 <div class="cardHead"><h2 class="cardTitle" id="pet-panel-title">宠物</h2><div class="cardActions"><button type="button" class="panelClose" data-panel-close aria-label="关闭宠物配置"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
 <p class="cardHint">这里编辑的是默认条目的实例；改动在点保存后写盘。</p>
-<div class="petConfigBody">
-<div class="avatarBox">
-<img id="pet-avatar-img" alt="">
+<div class="petGrid">
+<div class="petAside">
+<div class="petPreview">
+<div class="petPreviewCard"><img id="pet-avatar-img" alt=""></div>
 <button type="button" class="btn ghost" id="pet-avatar-upload" hidden>上传头像</button>
 <input type="file" id="pet-avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+<span class="petPreviewCaption">宠物预览</span>
 </div>
-<div class="fields petFields">
-<div class="fieldRow"><label class="fieldLabel" for="pet-name">名字</label><input class="fieldInput" id="pet-name" type="text" autocomplete="off"></div>
-<div class="fieldRow"><label class="fieldLabel" for="pet-id">标识（id）</label><input class="fieldInput" id="pet-id" type="text" disabled></div>
-<div class="fieldRow"><label class="fieldLabel" for="pet-size">大小（宽度 px）</label><input class="fieldInput" id="pet-size" type="number" min="1" step="1"></div>
-<div class="fieldRow"><label class="fieldLabel" for="pet-size-percent">占屏宽度（%）</label><input class="fieldInput" id="pet-size-percent" type="number" min="1" step="1" placeholder="留空 = 按 px 显示"></div>
-<div class="fieldRow"><span class="fieldLabel">停靠角落</span><div class="cornerRow" id="pet-corner-row">
+<section class="petPanel petPanel--aside">
+<div class="petPanelHead"><h3 class="petPanelTitle">位置设置</h3></div>
+<div class="petPosStack">
+<div class="petPosCorners"><span class="fieldLabel">停靠角落</span><div class="cornerRow" id="pet-corner-row">
 <button type="button" class="corner" data-corner="top-left">左上角</button>
 <button type="button" class="corner" data-corner="top-right">右上角</button>
 <button type="button" class="corner" data-corner="bottom-left">左下角</button>
 <button type="button" class="corner" data-corner="bottom-right">右下角</button>
 </div></div>
+<div class="fields petFields petFields--margins">
 <div class="fieldRow"><label class="fieldLabel" for="pet-margin-x">水平偏移（px）</label><input class="fieldInput" id="pet-margin-x" type="number" step="1"></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-margin-y">垂直偏移（px）</label><input class="fieldInput" id="pet-margin-y" type="number" step="1"></div>
+</div>
+</div>
+</section>
+</div>
+<div class="petPanels">
+<section class="petPanel">
+<div class="petPanelHead"><h3 class="petPanelTitle">基础信息</h3><div class="petPanelActs"><button type="button" class="btn primary" id="pet-save">保存</button><button type="button" class="btn ghost danger" id="pet-delete">删除</button></div></div>
+<div class="fields petFields">
+<div class="fieldRow"><label class="fieldLabel" for="pet-name">名字</label><input class="fieldInput" id="pet-name" type="text" autocomplete="off"></div>
+<div class="fieldRow"><label class="fieldLabel" for="pet-id">标识 (id)</label><input class="fieldInput" id="pet-id" type="text" disabled></div>
+<div class="fieldRow"><label class="fieldLabel" for="pet-size">大小（宽度 px）</label><input class="fieldInput" id="pet-size" type="number" min="1" step="1"></div>
+<div class="fieldRow"><label class="fieldLabel" for="pet-size-percent">占屏宽度（%）</label><input class="fieldInput" id="pet-size-percent" type="number" min="1" step="1" placeholder="留空 = 按 px 显示"></div>
+</div>
+<span class="voiceStatus" id="pet-status" role="status" aria-live="polite"></span>
+</section>
+<section class="petPanel">
+<div class="petPanelHead"><h3 class="petPanelTitle">行为设置</h3></div>
+<div class="fields petFields">
 <div class="fieldRow"><div class="switchLine"><span>余额功能</span><button type="button" class="switch" data-switch="pet-balance" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>碎碎念</span><button type="button" class="switch" data-switch="pet-whisper" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>工作状态联动</span><button type="button" class="switch" data-switch="pet-work" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>固定不动</span><button type="button" class="switch" data-switch="pet-fixed" aria-checked="false"></button></div></div>
 <div class="fieldRow"><div class="switchLine"><span>点击音效</span><button type="button" class="switch" data-switch="pet-click" aria-checked="false"></button></div></div>
-<div class="fieldRow"><label class="fieldLabel" for="pet-click-volume">点击音效音量（0–1）</label><input class="fieldInput" id="pet-click-volume" type="number" min="0" max="1" step="0.05"><span class="fieldHint">1 = 100%；短提示音不做增益放大。只影响这只宠物。</span></div>
+<div class="fieldRow petVolumeField"><label class="fieldLabel" for="pet-click-volume">点击音效音量 <output id="pet-click-volume-value" for="pet-click-volume">0.50</output></label><input class="petVolumeRange" id="pet-click-volume" type="range" min="0" max="1" step="0.05" aria-label="点击音效音量（0–1）"><span class="fieldHint">1 = 100%；短提示音不做增益放大。只影响这只宠物。</span></div>
 </div>
+</section>
 </div>
+<section class="petPanel petPanel--wide">
+<div class="petPanelHead"><h3 class="petPanelTitle">人设</h3></div>
 <div class="personaBlock">
 <div class="fieldRow wide">
 <label class="fieldLabel" for="pet-persona">这只的人设（可选）</label>
@@ -121,7 +143,9 @@ export function consolePage(): string {
 <span class="fieldHint">发给模型的 system = 这段 + 自动追加的名字与时间背景，别在这里重复写。</span>
 </div>
 </div>
-<div class="cardFoot"><button type="button" class="btn primary" id="pet-save">保存</button><button type="button" class="btn ghost danger" id="pet-delete">删除</button><span class="voiceStatus" id="pet-status" role="status" aria-live="polite"></span></div>
+</section>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -272,8 +296,8 @@ export function consolePage(): string {
 <div class="customVoiceList" id="voice-breeze-custom-list"></div>
 <span class="voiceStatus" id="voice-breeze-custom-status" role="status"></span>
 </div>
-<div class="fieldRow"><label class="fieldLabel" for="voice-rate">语速（0.5–2）</label><input class="fieldInput" type="number" id="voice-rate" min="0.5" max="2" step="0.05"></div>
-<div class="fieldRow"><label class="fieldLabel" for="voice-volume">音量（0–3，最高 300%）</label><input class="fieldInput" type="number" id="voice-volume" min="0" max="3" step="0.05"></div>
+<div class="fieldRow voiceVolumeField"><label class="fieldLabel" for="voice-rate">语速（0.5–2）<output id="voice-rate-value" for="voice-rate">1.00</output></label><input class="voiceVolumeRange" type="range" id="voice-rate" min="0.5" max="2" step="0.05" aria-label="语速（0.5–2）"></div>
+<div class="fieldRow voiceVolumeField"><label class="fieldLabel" for="voice-volume">音量（0–3，最高 300%）<output id="voice-volume-value" for="voice-volume">1.00</output></label><input class="voiceVolumeRange" type="range" id="voice-volume" min="0" max="3" step="0.05" aria-label="音量（0–3，最高 300%）"></div>
 <div class="fieldRow switchPair">
 <div class="switchLine"><span>周期碎碎念也念出来</span><button type="button" class="switch" data-switch="voice-whisper" aria-checked="false"></button></div>
 <div class="switchLine"><span>待办提醒也念出来</span><button type="button" class="switch" data-switch="voice-todo" aria-checked="false"></button></div>
@@ -2655,9 +2679,10 @@ export const consoleScript = `
     setSwitchByKey('pet-fixed', pet.fixedEnabled === true);
     setSwitchByKey('pet-click', pet.clickSoundEnabled !== false);
     var clickVol = byId('pet-click-volume');
-    if (clickVol && document.activeElement !== clickVol) {
-      clickVol.value = String(typeof pet.clickSoundVolume === 'number' ? pet.clickSoundVolume : 0.5);
-    }
+    var clickVolume = typeof pet.clickSoundVolume === 'number' ? pet.clickSoundVolume : 0.5;
+    if (clickVol && document.activeElement !== clickVol) clickVol.value = String(clickVolume);
+    var clickVolumeValue = byId('pet-click-volume-value');
+    if (clickVolumeValue) clickVolumeValue.textContent = clickVolume.toFixed(2);
     var area = byId('pet-persona');
     if (area && document.activeElement !== area) {
       area.value = typeof pet.whisperPrompt === 'string' ? pet.whisperPrompt : '';
@@ -2859,8 +2884,12 @@ export const consoleScript = `
     nameSel.value = d.voiceName;
     var rateEl = byId('voice-rate');
     if (rateEl && document.activeElement !== rateEl) rateEl.value = String(d.voiceRate);
+    var rateValueEl = byId('voice-rate-value');
+    if (rateValueEl) rateValueEl.textContent = Number(d.voiceRate).toFixed(2);
     var volEl = byId('voice-volume');
     if (volEl && document.activeElement !== volEl) volEl.value = String(d.voiceVolume);
+    var volValueEl = byId('voice-volume-value');
+    if (volValueEl) volValueEl.textContent = Number(d.voiceVolume).toFixed(2);
     setSwitchByKey('voice-enabled', d.voiceEnabled);
     setSwitchByKey('voice-whisper', d.voiceWhisperEnabled);
     setSwitchByKey('voice-todo', d.voiceTodoEnabled);
@@ -3639,7 +3668,11 @@ export const consoleScript = `
       },
       'pet-margin-x': function (pet, value) { pet.position.marginX = Number(value); },
       'pet-margin-y': function (pet, value) { pet.position.marginY = Number(value); },
-      'pet-click-volume': function (pet, value) { pet.clickSoundVolume = clamp(value, 0, 1, 0.5); },
+      'pet-click-volume': function (pet, value) {
+        pet.clickSoundVolume = clamp(value, 0, 1, 0.5);
+        var output = byId('pet-click-volume-value');
+        if (output) output.textContent = pet.clickSoundVolume.toFixed(2);
+      },
       'pet-persona': function (pet, value) {
         var text = value.trim();
         if (text) pet.whisperPrompt = value;
@@ -3751,10 +3784,16 @@ export const consoleScript = `
       });
     });
     byId('voice-rate').addEventListener('input', function () {
-      if (state.draft) state.draft.voiceRate = clamp(this.value, 0.5, 2, 1);
+      var value = clamp(this.value, 0.5, 2, 1);
+      if (state.draft) state.draft.voiceRate = value;
+      var output = byId('voice-rate-value');
+      if (output) output.textContent = value.toFixed(2);
     });
     byId('voice-volume').addEventListener('input', function () {
-      if (state.draft) state.draft.voiceVolume = clamp(this.value, 0, 3, 1);
+      var value = clamp(this.value, 0, 3, 1);
+      if (state.draft) state.draft.voiceVolume = value;
+      var output = byId('voice-volume-value');
+      if (output) output.textContent = value.toFixed(2);
     });
     KEY_ROWS.forEach(function (r) {
       var input = byId(r.input);
@@ -4452,12 +4491,46 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .dangerEntry:hover{border-color:var(--danger)}
 .dangerEntry:hover .deskEntryIcon{background:color-mix(in srgb,var(--danger) 18%,transparent)}
 @media (max-width:880px){.desktop{grid-template-columns:1fr}.settingsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.liveEntryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.petConfigBody{display:grid;grid-template-columns:240px 1fr;gap:22px;align-items:start}
-.petConfigBody>.fields{min-width:0}
-.personaBlock{margin-top:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
-@media (max-width:880px){.petConfigBody{grid-template-columns:1fr}}
+/* 宠物面板：左「预览」+ 右四块功能面板，与设计稿一致 */
+.petGrid{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:880px){.petGrid{grid-template-columns:minmax(0,1fr)}}
+/* 左栏：预览 + 位置设置上下叠放 */
+.petAside{display:flex;flex-direction:column;gap:12px;min-width:0}
+.petPanel--aside{padding:12px 12px 14px}
+.petPosStack{display:flex;flex-direction:column;gap:8px;min-width:0}
+.petPosStack .petFields--margins{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+.petPosStack .cornerRow{gap:6px}
+.petPosStack .corner{height:30px;padding:0 8px;font-size:12px}
+.petPreview{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 16px;border-radius:16px;background:var(--bg-base)}
+.petPreviewCard{width:150px;max-width:100%;padding:12px;border-radius:18px;background:#fff;box-shadow:var(--shadow)}
+.petPreviewCard img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px}
+.petPreviewCaption{font-size:12px;color:var(--label-tertiary)}
+.petPanels{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* 人设不参与左右分栏：它挂在 petGrid 的第二列，跨过预览栏的宽度占满整行 */
+.petPanel--wide{grid-column:1/-1}
+@media (max-width:880px){.petPanel--wide{grid-column:auto}}
+.petPanel{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:16px;background:var(--bg-card);box-shadow:var(--shadow);min-width:0}
+.petPanelHead{display:flex;align-items:center;gap:10px;min-height:24px}
+.petPanelTitle{margin:0;font-size:14px;font-weight:600;color:var(--label-primary)}
+.petPanelActs{display:flex;align-items:center;gap:8px;margin-left:auto}
+.petPanel .petFields{gap:8px 16px}
+.petPanel .fieldRow{gap:3px}
+.petPosRow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;align-items:start}
+@media (max-width:700px){.petPosRow{grid-template-columns:1fr}}
+.petPosCorners{display:flex;flex-direction:column;gap:4px}
+.petFields--margins{grid-template-columns:repeat(2,minmax(0,1fr));max-width:320px}
+.petVolumeField{grid-column:1/-1}
+.petVolumeField .fieldLabel{display:flex;align-items:center;gap:6px}
+.petVolumeField output{font-variant-numeric:tabular-nums;color:var(--label-primary)}
+.petVolumeRange{width:100%;height:20px;margin:2px 0 0;accent-color:var(--primary);cursor:pointer}
+.petVolumeRange:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+.voiceVolumeField .fieldLabel{display:flex;align-items:center;gap:6px}
+.voiceVolumeField output{font-variant-numeric:tabular-nums;color:var(--label-primary)}
+.voiceVolumeRange{width:100%;height:20px;margin:2px 0 0;accent-color:var(--primary);cursor:pointer}
+.voiceVolumeRange:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+.personaBlock{display:flex;flex-direction:column;gap:6px;min-width:0}
 .avatarBox{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px 14px;text-align:center}
-.avatarBox img{width:140px;height:140px;max-width:100%;object-fit:contain;border-radius:16px}
+.avatarBox img{width:100%;max-width:100%;object-fit:contain;border-radius:10px}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
 .fieldRow{display:flex;flex-direction:column;gap:6px;min-width:0}
 /* 宠物字段区：两列网格，行距、控件高度、角落按钮整体收紧，仅作用于本区，不影响其他卡片 */
