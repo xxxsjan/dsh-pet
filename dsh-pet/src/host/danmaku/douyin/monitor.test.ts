@@ -31,7 +31,8 @@ function makeBridge() {
     login: null | (() => void);
     closed: null | (() => void);
     meta: null | ((meta: { title: string; anchor: string }) => void);
-  } = { frame: null, login: null, closed: null, meta: null };
+    wsClosed: null | ((url: string) => void);
+  } = { frame: null, login: null, closed: null, meta: null, wsClosed: null };
   const bridge: DouyinCdpBridge & {
     starts: Array<{ url: string; cookie?: string }>;
     stopped: boolean;
@@ -85,6 +86,12 @@ function makeBridge() {
       subs.meta = fn;
       return () => {
         subs.meta = null;
+      };
+    },
+    onWsClosed(fn: (url: string) => void) {
+      subs.wsClosed = fn;
+      return () => {
+        subs.wsClosed = null;
       };
     },
   };
@@ -779,5 +786,64 @@ describe('douyin monitor CDP 链路', () => {
       { getElementById: () => null, querySelector: () => ({ textContent: 'K.B的抖音直播间 - 抖音直播' }) },
     );
     assert.deepEqual(titleTagState, { title: '', anchor: 'K.B' }, '页面标题兜底只取主播，不把整串当房间标题');
+  });
+});
+
+describe('douyin monitor 疑似被挤下线', () => {
+  /** 最简合法业务帧：只要能解开就算「链路恢复」，内容不重要。 */
+  const emptyFrame = () =>
+    PushFrame.encode(
+      PushFrame.create({ payload: DyResponse.encode(DyResponse.create({ messagesList: [] })).finish() }),
+    ).finish();
+
+  test('弹幕 WS 断开、恢复窗口内无帧且房间在播 → interrupted=true；stop 保留原因', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 20 });
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+
+    bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
+    await new Promise((r) => setTimeout(r, 80));
+
+    const status = mon.status();
+    assert.equal(status.interrupted, true, '断线超窗且房间在播应判定疑似被挤下线');
+    assert.match(status.lastError, /挤下线/);
+
+    // 暂不重连：停听清掉 interrupted，但 lastError 保留给状态行展示。
+    mon.stop();
+    assert.equal(mon.status().interrupted, false);
+    assert.match(mon.status().lastError, /挤下线/);
+  });
+
+  test('恢复窗口内恢复出帧 → 不判定被挤，提示与报错一起撤销', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 40 });
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+
+    bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
+    await new Promise((r) => setTimeout(r, 10));
+    bridge.subs.frame?.(emptyFrame());
+    await new Promise((r) => setTimeout(r, 80));
+
+    assert.equal(mon.status().interrupted, false, '窗口内出帧即视为链路恢复');
+    assert.equal(mon.status().lastError, '');
+    mon.stop();
+  });
+});
+
+describe('douyin monitor 被挤判定不被杂帧干扰', () => {
+  test('断线后其它 WS 的脏帧解不出推送帧，不应重置恢复窗口', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 20 });
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+
+    bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
+    // 模拟桥把其它通道 payload 也喂进来：持续喂脏帧，旧实现每次都会重置 20ms 窗口。
+    for (let i = 0; i < 10; i += 1) {
+      await new Promise((r) => setTimeout(r, 10));
+      bridge.subs.frame?.(new Uint8Array([0xff, 0xff, 0xff]));
+    }
+
+    assert.equal(mon.status().interrupted, true, '脏帧不算链路恢复');
+    mon.stop();
   });
 });

@@ -20,8 +20,13 @@ const CATALOG = {
 function makeDeps(
   speak: (raw: unknown) => Promise<unknown>,
   hear: (raw: unknown, signal?: AbortSignal) => Promise<unknown> = async () => ({ ok: true, text: '你好' }),
+  speakStream: (raw: unknown, signal?: AbortSignal) => Promise<unknown> = async () => ({
+    ok: false,
+    reason: 'unsupported',
+    message: 'no stream',
+  }),
 ): PetRouteDeps {
-  return { voice: { listVoices: () => CATALOG, speak }, speech: { hear } } as unknown as PetRouteDeps;
+  return { voice: { listVoices: () => CATALOG, speak, speakStream }, speech: { hear } } as unknown as PetRouteDeps;
 }
 
 /** 造一次路由输入。 */
@@ -57,6 +62,72 @@ test('POST /voice/speak 业务失败：200 + 失败实体（不做成 4xx）', a
   if (result?.kind !== 'json') return;
   assert.equal(result.status, 200);
   assert.equal((result.obj as { reason: string }).reason, 'bad-request');
+});
+
+test('POST /voice/speak stream:true 且引擎支持：返回 stream 应答', async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array([1, 2, 3]));
+      controller.close();
+    },
+  });
+  const result = await handleVoiceRoutes(
+    makeDeps(
+      async () => ({ ok: true, file: '/x.mp3' }),
+      undefined,
+      async () => ({ ok: true, stream, contentType: 'audio/pcm; rate=24000' }),
+    ),
+    input('voice/speak', 'POST', '{"text":"hi","stream":true}'),
+  );
+  assert.equal(result?.kind, 'stream');
+  if (result?.kind !== 'stream') return;
+  assert.equal(result.contentType, 'audio/pcm; rate=24000');
+  assert.equal(result.status, 200);
+});
+
+test('POST /voice/speak stream:true 但引擎不支持：回退整包 mp3', async () => {
+  let speakCalls = 0;
+  const result = await handleVoiceRoutes(
+    makeDeps(async () => {
+      speakCalls += 1;
+      return { ok: true, file: '/x.mp3' };
+    }),
+    input('voice/speak', 'POST', '{"text":"hi","stream":true}'),
+  );
+  assert.equal(speakCalls, 1);
+  assert.equal(result?.kind, 'file');
+});
+
+test('POST /voice/speak stream:true 但流式没打开：回退整包 mp3', async () => {
+  let speakCalls = 0;
+  const result = await handleVoiceRoutes(
+    makeDeps(
+      async () => {
+        speakCalls += 1;
+        return { ok: true, file: '/x.mp3' };
+      },
+      undefined,
+      async () => ({ ok: false, reason: 'stream-failed', message: 'fallback' }),
+    ),
+    input('voice/speak', 'POST', '{"text":"hi","stream":true}'),
+  );
+  assert.equal(speakCalls, 1);
+  assert.equal(result?.kind, 'file');
+});
+
+test('POST /voice/speak stream:true 且合成失败：200 + 失败实体', async () => {
+  const result = await handleVoiceRoutes(
+    makeDeps(
+      async () => ({ ok: true, file: '/x.mp3' }),
+      undefined,
+      async () => ({ ok: false, reason: 'generate-error', message: 'boom' }),
+    ),
+    input('voice/speak', 'POST', '{"text":"hi","stream":true}'),
+  );
+  assert.equal(result?.kind, 'json');
+  if (result?.kind !== 'json') return;
+  assert.equal(result.status, 200);
+  assert.equal((result.obj as { reason: string }).reason, 'generate-error');
 });
 
 test('POST /voice/speak 请求体不是 JSON：400', async () => {

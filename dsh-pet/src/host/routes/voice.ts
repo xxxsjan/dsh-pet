@@ -57,6 +57,18 @@ export async function handleVoiceRoutes(deps: PetRouteDeps, input: RouteInput): 
     } catch {
       return invalidJson();
     }
+    // 客户端能流式收（网页 / 独立模式）时带 `stream: true`；引擎不支持就回退整包 mp3，
+    // 这样同一份前端逻辑在两种链路下都能用，不需要额外探测引擎。
+    if (parsed !== null && typeof parsed === 'object' && (parsed as { stream?: unknown }).stream === true) {
+      const streamed = await deps.voice.speakStream(parsed, signal);
+      if (streamed.ok) {
+        return { kind: 'stream', status: 200, contentType: streamed.contentType, body: streamed.stream };
+      }
+      // unsupported / stream-failed 都回退整包 mp3；只有参数或队列问题直接报错
+      if (streamed.reason !== 'unsupported' && streamed.reason !== 'stream-failed') {
+        return failResult(streamed.reason, streamed.message);
+      }
+    }
     const result = await deps.voice.speak(parsed);
     if (!result.ok) return failResult(result.reason, result.message);
     return { kind: 'file', file: result.file, contentType: 'audio/mpeg' };

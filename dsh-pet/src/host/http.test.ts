@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { MAX_BODY_BYTES, parseRange, readBody, sendFile } from './http.ts';
+import { MAX_BODY_BYTES, parseRange, readBody, sendFile, sendStream } from './http.ts';
 
 /** 假请求：只保留 readBody 用到的 on/off 与 destroy。 */
 function fakeReq() {
@@ -204,5 +204,38 @@ describe('sendFile —— Range 应答', () => {
     assert.equal(response.headers.get('content-length'), '738');
     assert.equal(response.headers.get('content-range'), 'bytes 262-999/1000');
     assert.equal(response.headers.get('accept-ranges'), 'bytes');
+  });
+});
+
+describe('sendStream —— 流式应答', () => {
+  let base = '';
+  let close = (): void => {};
+
+  before(async () => {
+    const server = createServer((_req, res) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.enqueue(new Uint8Array([4, 5]));
+          controller.close();
+        },
+      });
+      void sendStream(res, { status: 200, contentType: 'audio/pcm', body });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const port = address && typeof address === 'object' ? address.port : 0;
+    base = `http://127.0.0.1:${port}`;
+    close = () => server.close();
+  });
+
+  after(() => close());
+
+  test('按到达顺序写出、不声明长度', async () => {
+    const response = await fetch(base);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'audio/pcm');
+    assert.equal(response.headers.get('content-length'), null, '流式响应不能预声明长度');
+    assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [1, 2, 3, 4, 5]);
   });
 });

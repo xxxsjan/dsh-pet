@@ -7,7 +7,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ROUTE_SEGMENT } from '../../shared/constants.ts';
-import { readBody, sendFile, sendJson, sendText, type RouteResult } from '../http.ts';
+import { readBody, sendFile, sendJson, sendStream, sendText, type RouteResult } from '../http.ts';
 import { failureBody } from '../routes/result.ts';
 import { createPetRouter } from '../routes/index.ts';
 import type { PetRouteDeps } from '../routes/types.ts';
@@ -92,7 +92,8 @@ export function registerHttpRoute(ctx: HostContext, handlePetRoute: HttpRouteHan
               sendText(res, result.status, result.body, result.contentType ?? 'text/plain; charset=utf-8');
             else if (result.kind === 'none') {
               /* 调用方已断开：不再写（写了会抛） */
-            } else sendFile(req, res, result.file, result.contentType); // 非 async：流在 open 后自己 pipe，错误内部收口
+            } else if (result.kind === 'stream') await sendStream(res, result);
+            else sendFile(req, res, result.file, result.contentType); // 非 async：流在 open 后自己 pipe，错误内部收口
           } catch (e) {
             res.off('close', onClose);
             // 连接已断（挂起等待被中止后也可能撞上）→ 不再写，避免二次抛错

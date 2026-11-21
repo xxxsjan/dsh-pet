@@ -141,3 +141,29 @@ describe('douyin CDP 桥：enter 响应截取的元数据链路', () => {
     bridge.stop();
   });
 });
+describe('douyin CDP 桥：弹幕 WS 关闭上报', () => {
+  test('只上报 /webcast/im/push/ 的关闭，其它 WS 与重复关闭都忽略', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake);
+    const closed: string[] = [];
+    bridge.onWsClosed((url: string) => closed.push(url));
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+
+    fake.emit('Network.webSocketCreated', {
+      requestId: 'w1',
+      url: 'wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/?room_id=1',
+    });
+    fake.emit('Network.webSocketCreated', { requestId: 'w2', url: 'wss://mon.zijieapi.com/ws/v2' });
+    fake.emit('Network.webSocketClosed', { requestId: 'w2' });
+    assert.deepEqual(closed, [], '非弹幕 WS 关闭不上报');
+
+    fake.emit('Network.webSocketClosed', { requestId: 'w1' });
+    assert.equal(closed.length, 1);
+    assert.match(closed[0] ?? '', /webcast\/im\/push/);
+
+    // 同一 rid 的重复关闭不再上报（映射已删除），避免重复触发恢复窗口。
+    fake.emit('Network.webSocketClosed', { requestId: 'w1' });
+    assert.equal(closed.length, 1);
+    bridge.stop();
+  });
+});

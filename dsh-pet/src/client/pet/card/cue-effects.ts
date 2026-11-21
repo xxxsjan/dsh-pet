@@ -167,9 +167,9 @@ export function createCueEffects(rt: CueEffectsRuntime) {
         if (say.stopVoice) stopSayVoice();
         return;
       }
-      hub.speak(say.text, say.image, say.url, say.duration, say.anim);
-      // 两端各判各的：叶子点名了本端才念，没点名或点了另一端就只弹气泡
-      playSayVoice(say);
+      // 两端各判各的：叶子点名了本端才念，没点名或点了另一端就只弹气泡。
+      // 气泡等声音真正就绪再弹：先文字后出声会错位，合成期间还容易被自动收起。
+      playSayVoice(say, () => hub.speak(say.text, say.image, say.url, say.duration, say.anim));
     };
 
     /** 点播动画：url 插播一段，名称走菜单同一套动作。 */

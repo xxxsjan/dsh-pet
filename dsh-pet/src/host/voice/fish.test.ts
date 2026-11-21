@@ -115,6 +115,60 @@ test('synthesizeFish：请求头与正文形状正确，mp3 落盘', async () =>
   }
 });
 
+test('synthesizeFish：网络层失败重试一次，第二次成功即返回', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-fish-retry-'));
+  const target = join(root, 'retry.mp3');
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    if (calls === 1) throw new Error('Client network socket disconnected before secure TLS connection was established');
+    return new Response(Buffer.alloc(64, 0xff), { status: 200, headers: { 'content-type': 'audio/mpeg' } });
+  }) as typeof fetch;
+  try {
+    await synthesizeFish({
+      text: '重试一句',
+      voice: '55b28b196e1c4fff9a55cd32a46eff25',
+      speed: 1,
+      model: 's2.1-pro-free',
+      apiKey: 'sk',
+      target,
+    });
+    assert.equal(calls, 2);
+    assert.ok((await readFile(target)).length >= 32);
+  } finally {
+    globalThis.fetch = original;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('synthesizeFish：调用方已中止时不重试', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    throw new Error('aborted');
+  }) as typeof fetch;
+  try {
+    const ctl = new AbortController();
+    ctl.abort();
+    await assert.rejects(() =>
+      synthesizeFish({
+        text: '别念了',
+        voice: '55b28b196e1c4fff9a55cd32a46eff25',
+        speed: 1,
+        model: 's2.1-pro-free',
+        apiKey: 'sk',
+        target: join(tmpdir(), 'fish-aborted.mp3'),
+        signal: ctl.signal,
+      }),
+    );
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test('synthesizeFish：HTTP 非 2xx → VoiceSynthError', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = (async () =>

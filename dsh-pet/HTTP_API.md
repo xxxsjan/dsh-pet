@@ -460,13 +460,14 @@ GET http://127.0.0.1:3080/blue-fish/danmaku/douyin/status
   "mode": "cdp",
   "cdpVisible": false,
   "cdpLoggedIn": true,
+  "interrupted": false,
   "recent": [
     { "id": 1, "at": 1730000000000, "kind": "chat", "nick": "观众", "text": "你好", "count": 0 }
   ]
 }
 ```
 
-`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `direct`（旧直连回退）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。
+`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `direct`（旧直连回退）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。`interrupted` 为 `true` 表示疑似被其他设备挤下线：弹幕 WS 断开、恢复窗口内没有新帧且房间仍在播；控制页据此弹窗询问是否重连，收到新帧或重新 `start` 后恢复 `false`。
 
 ### POST `/danmaku/douyin/start`
 
@@ -644,14 +645,14 @@ console.log(body.text); // 回复
 | `/menu/item`                              | POST/DELETE     | 注册 / 清除第三方菜单项（收在「更多」下）   |
 | `/menu/events?owner=&wait=`               | GET             | 查询菜单触发（读即清空，可长轮询；`wait` 毫秒） |
 | `/menu/click`                             | POST            | 渲染端上报点击（内部）                      |
-| `/voice/speak`                            | POST            | 合成音频；成功直接回 `audio/mpeg` 文件      |
+| `/voice/speak`                            | POST            | 合成音频；成功直接回 `audio/mpeg` 文件（`stream:true` 且 Breeze 时回 `audio/pcm` 流） |
 | `/voice/hear`                             | POST            | 语音识别；body `{ audio: <base64>, language? }`，回 `{ok,text}` |
 | `/voice/voices`                           | GET             | 音色列表；回 `{ok, voices, edgeVoices, fishVoices, breezeVoices, fishModels, voiceProvider}` |
 | `/voice/utterance/{id}/report`            | POST            | 朗读回执（内部）；body `{status, reason?}`；未知 id → `unknown-utterance` |
 | `/todos`、`/todos/{id}`                   | GET/POST/PATCH/DELETE | 待办读写（字段见上方「请求体」表）    |
 | `/work-status`                            | POST/DELETE     | 外部写入 / 清空工作状态（`DELETE` 回 `204`） |
 
-**`/voice/speak` body**：`{ "text": "...", "voice": "<音色 id>", "rate": "+0%", "apiKey": "<可选>" }`（`text` 必填，≤500 字；`voice` / `rate` 可选）。`apiKey` 是**一次性**凭证：只作用于这一次合成，不写盘、不进缓存键、不进日志（设置页「填了 Key 直接试听」用它；不带或空串则用磁盘上已保存的 Key）。带 `apiKey` 时跳过缓存命中，保证这次确实拿这把 Key 去上游合成。失败 `voice-busy` / `bad-request` / `generate-error`，其中 `voice-busy` 表示合成队列已满。
+**`/voice/speak` body**：`{ "text": "...", "voice": "<音色 id>", "rate": "+0%", "apiKey": "<可选>", "stream": false }`（`text` 必填，≤500 字；`voice` / `rate` 可选）。`apiKey` 是**一次性**凭证：只作用于这一次合成，不写盘、不进缓存键、不进日志（设置页「填了 Key 直接试听」用它；不带或空串则用磁盘上已保存的 Key）。带 `apiKey` 时跳过缓存命中，保证这次确实拿这把 Key 去上游合成。`stream: true` 请求边合成边播：当前引擎是 Breeze 时响应为 `audio/pcm`（24kHz 单声道 16bit LE，chunked、不缓存），其它引擎自动回退整包 mp3。失败 `voice-busy` / `bad-request` / `generate-error`，其中 `voice-busy` 表示合成队列已满。
 
 **`/sleep` / `/wake`**：无 body。`/sleep` 成功回 `{ok, sleeping:true, changed, start, loop, end}`，失败 `locked`（被占用，不能睡）、`no-sleep-animations`（没配睡觉动画）。`/wake` 幂等，成功回 `{ok, sleeping:false, changed}` 并弹一句醒来台词。`GET /pose` 在桌面端还没上报过时回 `pose-unavailable`。
 

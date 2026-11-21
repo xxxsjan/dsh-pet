@@ -53,6 +53,22 @@ describe('toBridgeResponse —— 路由结果 → 管道应答', () => {
     assert.deepEqual(res, { id: 5, status: 204, contentType: 'text/plain; charset=utf-8', body: '' });
   });
 
+  test('stream：管道承载不了流式正文，显式 501 并取消上游', () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1]));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const res = toBridgeResponse(9, { kind: 'stream', status: 200, contentType: 'audio/pcm', body });
+    assert.equal(res.status, 501);
+    assert.match(String(res.body), /stream-unsupported/);
+    assert.equal(cancelled, true);
+  });
+
   test('id 原样带回：并存的两次请求不会串号', () => {
     const first = toBridgeResponse(11, { kind: 'text', status: 200, body: 'a' });
     const second = toBridgeResponse(12, { kind: 'text', status: 200, body: 'b' });

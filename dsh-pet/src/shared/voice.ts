@@ -118,8 +118,9 @@ export function subscribeVoiceState(listener: (state: VoiceState) => void): () =
 /**
  * 订阅每句播报的开始与结束；不补发历史状态，只报后续事件。
  *
- * @param listener - 事件回调：`start` 表示已经决定要念这一句（合成开始），
- *   `end` 表示播完、合成失败或超时——三种结局都会报一次，气泡不必自己判超时。
+ * @param listener - 事件回调：`start` 表示这一句真正开始出声（气泡此刻才弹，靠它挂起收起计时），
+ *   `end` 表示播完、合成失败或超时——三种结局都会报一次，气泡不必自己判超时；
+ *   始终没拿到音频（失败）时只有 `end`，没有 `start`。
  * @returns 取消订阅；卡片卸载或气泡关闭时必须调用。
  */
 export function subscribeVoiceUtterance(listener: (event: VoiceUtteranceEvent) => void): () => void {
@@ -301,35 +302,45 @@ async function loadConfigOnce(): Promise<void> {
   }
 }
 
+/** 等不到音频时，气泡最多再压这么久就先显示（ms）：合成卡住不能把文字一起拖没。 */
+const BUBBLE_VOICE_WAIT_MS = 4_000;
+
 /**
  * 按 `say` 叶子播放：叶子指定了本端、且总开关开着才念。
  *
  * 三个门依次是：叶子有没有点名本端 → 网页端页面是否可见 → 成品配置的总开关。
- * 任何一道没过都只把状态归回 `idle`，气泡照常显示，不打断渲染。
+ * 任何一道没过都只把状态归回 `idle`，并立刻触发 `onAudible`——气泡照常显示。
  * 叶子带了 `voiceUtteranceId` 时，本端（点名端）必须向宿主上报读完 / 跳过 / 失败——
  * 弹幕队列靠这条回执决定能不能进下一条；另一端看到 id 也不报（只有点名端知道真相）。
  *
  * @param say - 要念的那一句：`text` 正文，`voiceTo` 该由哪一端念，可选 `voiceUtteranceId` 回执编号。
+ * @param onAudible - 真正出声（或确定这句不会出声）时调用一次。调用方用它把气泡压到声音之后显示：
+ *   先弹泡后出声会让文字与语音错位，还容易在合成期间就自动收起。
  */
-export function playSayVoice(say: {
-  readonly text: string;
-  readonly voiceTo?: VoiceTarget;
-  readonly voiceUtteranceId?: string;
-}): void {
+export function playSayVoice(
+  say: {
+    readonly text: string;
+    readonly voiceTo?: VoiceTarget;
+    readonly voiceUtteranceId?: string;
+  },
+  onAudible?: () => void,
+): void {
   const utteranceId = say.voiceUtteranceId;
   const isMine = say.voiceTo !== undefined && say.voiceTo === surface;
   if (!say.text || !isMine) {
     setVoiceState('idle');
+    onAudible?.();
     return;
   }
   if (surface === 'web' && typeof document !== 'undefined' && document.hidden) {
     setVoiceState('idle');
     if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'hidden');
+    onAudible?.();
     return;
   }
   // 在调用栈尚有用户手势时预热增益上下文（合成是异步的，回来时手势往往已过期）。
   void unlockVoiceAudio();
-  void speakIfEnabled(say.text, utteranceId); // 不 await：播放是旁路，不能挡住气泡与动画
+  void speakIfEnabled(say.text, utteranceId, onAudible); // 不 await：播放是旁路
 }
 
 /** 把一句朗读的终态报给宿主；失败静默——宿主侧有超时兜底，报不上也不能拖垮渲染。 */
@@ -346,16 +357,32 @@ function reportVoiceUtterance(
 }
 
 /** 确认配置后再播；桌面端首次调用会顺手拉一次 `/config`。 */
-async function speakIfEnabled(text: string, utteranceId?: string): Promise<void> {
+async function speakIfEnabled(text: string, utteranceId?: string, onAudible?: () => void): Promise<void> {
   // 取消句柄从等配置阶段就挂上：stopSayVoice 在任何时刻进来都能拦住这一句。
   let cancelled = false;
   // 分段后在播段与预取段各登记一个取消回调，用集合统一触发。
   const cancelFns = new Set<() => void>();
+  /** 气泡只放出来一次：首段出声、失败收尾或等太久，先到者生效。 */
+  let shown = false;
+  let startEmitted = false;
+  let seq = 0;
+  const showOnce = (): void => {
+    if (shown) return;
+    shown = true;
+    onAudible?.();
+  };
   const ctl: SpeakControl = {
     isCancelled: () => cancelled,
     onCancel: (fn) => {
       cancelFns.add(fn);
       if (cancelled) fn();
+    },
+    // 第一段真正开始出声：先弹气泡，再挂起收起计时（气泡必须在，hold 才有意义）。
+    onFirstAudio: () => {
+      showOnce();
+      if (startEmitted) return;
+      startEmitted = true;
+      emitUtterance({ kind: 'start', seq, text });
     },
   };
   const cancel = (): void => {
@@ -366,10 +393,14 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
   // 总时限覆盖整段串播：到点统一取消，在途 abort、在播 pause。
   const overallTimer = setTimeout(cancel, SPEAK_TIMEOUT_MS);
   overallTimer.unref?.();
+  // 合成迟迟不出声时的兜底：先放文字，别让气泡陪着一起等。
+  const waitTimer = setTimeout(showOnce, BUBBLE_VOICE_WAIT_MS);
+  waitTimer.unref?.();
   sayCancel = cancel;
   try {
     await loadConfigOnce();
     if (cancelled) {
+      // 被掐断（关闭弹幕开关等）：气泡应保持收起，交给 clear 叶子处理，这里不再弹。
       setVoiceState('idle');
       if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'cancelled');
       return;
@@ -377,6 +408,7 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
     if (!voiceEnabled) {
       setVoiceState('idle');
       if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'disabled');
+      showOnce();
       return;
     }
     // 先截断到朗读上限，再按句读切分：不改变「最多念多少」，只改变「怎么念」。
@@ -384,20 +416,24 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
     if (segments.length === 0) {
       setVoiceState('idle');
       if (utteranceId) reportVoiceUtterance(utteranceId, 'skipped', 'empty');
+      showOnce();
       return;
     }
-    const seq = ++utteranceSeq;
-    // 先报开始再置 loading：气泡要靠这条事件挂起收起计时，晚一步它就可能已经收了。
-    emitUtterance({ kind: 'start', seq, text });
+    seq = ++utteranceSeq;
     setVoiceState('loading');
     let failed = false;
     try {
-      const result = await speakStream(segments, ctl);
-      // 串播内部状态会在 ready/failed 间跳，这里按最终结论统一一次图标与回执。
+      // 能真流式（http 直连 + Web Audio）就整段一边收一边播；否则回退「分句 + 整包」。
+      const result = canStreamVoice()
+        ? await speakStreamed(speechSlice(text), ctl)
+        : await speakSegmented(segments, ctl);
+      // 串播/流式内部状态会在 ready/failed 间跳，这里按最终结论统一一次图标与回执。
       failed = !cancelled && result.failed;
       if (failed) setVoiceState('failed');
     } finally {
       // 成功、失败、超时、被打断都走这里：气泡在等这个收尾，漏一次就永远挂着。
+      // 没出过声（失败 / 始终没就绪）也要把文字放出来，只是没有 start/hold。
+      if (!cancelled) showOnce();
       emitUtterance({ kind: 'end', seq, text });
       if (utteranceId) {
         reportVoiceUtterance(
@@ -410,6 +446,7 @@ async function speakIfEnabled(text: string, utteranceId?: string): Promise<void>
     if (cancelled) setVoiceState('idle');
   } finally {
     clearTimeout(overallTimer);
+    clearTimeout(waitTimer);
     if (sayCancel === cancel) sayCancel = null;
   }
 }
@@ -425,10 +462,12 @@ export function stopSayVoice(): void {
 }
 
 /** 合成与播放的打断控制：调用方（speakIfEnabled）注入「是否已被打断」并登记打断回调。
- *  分段后同一时刻可能有「在播段 + 预取段」，各自登记一个回调，因此 onCancel 要支持多个。 */
+ *  分段后同一时刻可能有「在播段 + 预取段」，各自登记一个回调，因此 onCancel 要支持多个。
+ *  `onFirstAudio` 只在第一段真正可播时调用一次（由编排层保证幂等）。 */
 interface SpeakControl {
   isCancelled: () => boolean;
   onCancel: (fn: () => void) => void;
+  onFirstAudio: () => void;
 }
 
 /** 发起一次 `/voice/speak` 合成，返回可播放的 blob 地址；非音频响应、网络失败或被打断均返回 null。 */
@@ -464,6 +503,7 @@ async function playAudio(objectUrl: string, ctl: SpeakControl): Promise<boolean>
   }
   // 音频就绪即置 ready：喇叭表示「这句有语音」，不跟播放进度绑定
   setVoiceState('ready');
+  ctl.onFirstAudio();
   return await new Promise<boolean>((resolve) => {
     let settled = false;
     const finish = (ok: boolean): void => {
@@ -483,12 +523,12 @@ async function playAudio(objectUrl: string, ctl: SpeakControl): Promise<boolean>
 }
 
 /**
- * 分句串播：第一段合成好即起播，同时预取下一段，播完无缝衔接，直到全部段处理完。
+ * 分句串播（非流式回退）：第一段合成好即起播，同时预取下一段，播完无缝衔接。
  *
  * 预取严格只提前一段，保证段顺序、且不挤占 host 的串行队列（同一时至多一个在途合成）。
  * 某段失败只记标记并跳过，尽量把其余段念完；返回是否出现过失败，供回执区分 ended/failed。
  */
-async function speakStream(segments: readonly string[], ctl: SpeakControl): Promise<{ failed: boolean }> {
+async function speakSegmented(segments: readonly string[], ctl: SpeakControl): Promise<{ failed: boolean }> {
   let failed = false;
   let next = fetchAudio(segments[0] as string, ctl);
   for (let i = 0; i < segments.length; i++) {
@@ -507,6 +547,213 @@ async function speakStream(segments: readonly string[], ctl: SpeakControl): Prom
     if (!ok && !ctl.isCancelled()) failed = true;
   }
   return { failed };
+}
+
+/** 流式 PCM 起播前的最短预缓冲（秒）：太小会在句首听到断续。 */
+const STREAM_PREBUFFER_SECONDS = 0.12;
+
+/** 服务端没给 rate 时的 PCM 采样率（与 BREEZE_STREAM_SAMPLE_RATE 一致）。 */
+const DEFAULT_STREAM_SAMPLE_RATE = 24_000;
+
+/**
+ * 本端能不能走真流式。
+ *
+ * 需要两个条件同时成立：基址是真实 HTTP（网页同源相对路径，或桌面直连宿主），
+ * 以及有 Web Audio（PCM 排程播放靠它）。bridge 自定义协议是整包应答，直接不试。
+ */
+function canStreamVoice(): boolean {
+  if (!audioContextConstructor()) return false;
+  return voiceBase.startsWith('/') || /^https?:\/\//i.test(voiceBase);
+}
+
+/** 从 `Content-Type` 里读 PCM 采样率；缺失或越界回落默认值。 */
+function streamSampleRate(contentType: string): number {
+  const match = /rate=(\d+)/i.exec(contentType);
+  const rate = match ? Number(match[1]) : Number.NaN;
+  return Number.isFinite(rate) && rate >= 8_000 && rate <= 96_000 ? rate : DEFAULT_STREAM_SAMPLE_RATE;
+}
+
+/** 请求一次流式合成；失败（含打断）返回 null。 */
+async function fetchStreamedAudio(text: string, ctl: SpeakControl): Promise<Response | null> {
+  const abort = new AbortController();
+  ctl.onCancel(() => abort.abort());
+  try {
+    return await fetch(voiceBase + '/voice/speak', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        rate: absoluteRateToEdge(voiceRate),
+        ...(voiceName ? { voice: voiceName } : {}),
+        stream: true,
+      }),
+      signal: abort.signal,
+    });
+  } catch {
+    /* 含主动 abort：返回 null 由编排层归为失败 */
+    return null;
+  }
+}
+
+/**
+ * 整段流式播报：一次请求念完整段文本（真流式下再分句只会牺牲韵律）。
+ *
+ * 服务端若回退成 mp3（引擎不支持流式），本端按整包播放，行为与非流式一致。
+ * @returns 是否出现过失败。
+ */
+async function speakStreamed(text: string, ctl: SpeakControl): Promise<{ failed: boolean }> {
+  const response = await fetchStreamedAudio(text, ctl);
+  if (!response || ctl.isCancelled()) return { failed: !ctl.isCancelled() };
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!response.ok) return { failed: true };
+  // 引擎不支持流式时宿主回整包 mp3：直接走原来的 blob 播放
+  if (!contentType.includes('pcm')) {
+    if (!contentType.includes('audio') || !response.body) return { failed: true };
+    try {
+      const objectUrl = URL.createObjectURL(await response.blob());
+      if (ctl.isCancelled()) {
+        URL.revokeObjectURL(objectUrl);
+        return { failed: false };
+      }
+      const ok = await playAudio(objectUrl, ctl);
+      return { failed: !ok && !ctl.isCancelled() };
+    } catch {
+      return { failed: true };
+    }
+  }
+  if (!response.body) return { failed: true };
+  const sampleRate = streamSampleRate(contentType);
+  // 拿不到可用的 AudioContext：把剩余流收成整包，退回 element 播放（音量上限 100%）
+  const ctx = await ensureBoostContext();
+  if (!ctx) {
+    try {
+      const objectUrl = URL.createObjectURL(await new Response(response.body).blob());
+      if (ctl.isCancelled()) {
+        URL.revokeObjectURL(objectUrl);
+        return { failed: false };
+      }
+      const ok = await playAudio(objectUrl, ctl);
+      return { failed: !ok && !ctl.isCancelled() };
+    } catch {
+      return { failed: true };
+    }
+  }
+  return { failed: !(await playPcmStream(response.body, sampleRate, ctx, ctl)) && !ctl.isCancelled() };
+}
+
+/**
+ * 边收 PCM 边用 Web Audio 排程播放（16bit little-endian，单声道）。
+ *
+ * 首段攒够 {@link STREAM_PREBUFFER_SECONDS} 才起播，之后每块按时间轴接在上一块后面，
+ * 避免网络抖动造成句间断续。取消时停掉所有已排程音源并取消上游流。
+ * @returns 是否完整播到结尾（被打断、无音频、上游出错都算 false）。
+ */
+async function playPcmStream(
+  body: ReadableStream<Uint8Array>,
+  sampleRate: number,
+  ctx: AudioContext,
+  ctl: SpeakControl,
+): Promise<boolean> {
+  const gain = ctx.createGain();
+  gain.gain.value = clampVoiceVolume(voiceVolume);
+  gain.connect(ctx.destination);
+  const sources: AudioBufferSourceNode[] = [];
+  const reader = body.getReader();
+  let pending = new Uint8Array(0);
+  let nextTime = 0;
+  let started = false;
+  let cancelled = false;
+
+  const stopAll = (): void => {
+    if (cancelled) return;
+    cancelled = true;
+    for (const source of sources) {
+      try {
+        source.stop();
+      } catch {
+        /* 已结束 */
+      }
+    }
+    sources.length = 0;
+    try {
+      gain.disconnect();
+    } catch {
+      /* 已断开 */
+    }
+    void reader.cancel().catch(() => undefined);
+  };
+  ctl.onCancel(stopAll);
+
+  const schedule = (bytes: Uint8Array): void => {
+    if (cancelled) return;
+    const even = bytes.byteLength - (bytes.byteLength % 2);
+    if (even < 2) return;
+    const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, even / 2);
+    const floats = new Float32Array(pcm.length);
+    for (let i = 0; i < pcm.length; i += 1) floats[i] = pcm[i] / 32768;
+    const buffer = ctx.createBuffer(1, floats.length, sampleRate);
+    buffer.copyToChannel(floats, 0);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gain);
+    const startAt = Math.max(nextTime, ctx.currentTime + 0.05);
+    try {
+      source.start(startAt);
+    } catch {
+      return;
+    }
+    nextTime = startAt + buffer.duration;
+    sources.push(source);
+    if (!started) {
+      started = true;
+      setVoiceState('ready');
+      ctl.onFirstAudio();
+    }
+  };
+
+  const prebufferBytes = Math.max(2, Math.round(sampleRate * STREAM_PREBUFFER_SECONDS) * 2);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (cancelled) return false;
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+      const merged = new Uint8Array(pending.byteLength + value.byteLength);
+      merged.set(pending, 0);
+      merged.set(value, pending.byteLength);
+      const even = merged.byteLength - (merged.byteLength % 2);
+      // 预缓冲没攒够：整段留着下次一起排，不能只保留奇数字节的尾巴——那等于把刚收到的音频扔了。
+      if (!started && even < prebufferBytes) {
+        pending = merged;
+        continue;
+      }
+      pending = merged.slice(even);
+      schedule(merged.subarray(0, even));
+    }
+    if (!cancelled && pending.byteLength >= 2) {
+      schedule(pending.subarray(0, pending.byteLength - (pending.byteLength % 2)));
+      pending = new Uint8Array(0);
+    }
+  } catch {
+    if (cancelled) return false;
+    stopAll();
+    return false;
+  }
+  if (cancelled) return false;
+  if (!started) return false;
+  // 等已排程的音频放完（按上下文时钟，而不是固定睡多久）
+  for (;;) {
+    if (cancelled) return false;
+    const remainMs = (nextTime - ctx.currentTime) * 1000;
+    if (remainMs <= 20) break;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(50, remainMs)));
+  }
+  try {
+    gain.disconnect();
+  } catch {
+    /* 已断开 */
+  }
+  return true;
 }
 
 /** 手动点播时正在响的那个音频；新的一句先掐掉旧的，避免两句话叠在一起。 */

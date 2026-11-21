@@ -38,6 +38,17 @@ export function toBridgeResponse(id: number, result: RouteResult): BridgeRespons
     // 无需应答：管道侧不传 abort signal，正常到不了这里；保底给个空 204。
     return { id, status: 204, contentType: TEXT_UTF8, body: '' };
   }
+  if (result.kind === 'stream') {
+    // 管道是「一次请求一行 JSON 应答」，承载不了边下边写；渲染端在 bridge 模式下
+    // 也不会带 stream 标记。这里显式拒绝并取消上游，而不是把二进制塞进字符串。
+    void result.body.cancel().catch(() => undefined);
+    return {
+      id,
+      status: 501,
+      contentType: JSON_UTF8,
+      body: JSON.stringify({ ok: false, reason: 'stream-unsupported', message: 'streaming is unavailable over the bridge' }),
+    };
+  }
   // 业务失败是 200 + { ok: false, reason }：原样透传，不改状态码。
   return { id, status: result.status, contentType: JSON_UTF8, body: JSON.stringify(result.obj) };
 }

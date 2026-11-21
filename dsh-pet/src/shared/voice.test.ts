@@ -19,6 +19,7 @@ import {
   getVoiceState,
   playSayVoice,
   setSurface,
+  setVoiceBase,
   setVoiceConfig,
   speechSlice,
   splitSpeech,
@@ -246,7 +247,8 @@ describe('播放事件 —— 气泡靠它决定何时收起', () => {
       await flush();
       assert.deepEqual(
         events.map((event) => event.kind),
-        ['start', 'end'],
+        ['end'],
+        '始终没出声就只报 end，气泡靠兜底显示，不必假装开始',
       );
     } finally {
       off();
@@ -555,6 +557,292 @@ describe('分句串播 —— 首句即播、边播边预取', () => {
       assert.deepEqual(fetchStub.calls, ['好的。', '坏的。', '也好。'], '失败段的请求照发，不影响后面继续合成');
       assert.equal(sink.volumes.length, 2, '失败段不起播，其余两段照常播放');
       assert.equal(getVoiceState(), 'failed', '出现过失败就要留静音喇叭');
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+});
+
+describe('真流式播报（PCM + Web Audio）', () => {
+  // boostCtx 是模块级单例，一旦创建就跨用例复用：调度记录只能放模块级，每次建桩时清空。
+  const audioStarts: number[] = [];
+  const audioDurations: number[] = [];
+
+  /** 补上 window.AudioContext：Node 里没有 window，audioContextConstructor 会直接早退。 */
+  function stubAudioContext(): { starts: number[]; durations: number[]; restore: () => void } {
+    audioStarts.length = 0;
+    audioDurations.length = 0;
+    const starts = audioStarts;
+    const durations = audioDurations;
+    const previousWindow = (globalThis as { window?: unknown }).window;
+    class FakeCtx {
+      state = 'running';
+      currentTime = 0;
+      sampleRate = 48_000;
+      destination = {};
+      async resume(): Promise<void> {}
+      async close(): Promise<void> {}
+      createGain(): unknown {
+        return { gain: { value: 1 }, connect(): void {}, disconnect(): void {} };
+      }
+      createBuffer(_channels: number, length: number, rate: number): unknown {
+        const duration = length / rate;
+        durations.push(duration);
+        return { duration, copyToChannel(): void {} };
+      }
+      createBufferSource(): unknown {
+        return {
+          buffer: null,
+          connect(): void {},
+          start(at: number): void {
+            starts.push(at);
+          },
+          stop(): void {},
+        };
+      }
+    }
+    (globalThis as { window?: unknown }).window = { AudioContext: FakeCtx };
+    return {
+      starts,
+      durations,
+      restore: () => {
+        (globalThis as { window?: unknown }).window = previousWindow;
+      },
+    };
+  }
+
+  /** 流式端点命中：返回一段 PCM；记录请求体。 */
+  function stubPcmFetch(samples: number): {
+    calls: Array<{ text: string; stream?: boolean }>;
+    restore: () => void;
+  } {
+    const calls: Array<{ text: string; stream?: boolean }> = [];
+    const previous = globalThis.fetch;
+    (globalThis as { fetch: unknown }).fetch = async (_url: string, init?: { body?: string }) => {
+      const body = JSON.parse(init?.body ?? '{}') as { text?: unknown; stream?: unknown };
+      calls.push({ text: String(body.text ?? ''), stream: body.stream === true });
+      const pcm = new Uint8Array(samples * 2);
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(pcm);
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'audio/pcm; rate=24000; channels=1; format=s16le' } },
+      );
+    };
+    return {
+      calls,
+      restore: () => {
+        (globalThis as { fetch: unknown }).fetch = previous;
+      },
+    };
+  }
+
+  test('PCM 小块多批到达：预缓冲不能吞掉音频，全部排程播放', async () => {
+    // 必须放在本组第一个：boostCtx 是模块级单例，后来的桩拿不到它的调度记录
+    const audio = stubAudioContext();
+    const restoreBrowser = stubBrowser();
+    const previous = globalThis.fetch;
+    const totalBytes = 20_000;
+    (globalThis as { fetch: unknown }).fetch = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            // 每块 1000 字节（远小于 120ms 预缓冲），模拟 Breeze 的小块推送
+            for (let offset = 0; offset < totalBytes; offset += 1_000) {
+              controller.enqueue(new Uint8Array(Math.min(1_000, totalBytes - offset)));
+            }
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'audio/pcm; rate=24000; channels=1; format=s16le' } },
+      );
+    try {
+      setVoiceBase('http://127.0.0.1:1/blue-fish');
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '分块到达也要完整念完', voiceTo: 'desktop' });
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const total = audio.durations.reduce((sum, item) => sum + item, 0);
+      const expected = totalBytes / 2 / 24_000;
+      assert.ok(audio.starts.length >= 2, '应分批排程，而不是只播一块');
+      assert.ok(Math.abs(total - expected) < 0.01, `排程总时长应约等于音频时长（实际 ${total}，期望 ${expected}）`);
+    } finally {
+      stopSayVoice();
+      // 等被打断的那句收尾：它会在下一个等待拍里把全局状态置回 idle，不能漏给下一条用例。
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      setVoiceBase('/blue-fish');
+      globalThis.fetch = previous;
+      restoreBrowser();
+      audio.restore();
+    }
+  });
+
+  test('基址是 http：带 stream:true 请求整段 PCM，并排程播放', async () => {
+    const audio = stubAudioContext();
+    const fetchStub = stubPcmFetch(4_800);
+    const restoreBrowser = stubBrowser();
+    try {
+      setVoiceBase('http://127.0.0.1:1/blue-fish');
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '第一句。第二句。', voiceTo: 'desktop' });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      assert.equal(fetchStub.calls.length, 1, '流式模式整段一次请求，不再分句');
+      assert.equal(fetchStub.calls[0]?.stream, true);
+      assert.equal(fetchStub.calls[0]?.text, '第一句。第二句。');
+      assert.ok(audio.starts.length >= 1, '应至少排程一段音频');
+      assert.equal(getVoiceState(), 'ready');
+    } finally {
+      setVoiceBase('/blue-fish');
+      restoreBrowser();
+      fetchStub.restore();
+      audio.restore();
+    }
+  });
+
+  test('宿主回退 mp3：仍走整包 blob 播放', async () => {
+    const audio = stubAudioContext();
+    const restoreBrowser = stubBrowser();
+    const previous = globalThis.fetch;
+    const calls: Array<{ stream?: boolean }> = [];
+    (globalThis as { fetch: unknown }).fetch = async (_url: string, init?: { body?: string }) => {
+      const body = JSON.parse(init?.body ?? '{}') as { stream?: unknown };
+      calls.push({ stream: body.stream === true });
+      return new Response(new Uint8Array(64).fill(0xff), {
+        status: 200,
+        headers: { 'content-type': 'audio/mpeg' },
+      });
+    };
+    try {
+      setVoiceBase('http://127.0.0.1:1/blue-fish');
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '回退整包', voiceTo: 'desktop' });
+      await flush();
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0]?.stream, true, '能力具备时仍会先尝试流式');
+      assert.equal(getVoiceState(), 'ready');
+    } finally {
+      setVoiceBase('/blue-fish');
+      globalThis.fetch = previous;
+      restoreBrowser();
+      audio.restore();
+    }
+  });
+
+  test('bridge 基址：不发 stream，继续按句整包合成', async () => {
+    const audio = stubAudioContext();
+    const restoreBrowser = stubBrowser();
+    const previous = globalThis.fetch;
+    const calls: Array<{ text: string; stream?: boolean }> = [];
+    (globalThis as { fetch: unknown }).fetch = async (_url: string, init?: { body?: string }) => {
+      const body = JSON.parse(init?.body ?? '{}') as { text?: unknown; stream?: unknown };
+      calls.push({ text: String(body.text ?? ''), stream: body.stream === true });
+      return {
+        ok: true,
+        headers: { get: () => 'audio/mpeg' },
+        blob: async () => ({ size: 1 }),
+      };
+    };
+    try {
+      setVoiceBase('blue-fish-bridge://dsh-pet/blue-fish');
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '第一句。第二句。', voiceTo: 'desktop' });
+      await flush();
+      assert.deepEqual(
+        calls.map((call) => call.text),
+        ['第一句。', '第二句。'],
+      );
+      assert.equal(
+        calls.some((call) => call.stream === true),
+        false,
+        'bridge 协议承载不了流式，不应带 stream',
+      );
+    } finally {
+      setVoiceBase('/blue-fish');
+      globalThis.fetch = previous;
+      restoreBrowser();
+      audio.restore();
+    }
+  });
+});
+
+describe('气泡随声音出现（playSayVoice 的 onAudible）', () => {
+  test('要点的一句：首段可播之后才回调', async () => {
+    const fetchStub = stubFetch();
+    const restoreBrowser = stubBrowser();
+    let audible = 0;
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '等等再弹', voiceTo: 'desktop' }, () => {
+        audible += 1;
+      });
+      assert.equal(audible, 0, '合成还没就绪，不能先弹气泡');
+      await flush();
+      assert.equal(audible, 1);
+      assert.equal(fetchStub.calls.length, 1);
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+
+  test('不归本端念：气泡立即显示，且不发合成请求', async () => {
+    const fetchStub = stubFetch();
+    const restoreBrowser = stubBrowser();
+    let audible = 0;
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '只弹气泡', voiceTo: 'web' }, () => {
+        audible += 1;
+      });
+      assert.equal(audible, 1, '不归本端念时不能压着气泡');
+      assert.equal(fetchStub.calls.length, 0);
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+
+  test('总开关关闭：气泡照弹', async () => {
+    const fetchStub = stubFetch();
+    const restoreBrowser = stubBrowser();
+    let audible = 0;
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', false);
+      playSayVoice({ text: '关了也要显示文字', voiceTo: 'desktop' }, () => {
+        audible += 1;
+      });
+      await flush();
+      assert.equal(audible, 1);
+      assert.equal(fetchStub.calls.length, 0);
+    } finally {
+      restoreBrowser();
+      fetchStub.restore();
+    }
+  });
+
+  test('合成失败：气泡由兜底显示，不会丢文字', async () => {
+    const fetchStub = stubFetch({ ok: false });
+    const restoreBrowser = stubBrowser();
+    let audible = 0;
+    try {
+      setSurface('desktop');
+      setVoiceConfig('', true);
+      playSayVoice({ text: '这句合成不出来', voiceTo: 'desktop' }, () => {
+        audible += 1;
+      });
+      await flush();
+      assert.equal(audible, 1);
+      assert.equal(getVoiceState(), 'failed');
     } finally {
       restoreBrowser();
       fetchStub.restore();

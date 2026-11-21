@@ -407,3 +407,124 @@ test('第三方返回空字节：判 generate-error，不留下 0 字节文件',
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('speakStream：Breeze 返回流，读完释放名额', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-stream-'));
+  let calls = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesizeBreezeStream: async (input) => {
+        calls += 1;
+        assert.equal(input.apiKey, 'bz-stream');
+        return {
+          contentType: 'audio/pcm; rate=24000',
+          stream: new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(new Uint8Array(64));
+              controller.close();
+            },
+          }),
+        };
+      },
+      readRuntime: () => ({
+        provider: 'breeze',
+        fishApiKey: '',
+        fishTtsModel: 's2.1-pro-free',
+        fishVoices: [],
+        breezeApiKey: 'bz-stream',
+        breezeVoices: [],
+        voiceRate: 1,
+      }),
+    });
+    const result = await voice.speakStream({ text: '流式一句', voice: 'voc_u3nxkd5578wc', stream: true });
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.match(result.contentType, /pcm/);
+    const reader = result.stream.getReader();
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+    }
+    assert.equal(total, 64);
+    assert.equal(calls, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('speakStream：非 Breeze 引擎回 unsupported，交给路由回退整包', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-stream-edge-'));
+  const voice = createVoiceService({
+    userRoot: root,
+    readRuntime: () => ({
+      provider: 'edge',
+      fishApiKey: '',
+      fishTtsModel: 's2.1-pro-free',
+      fishVoices: [],
+      breezeApiKey: '',
+      breezeVoices: [],
+      voiceRate: 1,
+    }),
+  });
+  try {
+    const result = await voice.speakStream({ text: '普通一句' });
+    assert.deepEqual({ ok: result.ok, reason: result.ok ? '' : result.reason }, { ok: false, reason: 'unsupported' });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('speakStream：语音 id 非法仍是 bad-request', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-stream-bad-'));
+  const voice = createVoiceService({
+    userRoot: root,
+    readRuntime: () => ({
+      provider: 'breeze',
+      fishApiKey: '',
+      fishTtsModel: 's2.1-pro-free',
+      fishVoices: [],
+      breezeApiKey: 'bz',
+      breezeVoices: [],
+      voiceRate: 1,
+    }),
+  });
+  try {
+    const result = await voice.speakStream({ text: '你好', voice: 'not a voice' });
+    assert.equal(result.ok === false ? result.reason : '', 'bad-request');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('speakStream：打开失败返回 stream-failed，并在冷却期内直接 unsupported', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-voice-stream-fail-'));
+  let calls = 0;
+  try {
+    const voice = createVoiceService({
+      userRoot: root,
+      synthesizeBreezeStream: async () => {
+        calls += 1;
+        throw new Error('429 capacity exhausted');
+      },
+      readRuntime: () => ({
+        provider: 'breeze',
+        fishApiKey: '',
+        fishTtsModel: 's2.1-pro-free',
+        fishVoices: [],
+        breezeApiKey: 'bz',
+        breezeVoices: [],
+        voiceRate: 1,
+      }),
+    });
+    const first = await voice.speakStream({ text: '限流一句', voice: 'voc_u3nxkd5578wc' });
+    assert.equal(first.ok === false ? first.reason : '', 'stream-failed');
+    const second = await voice.speakStream({ text: '再来一句', voice: 'voc_u3nxkd5578wc' });
+    assert.equal(second.ok === false ? second.reason : '', 'unsupported');
+    assert.equal(calls, 1, '冷却期内不再尝试流式');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

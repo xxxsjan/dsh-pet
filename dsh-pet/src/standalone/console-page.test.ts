@@ -1402,6 +1402,31 @@ test('下播态：状态行第三态「已下播」+ 一次性气泡，轮询不
   assert.match(consoleStyles(), /\.miniEndedTag\{[^}]*border-radius:999px/, '胶囊样式应存在');
 });
 
+test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分别接重连/停听', () => {
+  const html = consolePage();
+  const script = consoleScript;
+
+  assert.match(html, /id="dm-kick-dialog"[^>]*hidden/, '确认框默认隐藏');
+  assert.match(html, /id="dm-kick-retry">重连</, '应有重连按钮');
+  assert.match(html, /id="dm-kick-later">暂不重连</, '应有暂不重连按钮');
+  assert.match(consoleStyles(), /\.kickDialog\{[^}]*width:min/, '确认框样式应存在');
+
+  const note = script.match(/function dmStatusNote\(status\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(note, '应能取到 dmStatusNote');
+  assert.match(note![1], /status\.interrupted/, '状态行应读取 interrupted');
+  assert.match(note![1], /疑似被其他设备挤下线/, '状态行提示文案');
+
+  const dmRender = script.match(/function dmRenderStatus\(data, syncToggles\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(dmRender, '应能取到 dmRenderStatus');
+  assert.match(dmRender![1], /if \(!status\.interrupted\) dmKickPrompted = false;/, '恢复后应重置弹窗闸门');
+  assert.match(dmRender![1], /!dmKickPrompted && LIVE_MINI/, '确认框应只在弹幕小窗里弹');
+  assert.match(dmRender![1], /showDmKickDialog\(\)/, '小窗疑似被挤时应弹确认框');
+  assert.match(script, /var dmKickPrompted = false;/, '弹窗闸门应为模块级变量，避免轮询重复弹');
+
+  assert.match(script, /kickRetryBtn[\s\S]*?void dmStart\(\)/, '重连按钮应重新开始监听');
+  assert.match(script, /kickLaterBtn[\s\S]*?void dmStop\(\)/, '暂不重连应停止监听');
+});
+
 test('快手弹幕：正文里的 [表情名] 走表情图渲染，表情表随快手状态下发缓存', () => {
   const script = consoleScript;
   const styles = consoleStyles();

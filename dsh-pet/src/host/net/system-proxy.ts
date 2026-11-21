@@ -9,6 +9,18 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 /**
+ * Windows 系统代理探测结果的缓存时长（ms）。
+ *
+ * 每次合成都会解析一次代理，而读注册表要同步拉起两个 `reg.exe`（实测约 80ms），
+ * 直接挡住宿主事件循环；短期缓存换来连续合成时不再反复付这份开销。
+ * 只缓存注册表结果，环境变量仍然每次现读，改环境变量立即生效。
+ */
+const WINDOWS_PROXY_CACHE_TTL_MS = 30_000;
+
+/** 上次 Windows 注册表探测的结果；`at` 是探测时刻。 */
+let windowsProxyCache: { readonly at: number; readonly value: string | undefined } | null = null;
+
+/**
  * 解析当前进程应用的出站 HTTP(S) 代理。
  *
  * 优先 `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY`（大小写皆可），
@@ -31,8 +43,19 @@ export function resolveOutboundProxyUrl(): string | undefined {
   // 测试可关系统代理探测，强制走直连路径（再由用例 mock fetch）。
   if (process.env.BLUE_FISH_DISABLE_SYSTEM_PROXY === '1') return undefined;
 
-  if (process.platform === 'win32') return readWindowsSystemProxyUrl();
+  if (process.platform === 'win32') return readWindowsSystemProxyUrlCached();
   return undefined;
+}
+
+/** 读带缓存的 Windows 系统代理；过期后重新探测。 */
+function readWindowsSystemProxyUrlCached(): string | undefined {
+  const now = Date.now();
+  if (windowsProxyCache && now - windowsProxyCache.at < WINDOWS_PROXY_CACHE_TTL_MS) {
+    return windowsProxyCache.value;
+  }
+  const value = readWindowsSystemProxyUrl();
+  windowsProxyCache = { at: now, value };
+  return value;
 }
 
 /** 取第一个非空 trim 串。 */

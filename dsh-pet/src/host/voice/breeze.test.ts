@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { VoiceSynthError } from './edge.ts';
-import { breezeRateToSpeed, synthesizeBreeze } from './breeze.ts';
+import { breezeRateToSpeed, synthesizeBreeze, synthesizeBreezeStream } from './breeze.ts';
 import { isKnownBreezeVoice, listBreezeVoices, normalizeBreezeCustomVoices } from './breeze-voices.ts';
 
 /** 单测走直连 + mock fetch，不读本机系统代理。 */
@@ -171,6 +171,189 @@ test('synthesizeBreeze：返回 JSON 而不是音频 → VoiceSynthError', async
         }),
       (error: unknown) => error instanceof VoiceSynthError && /未返回音频/.test(error.message),
     );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('synthesizeBreezeStream：请求 PCM、正文原样流出', async () => {
+  const original = globalThis.fetch;
+  let seenUrl = '';
+  globalThis.fetch = (async (url: string | URL | Request) => {
+    seenUrl = String(url);
+    return new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(64));
+          controller.close();
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'audio/pcm' } },
+    );
+  }) as typeof fetch;
+  try {
+    const { stream, contentType } = await synthesizeBreezeStream({
+      text: '流式一句',
+      voice: 'voc_u3nxkd5578wc',
+      speed: 1,
+      apiKey: 'bz',
+    });
+    assert.match(seenUrl, /output_format=pcm$/);
+    assert.match(contentType, /rate=24000/);
+    const reader = stream.getReader();
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+    }
+    assert.equal(total, 64);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('synthesizeBreezeStream：首块是 JSON 错误体 → VoiceSynthError', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"detail":"quota"}'));
+        controller.close();
+      },
+    }), { status: 200 })) as typeof fetch;
+  try {
+    await assert.rejects(
+      () =>
+        synthesizeBreezeStream({
+          text: 'hi',
+          voice: 'voc_u3nxkd5578wc',
+          speed: 1,
+          apiKey: 'bz',
+        }),
+      (error: unknown) => error instanceof VoiceSynthError && /未返回音频/.test(error.message),
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('synthesizeBreezeStream：HTTP 非 2xx → VoiceSynthError', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response('invalid api key', { status: 401 })) as typeof fetch;
+  try {
+    await assert.rejects(
+      () =>
+        synthesizeBreezeStream({
+          text: 'hi',
+          voice: 'voc_u3nxkd5578wc',
+          speed: 1,
+          apiKey: 'bz',
+        }),
+      (error: unknown) => error instanceof VoiceSynthError && /401/.test(error.message),
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('synthesizeBreezeStream：音频过短 → 流在结束时报错', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(8));
+        controller.close();
+      },
+    }), { status: 200 })) as typeof fetch;
+  try {
+    const { stream } = await synthesizeBreezeStream({
+      text: 'hi',
+      voice: 'voc_u3nxkd5578wc',
+      speed: 1,
+      apiKey: 'bz',
+    });
+    const reader = stream.getReader();
+    await assert.rejects(async () => {
+      for (;;) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+    }, /过短/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('synthesizeBreeze：429 后按 Retry-After 重试并成功', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'blue-fish-breeze-429-'));
+  const target = join(root, 'retry.mp3');
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    if (calls === 1) {
+      return new Response('{"code":"GENERATION_CAPACITY_EXCEEDED"}', {
+        status: 429,
+        headers: { 'retry-after': '0.01' },
+      });
+    }
+    return new Response(Buffer.alloc(64, 0xff), { status: 200 });
+  }) as typeof fetch;
+  try {
+    await synthesizeBreeze({
+      text: '重试一句',
+      voice: 'voc_u3nxkd5578wc',
+      speed: 1,
+      apiKey: 'bz',
+      target,
+    });
+    assert.equal(calls, 2);
+    assert.ok((await readFile(target)).length >= 32);
+  } finally {
+    globalThis.fetch = original;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('synthesizeBreezeStream：429 后重试成功', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    if (calls === 1) {
+      return new Response('{"code":"GENERATION_CAPACITY_EXCEEDED"}', {
+        status: 429,
+        headers: { 'retry-after': '0.01' },
+      });
+    }
+    return new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(64));
+          controller.close();
+        },
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  try {
+    const { stream } = await synthesizeBreezeStream({
+      text: '重试流式',
+      voice: 'voc_u3nxkd5578wc',
+      speed: 1,
+      apiKey: 'bz',
+    });
+    assert.equal(calls, 2);
+    const reader = stream.getReader();
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+    }
+    assert.equal(total, 64);
   } finally {
     globalThis.fetch = original;
   }

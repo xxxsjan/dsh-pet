@@ -259,6 +259,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   const closedListeners = new Set();
   /** @type {Set<(meta:{title:string,anchor:string})=>void>} */
   const metaListeners = new Set();
+  /** @type {Set<(url:string)=>void>} */
+  const wsClosedListeners = new Set();
   /** @type {NodeJS.Timeout|null} */
   let loginPoll = null;
   /** @type {NodeJS.Timeout|null} */
@@ -306,6 +308,16 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         fn({ title: state.title, anchor: state.anchor });
       } catch {
         /* ignore */
+      }
+    }
+  }
+
+  function emitWsClosed(url) {
+    for (const fn of wsClosedListeners) {
+      try {
+        fn(url);
+      } catch (e) {
+        log?.warn?.(`[blue-fish][douyin-cdp] ws closed listener failed: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
   }
@@ -459,6 +471,15 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         }
       } else if (method === 'Network.webSocketFrameReceived') {
         handleFrame(params);
+      } else if (method === 'Network.webSocketClosed') {
+        // 只认弹幕推送 WS：埋点 / 心跳通道关闭属正常波动，不能拿来判定「被挤下线」。
+        const rid = String(params?.requestId || '');
+        const url = wsUrls.get(rid);
+        wsUrls.delete(rid);
+        if (url && url.includes(DY_WS_URL_NEEDLE)) {
+          log?.info?.(`[blue-fish][douyin-cdp] ws closed rid=${rid} url=${url}`);
+          emitWsClosed(url);
+        }
       } else if (method === 'Network.responseReceived') {
         // 页面自己带 Cookie 发的 enter 请求：标题/主播最稳的来源，记下来等 body 就绪。
         const url = String(params?.response?.url || '');
@@ -665,6 +686,11 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     onMeta(fn) {
       metaListeners.add(fn);
       return () => metaListeners.delete(fn);
+    },
+    /** 订阅弹幕推送 WS 被关闭（页面 push 连接断开）。返回取消订阅函数。 */
+    onWsClosed(fn) {
+      wsClosedListeners.add(fn);
+      return () => wsClosedListeners.delete(fn);
     },
   };
 }

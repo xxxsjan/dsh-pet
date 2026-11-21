@@ -16,6 +16,15 @@ import { percentRateToSpeed } from '../../shared/voice-params.ts';
 /** Fish TTS HTTP 总时限（ms）：上游偶发较慢，与 danmu-ji 90s 同口径。 */
 export const FISH_SYNTHESIS_TIMEOUT_MS = 90_000;
 
+/** 单次尝试的时限（ms）：卡住的连接不该吃掉全部总时限，留余量给重试。 */
+const FISH_ATTEMPT_TIMEOUT_MS = 30_000;
+
+/** 网络层失败的总尝试次数：直连偶发 TLS 重置会白等数秒且丢首句，一次重试基本能救回。 */
+const FISH_MAX_ATTEMPTS = 2;
+
+/** 两次尝试之间的退避（ms）：瞬时重置立刻重连通常还是失败。 */
+const FISH_RETRY_DELAY_MS = 200;
+
 /** Fish Audio TTS 端点。 */
 const FISH_TTS_URL = 'https://api.fish.audio/v1/tts';
 
@@ -53,6 +62,46 @@ export function edgeRateToFishSpeed(rate: string): number {
   return percentRateToSpeed(rate);
 }
 
+/** 等 `ms` 后继续；总信号已中止时立刻返回，不再空等。 */
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const done = (): void => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', done);
+      resolve();
+    };
+    // 不 unref：退避期间必须真的等到点，否则进程空闲时会直接退出、把重试吞掉。
+    const timer = setTimeout(done, ms);
+    signal.addEventListener('abort', done, { once: true });
+  });
+}
+
+/**
+ * 向 Fish 发一次合成请求；网络层失败（连接被重置、TLS 握手断开、单次尝试超时）重试一次。
+ *
+ * 只重试「没拿到响应」的情况：上游明确回的非 2xx 不在这里重试。
+ * 调用方主动中止（切句、整段超时）时立刻放弃，不再空等。
+ */
+async function requestFishTts(
+  init: { headers: Record<string, string>; body: string },
+  signal: AbortSignal,
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= FISH_MAX_ATTEMPTS; attempt += 1) {
+    const attemptSignal = AbortSignal.any([signal, AbortSignal.timeout(FISH_ATTEMPT_TIMEOUT_MS)]);
+    try {
+      // 经系统 / 环境代理出站（与 danmu-ji 的 reqwest 默认行为对齐），避开本机污染 DNS 直连超时。
+      return await fetchViaOutboundProxy(FISH_TTS_URL, { method: 'POST', ...init, signal: attemptSignal });
+    } catch (error) {
+      lastError = error;
+      if (signal.aborted || attempt === FISH_MAX_ATTEMPTS) break;
+      await delay(FISH_RETRY_DELAY_MS, signal);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 /**
  * 把一段文本经 Fish Audio 合成到目标 mp3。
  *
@@ -74,25 +123,25 @@ export async function synthesizeFish(input: FishSynthInput): Promise<void> {
   const staging = `${input.target}.part`;
 
   try {
-    // 经系统 / 环境代理出站（与 danmu-ji 的 reqwest 默认行为对齐），避开本机污染 DNS 直连超时。
-    const response = await fetchViaOutboundProxy(FISH_TTS_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        model,
-        Accept: 'audio/mpeg, audio/*, application/octet-stream',
+    const response = await requestFishTts(
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          model,
+          Accept: 'audio/mpeg, audio/*, application/octet-stream',
+        },
+        body: JSON.stringify({
+          text,
+          reference_id: voice,
+          format: 'mp3',
+          mp3_bitrate: 128,
+          normalize: true,
+          prosody: { speed, volume: 0, normalize_loudness: true },
+        }),
       },
-      body: JSON.stringify({
-        text,
-        reference_id: voice,
-        format: 'mp3',
-        mp3_bitrate: 128,
-        normalize: true,
-        prosody: { speed, volume: 0, normalize_loudness: true },
-      }),
       signal,
-    });
+    );
     let bytes = Buffer.from(await response.arrayBuffer());
     if (!response.ok) {
       const snippet = bytes.toString('utf8').slice(0, 240);

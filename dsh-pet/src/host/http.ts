@@ -192,6 +192,54 @@ export function sendFile(req: IncomingMessage, res: ServerResponse, file: string
   res.on('close', () => stream.destroy());
 }
 
+/**
+ * 把流式应答写到 HTTP 响应：不声明长度（chunked），上游每来一块就写一块。
+ *
+ * 客户端提前断开时取消上游流（音频合成能被及时中止）；写失败或上游出错直接 destroy，
+ * 让客户端看到截断而不是一个永远挂着的响应。
+ *
+ * @param res - 当前响应对象。
+ * @param result - `stream` 类型的路由结果。
+ */
+export async function sendStream(
+  res: ServerResponse,
+  result: { status: number; contentType: string; headers?: Record<string, string>; body: ReadableStream<Uint8Array> },
+): Promise<void> {
+  res.writeHead(result.status, {
+    'content-type': result.contentType,
+    'cache-control': 'no-store',
+    ...(result.headers ?? {}),
+  });
+  const reader = result.body.getReader();
+  let clientGone = false;
+  const onClose = (): void => {
+    clientGone = true;
+    void reader.cancel().catch(() => undefined);
+  };
+  res.on('close', onClose);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done || clientGone || res.destroyed) break;
+      if (!res.write(Buffer.from(value))) {
+        await new Promise<void>((resolve) => {
+          const awake = (): void => {
+            res.off('close', awake);
+            resolve();
+          };
+          res.once('drain', awake);
+          res.once('close', awake);
+        });
+      }
+    }
+    if (!res.writableEnded && !res.destroyed) res.end();
+  } catch {
+    res.destroy();
+  } finally {
+    res.off('close', onClose);
+  }
+}
+
 /** 发送 JSON 响应（headers 可选：如 no-cache 触发计数） */
 export function sendJson(
   res: ServerResponse,
@@ -224,6 +272,8 @@ export type RouteResult =
   | { kind: 'json'; status: number; obj: unknown; headers?: Record<string, string> }
   | { kind: 'text'; status: number; body: string; contentType?: string }
   | { kind: 'file'; file: string; contentType: string }
+  /** 流式应答：正文随上游到达逐块写出（音频等）。只能在真实 HTTP 消费方落地 */
+  | { kind: 'stream'; status: number; contentType: string; headers?: Record<string, string>; body: ReadableStream<Uint8Array> }
   /** 无需应答：调用方在挂起等待期间已断开（见 /playback 的等待分支）——消费方直接收尾，不写 */
   | { kind: 'none' };
 

@@ -9,7 +9,12 @@
 import { open, rm, stat, writeFile } from 'node:fs/promises';
 import { cacheKey, cachePath, ensureCacheDir, looksLikeMpegAudio, pruneCache } from './cache.ts';
 import { VoiceSynthError, synthesize, type SynthInput } from './edge.ts';
-import { breezeRateToSpeed, synthesizeBreeze, BREEZE_SYNTHESIS_TIMEOUT_MS } from './breeze.ts';
+import {
+  breezeRateToSpeed,
+  synthesizeBreeze,
+  synthesizeBreezeStream,
+  BREEZE_SYNTHESIS_TIMEOUT_MS,
+} from './breeze.ts';
 import {
   DEFAULT_BREEZE_VOICE,
   isKnownBreezeVoice,
@@ -58,6 +63,12 @@ const BUILTIN_TIMEOUT_MS = 28_000;
 /** 排队超过这么久还没轮到就丢弃（ms）：按最慢的内置引擎（Fish 90s）留余量。 */
 const STALE_WAIT_MS = FISH_SYNTHESIS_TIMEOUT_MS;
 
+/**
+ * 流式打开失败后的冷却（ms）：这段时间内直接走整包，不再逐句先撞一次失败。
+ * 上游限流（429）通常持续数秒到一分钟，冷却省掉每句近 1 秒的无效等待。
+ */
+const STREAM_FAIL_COOLDOWN_MS = 60_000;
+
 /** 一次合成的输入（已校验）。 */
 interface SpeakInput {
   readonly text: string;
@@ -84,6 +95,14 @@ export type SpeakFailure = 'bad-request' | 'voice-busy' | 'generate-error';
 /** 合成结果：成功时给出最终 mp3 的绝对路径。 */
 export type SpeakResult = { ok: true; file: string } | { ok: false; reason: SpeakFailure; message: string };
 
+/**
+ * 流式合成结果：`unsupported` = 引擎不支持流式，`stream-failed` = 流式没打开（限流 / 上游错误），
+ * 两者都表示「应回退到 {@link SpeakResult} 的整包路径」，流式只是加速而不是唯一通道。
+ */
+export type SpeakStreamResult =
+  | { ok: true; stream: ReadableStream<Uint8Array>; contentType: string }
+  | { ok: false; reason: SpeakFailure | 'unsupported' | 'stream-failed'; message: string };
+
 /** speak 运行时读取的 Fish / Breeze / 引擎配置（每次请求现查，保存后立刻生效）。 */
 export interface VoiceRuntimeConfig {
   readonly provider: VoiceProvider;
@@ -106,10 +125,12 @@ export interface VoiceCatalog {
   readonly voiceProvider: VoiceProvider;
 }
 
-/** 语音服务：路由层只依赖这两个方法。 */
+/** 语音服务：路由层只依赖这三个方法。 */
 export interface VoiceService {
   /** 合成一段文本；同一输入命中缓存时不再联网（请求体 `fresh` / `apiKey` 例外）。 */
   speak(raw: unknown): Promise<SpeakResult>;
+  /** 流式合成（目前只有 Breeze）：不落盘、不进缓存；引擎不支持时回 `unsupported` 由调用方回退。 */
+  speakStream(raw: unknown, signal?: AbortSignal): Promise<SpeakStreamResult>;
   /** 可选音色目录（与白名单同源）。 */
   listVoices(): VoiceCatalog;
 }
@@ -218,6 +239,8 @@ export function createVoiceService(options: {
   synthesizeFish?: typeof synthesizeFish;
   /** Breeze 合成实现；测试注入替身。 */
   synthesizeBreeze?: typeof synthesizeBreeze;
+  /** Breeze 流式合成实现；测试注入替身。 */
+  synthesizeBreezeStream?: typeof synthesizeBreezeStream;
   /** 每次合成前读取的引擎配置；缺省当 Edge。 */
   readRuntime?: () => VoiceRuntimeConfig;
   /** 容许的最长排队时间（ms）；缺省 {@link STALE_WAIT_MS}，测试用它把丢弃分支逼出来。 */
@@ -227,10 +250,13 @@ export function createVoiceService(options: {
   const synthesizeImpl = options.synthesize ?? synthesize;
   const synthesizeFishImpl = options.synthesizeFish ?? synthesizeFish;
   const synthesizeBreezeImpl = options.synthesizeBreeze ?? synthesizeBreeze;
+  const synthesizeBreezeStreamImpl = options.synthesizeBreezeStream ?? synthesizeBreezeStream;
   const readRuntime = options.readRuntime ?? (() => DEFAULT_RUNTIME);
   const staleWaitMs = options.staleWaitMs ?? STALE_WAIT_MS;
   /** 已占用的队列名额（含正在跑的那个）。 */
   let queueUsed = 0;
+  /** 流式冷却截止时刻：期间 `speakStream` 直接回 unsupported，由路由走整包。 */
+  let streamCooldownUntil = 0;
   /** 串行链：上一件事收尾（成功或失败）后才轮到下一件。 */
   let chain: Promise<void> = Promise.resolve();
 
@@ -371,7 +397,103 @@ export function createVoiceService(options: {
     return { ok: true, file: target };
   }
 
-  return { listVoices: catalog, speak };
+  /**
+   * 流式合成：目前只对 Breeze 开放，不写缓存。
+   *
+   * 不占用 `speak` 的串行链——音频边下边播，链式等待会让首包白白晚到；
+   * 用同一个名额计数兜住并发上限，流结束 / 取消 / 出错时释放。
+   */
+  async function speakStream(raw: unknown, signal?: AbortSignal): Promise<SpeakStreamResult> {
+    const runtime = readRuntime();
+    const parsed = parseSpeakInput(raw, runtime);
+    if (!parsed.ok) return { ok: false, reason: 'bad-request', message: parsed.message };
+    const { text, voice, rate, oneShotApiKey } = parsed.value;
+    // 第三方实现只提供整包字节，没有流式语义
+    if (activeVoiceProvider()) return { ok: false, reason: 'unsupported', message: 'voice provider cannot stream' };
+    if (normalizeVoiceProvider(runtime.provider) !== 'breeze') {
+      return { ok: false, reason: 'unsupported', message: 'streaming is only supported for breeze' };
+    }
+    if (Date.now() < streamCooldownUntil) {
+      return { ok: false, reason: 'unsupported', message: 'streaming cooling down after failure' };
+    }
+    if (queueUsed >= MAX_QUEUE) {
+      log?.warn?.(`[blue-fish] voice stream: queue full (max ${MAX_QUEUE}) chars=${text.length} voice=breeze`);
+      return { ok: false, reason: 'voice-busy', message: 'voice queue is full, retry later' };
+    }
+    const startedMs = Date.now();
+    const timeout = AbortSignal.timeout(BREEZE_SYNTHESIS_TIMEOUT_MS);
+    const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+    queueUsed += 1;
+    let released = false;
+    const release = (): void => {
+      if (released) return;
+      released = true;
+      queueUsed -= 1;
+    };
+    let opened: { stream: ReadableStream<Uint8Array>; contentType: string };
+    try {
+      opened = await synthesizeBreezeStreamImpl({
+        signal: combined,
+        text,
+        voice,
+        speed: breezeRateToSpeed(rate),
+        apiKey: oneShotApiKey || runtime.breezeApiKey,
+      });
+    } catch (error) {
+      release();
+      log?.warn?.(
+        `[blue-fish] voice stream: failed chars=${text.length} voice=breeze ms=${Date.now() - startedMs} ` +
+          `reason=${error instanceof VoiceSynthError ? error.message : String(error)}`,
+      );
+      // 流式打开失败（典型：429 GENERATION_CAPACITY_EXCEEDED）不代表整包也不可用：
+      // 交给调用方回退 mp3，最多慢一点，不能因为流式挂了整句静音。
+      streamCooldownUntil = Date.now() + STREAM_FAIL_COOLDOWN_MS;
+      return { ok: false, reason: 'stream-failed', message: 'streaming unavailable, fallback to buffered' };
+    }
+    log?.info?.(`[blue-fish] voice stream: open chars=${text.length} voice=breeze ms=${Date.now() - startedMs}`);
+    const stream = tapStream(opened.stream, () => {
+      release();
+      log?.info?.(`[blue-fish] voice stream: done chars=${text.length} voice=breeze ms=${Date.now() - startedMs}`);
+    });
+    return { ok: true, stream, contentType: opened.contentType };
+  }
+
+  return { listVoices: catalog, speak, speakStream };
+}
+
+/**
+ * 在流结束时执行一次收尾（正常读完、出错、被取消都算），把释放名额等副作用挂到流上。
+ * @param source - 上游字节流。
+ * @param onDone - 只调用一次。
+ */
+function tapStream(source: ReadableStream<Uint8Array>, onDone: () => void): ReadableStream<Uint8Array> {
+  const reader = source.getReader();
+  let finished = false;
+  const finish = (): void => {
+    if (finished) return;
+    finished = true;
+    onDone();
+  };
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          finish();
+          controller.close();
+          return;
+        }
+        controller.enqueue(value);
+      } catch (error) {
+        finish();
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      finish();
+      return reader.cancel(reason).catch(() => undefined);
+    },
+  });
 }
 
 /** 给一个 Promise 套超时；超时 reject，原 Promise 不被取消（provider 自己该处理放弃）。 */

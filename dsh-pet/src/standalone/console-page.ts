@@ -240,13 +240,11 @@ export function consolePage(): string {
 <div class="fieldRow wide keyRow" id="fish-key-row" hidden>
 <label class="fieldLabel" for="voice-fish-key">Fish Audio API Key</label>
 <div class="keyInputRow"><input class="fieldInput" type="password" id="voice-fish-key" autocomplete="off"><button type="button" class="btn ghost" id="voice-fish-link">获取 API Key</button></div>
-<span class="fieldHint">留空会保留已保存的密钥，不会回显；填写新 Key 会覆盖旧值。</span>
 <span class="voiceStatus" id="voice-fish-key-status" role="status"></span>
 </div>
 <div class="fieldRow wide keyRow" id="breeze-key-row" hidden>
 <label class="fieldLabel" for="voice-breeze-key">Breeze Blue API Key（xi-api-key）</label>
 <div class="keyInputRow"><input class="fieldInput" type="password" id="voice-breeze-key" autocomplete="off"><button type="button" class="btn ghost" id="voice-breeze-link">获取 API Key</button></div>
-<span class="fieldHint">请求头用 xi-api-key；留空会保留已保存的密钥，填写新 Key 会覆盖旧值。</span>
 <span class="voiceStatus" id="voice-breeze-key-status" role="status"></span>
 </div>
 <div class="fieldRow wide" id="fish-model-row" hidden>
@@ -261,7 +259,6 @@ export function consolePage(): string {
 <input class="fieldInput" type="text" id="voice-fish-custom-label" autocomplete="off" placeholder="永雏塔菲（自定义）">
 <button type="button" class="btn ghost" id="voice-fish-custom-add">添加音色</button>
 </div>
-<span class="fieldHint">输入后点「添加音色」加入音色池，并自动切到它。</span>
 <div class="customVoiceList" id="voice-fish-custom-list"></div>
 <span class="voiceStatus" id="voice-fish-custom-status" role="status"></span>
 </div>
@@ -272,7 +269,6 @@ export function consolePage(): string {
 <input class="fieldInput" type="text" id="voice-breeze-custom-label" autocomplete="off" placeholder="大肥鱼（自定义）">
 <button type="button" class="btn ghost" id="voice-breeze-custom-add">添加音色</button>
 </div>
-<span class="fieldHint">输入后点「添加音色」加入音色池，并自动切到它。</span>
 <div class="customVoiceList" id="voice-breeze-custom-list"></div>
 <span class="voiceStatus" id="voice-breeze-custom-status" role="status"></span>
 </div>
@@ -321,6 +317,7 @@ export function consolePage(): string {
 <div class="dmCard">
 <div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="dm-url-history" role="group" aria-label="最近使用的房间号"></div></div>
 <div class="dmField"><label class="dmLabel" for="dm-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="dm-cookie" placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里" spellcheck="false"></textarea><div class="dmCookieRow"><button type="button" class="liveStatusRefresh" id="dm-check-cookie" title="校验 Cookie 有效性（进房接口回显登录态 + 游客占位判定）">检测 Cookie</button></div></div>
+<p class="dmCookieNote">提示：该账号若已在其他直播间观看（如手机端），开始监听会将其从原直播间踢出。</p>
 <p class="status" id="dm-msg" role="status" aria-live="polite"></p>
 </div>
 <div class="liveStatusRow"><p class="liveStatus" id="dm-status">加载中…</p></div>
@@ -407,6 +404,13 @@ export function consolePage(): string {
 </div>
 </section>
 </div>
+</div>
+</div>
+<div class="chatMask" id="dm-kick-dialog" hidden>
+<div class="chatDialog kickDialog" role="alertdialog" aria-modal="true" aria-labelledby="dm-kick-title">
+<div class="chatHead"><h2 class="chatTitle" id="dm-kick-title">弹幕连接已中断</h2></div>
+<div class="kickBody"><p class="kickText" id="dm-kick-text">该账号疑似已在其他设备进入别的直播间，本地弹幕监听被挤下线。要立即重连吗？</p></div>
+<div class="kickFoot"><button type="button" class="btn ghost" id="dm-kick-later">暂不重连</button><button type="button" class="btn primary" id="dm-kick-retry">重连</button></div>
 </div>
 </div>
 <div class="miniOpacityPop" id="mini-opacity-pop" role="group" aria-label="窗口透明度" hidden><span class="miniOpacityLabel">透明度</span><input class="miniOpacityRange" id="mini-opacity-range" type="range" min="20" max="100" step="5" value="100" aria-label="窗口透明度"><span class="miniOpacityValue" id="mini-opacity-value">100%</span></div>
@@ -769,6 +773,8 @@ export const consoleScript = `
   var dmLastFeedId = 0;
   var dmStickBottom = true;
   var dmLastStatusUrl = '';
+  /** 被挤下线确认框每次中断只弹一次：状态 interrupted 回到 false 时重置。 */
+  var dmKickPrompted = false;
 
   function dmNode(tag, cls, text) {
     var node = document.createElement(tag);
@@ -846,12 +852,25 @@ export const consoleScript = `
         ? '主播已下播，已自动停止监听'
         : '主播已下播（直播结束），等开播后再点开始监听';
     }
+    if (status.interrupted) return '疑似被其他设备挤下线（可能在别的直播间），弹幕已中断';
     var note = '';
     if (status.mode === 'cdp') {
       if (status.cdpVisible && !status.cdpLoggedIn) note = '等待扫码：在弹出的窗口完成登录';
       else if (!status.cdpLoggedIn) note = '未检测到登录态：礼物、进场可能不下发，可粘贴 Cookie 后重开';
     }
     return joinNote(note, status);
+  }
+  /** 被挤下线确认框：只负责显隐，重连/停听的动作由按钮接线决定。 */
+  function hideDmKickDialog() {
+    var d = byId('dm-kick-dialog');
+    if (d) d.setAttribute('hidden', '');
+  }
+  function showDmKickDialog() {
+    var d = byId('dm-kick-dialog');
+    if (!d) return;
+    d.removeAttribute('hidden');
+    var retry = byId('dm-kick-retry');
+    if (retry) { try { retry.focus(); } catch (_) {} }
   }
   function xsStatusNote(status) {
     if (status.ended) {
@@ -1062,6 +1081,13 @@ export const consoleScript = `
         'error',
       );
     }
+    // 疑似被挤下线：确认框只在「互动消息区」弹幕小窗里弹，每次中断只弹一次；
+    // 恢复出帧后 status.interrupted 归 false，下次中断还能再弹。普通控制台/独立直播间窗口只留状态行旁注。
+    if (!status.interrupted) dmKickPrompted = false;
+    else if (!dmKickPrompted && LIVE_MINI) {
+      dmKickPrompted = true;
+      showDmKickDialog();
+    }
     var box = byId('dm-status');
     if (box) {
       var roomId = status.roomId || dmExtractWebRid(status.url);
@@ -1126,6 +1152,7 @@ export const consoleScript = `
   }
   async function dmStart() {
     var button = byId('dm-toggle');
+    hideDmKickDialog();
     setStatus(byId('dm-msg'), '正在连接…');
     if (button) button.disabled = true;
     dmSaveCache();
@@ -1162,6 +1189,7 @@ export const consoleScript = `
   }
   async function dmStop() {
     var button = byId('dm-toggle');
+    hideDmKickDialog();
     setStatus(byId('dm-msg'), '正在停止…');
     if (button) button.disabled = true;
     try {
@@ -1226,6 +1254,21 @@ export const consoleScript = `
     if (checkCookieBtn) {
       checkCookieBtn.addEventListener('click', function () {
         void dmCheckCookie(checkCookieBtn);
+      });
+    }
+    var kickRetryBtn = byId('dm-kick-retry');
+    if (kickRetryBtn) {
+      kickRetryBtn.addEventListener('click', function () {
+        hideDmKickDialog();
+        void dmStart();
+      });
+    }
+    var kickLaterBtn = byId('dm-kick-later');
+    if (kickLaterBtn) {
+      kickLaterBtn.addEventListener('click', function () {
+        // 「暂不重连」= 停掉本地监听；保留 lastError 让状态行继续显示被挤原因。
+        hideDmKickDialog();
+        void dmStop();
       });
     }
 
@@ -2890,8 +2933,7 @@ export const consoleScript = `
       item.appendChild(del);
       listEl.appendChild(item);
     });
-    if (!list.length) setStatus(statusEl, '还没有自定义音色；填入 Voice ID 后点「添加音色」。');
-    else setStatus(statusEl, '共 ' + list.length + ' 个自定义音色，保存后生效。');
+    setStatus(statusEl, '');
   }
 
   function addCustomVoice(provider) {
@@ -2958,8 +3000,7 @@ export const consoleScript = `
       var has = d[r.has];
       if (document.activeElement !== input) input.value = d[r.draft];
       input.placeholder = has ? '已保存密钥，留空保留；填写新 Key 则覆盖' : r.placeholder;
-      if (has) setStatus(status, '已保存密钥，留空保留；填写新 Key 会覆盖旧值。');
-      else setStatus(status, '尚未保存 Key；填好后随语音设置一起保存。');
+      setStatus(status, '');
     });
   }
 
@@ -3836,6 +3877,7 @@ export const consoleScript = `
       if (titlePlat) titlePlat.textContent = ' · ' + liveNames[liveCurrent];
       liveIdHistorySyncActive(liveCurrent);
       liveSyncStartBtn();
+      if (liveCurrent !== 'dm') hideDmKickDialog();
     }
 
     /** 打开弹窗时全量拉一遍四平台状态：重开窗口后渲染端是全新内存，不能只刷当前平台，
@@ -3965,6 +4007,7 @@ export const consoleScript = `
       if (!d) return;
       if (!open) {
         liveSaveCurrent();
+        hideDmKickDialog();
         d.setAttribute('hidden', '');
         return;
       }
@@ -4542,6 +4585,12 @@ html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
 .liveStatusLight.on{background:#34c759;box-shadow:0 0 0 4px color-mix(in srgb,#34c759 18%,transparent)}
 .liveDialog .chatClose{width:38px;height:38px;border-radius:50%;border-color:color-mix(in srgb,var(--label-primary) 12%,var(--border));color:var(--label-tertiary)}
 .liveDialog .chatClose:hover{color:var(--label-primary);border-color:color-mix(in srgb,var(--label-primary) 30%,var(--border));background:color-mix(in srgb,var(--label-primary) 5%,var(--bg-card))}
+/* 疑似被挤下线确认框：压在直播间弹窗之上，窄屏/小窗里也不溢出 */
+.kickDialog{width:min(392px,calc(100% - 32px))}
+.kickBody{padding:0 26px}
+.kickText{margin:0;font-size:14px;line-height:1.7;color:var(--label-secondary)}
+.kickFoot{display:flex;justify-content:flex-end;gap:10px;padding:18px 26px 22px}
+.kickFoot .btn{height:40px;border-radius:10px;padding:0 18px;font-size:14px}
 .liveBody{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:16px 26px 14px;overflow:hidden}
 .liveMain{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
 body:not(.live-mini) .liveMain{display:none}
@@ -4611,6 +4660,7 @@ body.live-mini .liveConfigPane{display:none!important}
 .dmField{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .liveConfigPanel .dmField:first-child{margin-top:0}
 .dmLabel{font-size:13px;color:var(--label-secondary)}
+.dmCookieNote{margin:6px 0 0;font-size:12.5px;line-height:1.6;color:color-mix(in srgb,var(--danger) 78%,var(--label-secondary))}
 .dmSwitches{display:flex;margin-top:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg-card);overflow:hidden}
 .dmSwitch{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1 1 0;padding:12px 14px;font-size:13.5px;color:var(--label-secondary);cursor:pointer;user-select:none;border-left:1px solid var(--border)}
 .dmSwitch:first-child{border-left:0}

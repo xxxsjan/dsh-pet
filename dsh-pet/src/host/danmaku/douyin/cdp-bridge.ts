@@ -37,6 +37,8 @@ export type DouyinCdpBridge = {
   onClosed(fn: () => void): () => void;
   /** 订阅「读到房间标题 / 主播」事件（内嵌页 RENDER_DATA）。 */
   onMeta(fn: (meta: { title: string; anchor: string }) => void): () => void;
+  /** 订阅弹幕推送 WS 被关闭；只上报 `/webcast/im/push/` 连接。 */
+  onWsClosed(fn: (url: string) => void): () => void;
 };
 
 /** globalThis 上挂 CDP 控制器的键（与 Helper 装配一致）。 */

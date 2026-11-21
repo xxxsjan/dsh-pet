@@ -2542,6 +2542,10 @@ paths:
           或第三方 id，因此切换实现后不会命中旧音频。请求体带 `fresh: true` 或 `apiKey` 时
           跳过缓存命中（设置页试听用，避免上游一次异常音频被永久复用）。
         - 合成串行执行，同时最多排队 3 个；超出返回 `voice-busy`，调用方可稍后重试。
+        - **流式**：请求体带 `stream: true` 时，若当前引擎支持（目前只有 Breeze），
+          响应改为 `audio/pcm`（24kHz、单声道、16bit little-endian）并边合成边写出，
+          不声明长度、不写缓存；引擎不支持（Fish / Edge / 第三方）或流式队列已满时
+          自动回退到整包 mp3 的普通行为，调用方按 `Content-Type` 区分即可。
         - 参数问题、队列满、上游失败都是业务失败：HTTP 200 + `{ ok: false, reason, message }`。
         只有请求体不是合法 JSON 才是 400，方法不对是 405。
       requestBody:
@@ -2578,13 +2582,24 @@ paths:
                     跳过缓存命中，强制重新合成（仍会写入缓存）。供设置页试听：上游偶尔返回
                     异常低电平的音频，固定试听句命中旧缓存后会一直「没声音」。
                   default: false
+                stream:
+                  type: boolean
+                  description: |
+                    请求流式响应。仅当引擎支持（目前 Breeze）且链路能承载流式时返回
+                    `audio/pcm`；否则照常返回整包 mp3。
+                  default: false
       responses:
         "200":
           description: |
-            成功时是 mp3 音频；失败时是 JSON `{ ok: false, reason, message }`，
+            成功时是 mp3 音频（或 `stream: true` 且引擎支持时的 PCM 流）；
+            失败时是 JSON `{ ok: false, reason, message }`，
             reason 取值 `bad-request`（参数非法）/ `voice-busy`（队列已满）/ `generate-error`（上游失败或超时）。
           content:
             audio/mpeg:
+              schema:
+                type: string
+                format: binary
+            audio/pcm:
               schema:
                 type: string
                 format: binary
@@ -3517,6 +3532,7 @@ components:
           startedAt,
           replyChat,
           thankGift,
+          interrupted,
           recent,
         ]
       properties:
@@ -3562,6 +3578,11 @@ components:
         thankGift:
           type: boolean
           description: 是否把礼物感谢发给活跃宠物 /chat。
+        interrupted:
+          type: boolean
+          description: |
+            疑似被其他设备挤下线：弹幕 WS 断开且恢复窗口内没有新帧、房间仍在播。
+            控制页据此弹窗询问是否重连；收到新帧或重新 start 后回到 false。
         recent:
           type: array
           maxItems: 50
