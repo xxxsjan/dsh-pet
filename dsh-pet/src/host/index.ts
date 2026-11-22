@@ -110,7 +110,7 @@ export function apply(ctx: any): void {
     // 惰性取用：handlePetRoute 在下方装配，Helper 只在启动/收请求时才真正调用它
     getHandlePetRoute: () => httpRoute.handlePetRoute,
   });
-  const { startHelper, stopHelper, markDisposed, getDouyinSignBaseUrl } = desktopHelper;
+  const { startHelper, stopHelper, markDisposed } = desktopHelper;
 
   // 弹幕回复专用超时：短于普通对话（60s）与独立模式默认（30s），超时即失败跳过，不堵串行队列
   const DANMAKU_CHAT_TIMEOUT_MS = 12_000;
@@ -158,7 +158,6 @@ export function apply(ctx: any): void {
   const douyinChat = createDanmakuChat();
   const douyinDanmaku = createDouyinMonitor({
     log,
-    getSignBaseUrl: getDouyinSignBaseUrl,
     getCdpBridge: () => getDouyinCdpBridge(),
     resolvePetId: () => {
       const id = String(resolveActivePetId() || '').trim();

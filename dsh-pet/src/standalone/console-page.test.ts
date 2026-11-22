@@ -603,14 +603,50 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   const dmIds = ['dm-url', 'dm-cookie', 'dm-reply-chat', 'dm-thank-gift', 'dm-msg', 'dm-status', 'dm-feed'];
   const xsIds = ['xs-reply-chat', 'xs-thank-gift', 'xs-msg', 'xs-status', 'xs-feed'];
   const ksIds = ['ks-url', 'ks-cookie', 'ks-reply-chat', 'ks-thank-gift', 'ks-msg', 'ks-status', 'ks-feed'];
+  assert.match(html, /for="ks-cookie">Cookie <span class="dmLabelOpt">必填/, '快手 Cookie 应标记为必填');
+  assert.match(
+    consoleScript,
+    /快手直连监听需要登录 Cookie，请在浏览器登录后复制完整 Cookie/,
+    '快手无 Cookie 应在启动前给出明确提示',
+  );
   const blIds = ['bl-url', 'bl-cookie', 'bl-reply-chat', 'bl-thank-gift', 'bl-msg', 'bl-status', 'bl-feed'];
+  assert.equal(
+    (html.match(/data-cookie-guide="(?:dm|ks|bl)"/g) || []).length,
+    3,
+    '抖音、快手、B站应各有一个“获取 Cookie”入口',
+  );
+  assert.match(
+    html,
+    /<div class="dmCookieLabelRow"><label[^>]*for="ks-cookie"[^>]*>Cookie <span[^>]*>必填<\/span><\/label><div class="dmCookieRow"[^>]*>[^]*data-cookie-guide="ks">获取 Cookie<\/button>/,
+    '快手 Cookie 标签行右侧应展示获取 Cookie 按钮',
+  );
+  assert.match(
+    html,
+    /<div class="dmCookieLabelRow"><label[^>]*for="bl-cookie"[^>]*>Cookie <span[^>]*>可选<\/span><\/label><div class="dmCookieRow"[^>]*>[^]*data-cookie-guide="bl">获取 Cookie<\/button>/,
+    'B站 Cookie 标签行右侧应展示获取 Cookie 按钮',
+  );
+  assert.match(
+    html,
+    /<div class="dmCookieLabelRow"><label[^>]*>Cookie <span[^>]*>可选<\/span><\/label><div class="dmCookieRow"/,
+    'Cookie 可选标签与两个操作按钮应放在同一行',
+  );
+  assert.match(
+    styles,
+    /\.dmCookieLabelRow\{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:space-between/,
+    '抖音 Cookie 标签行应让操作按钮靠右',
+  );
+  assert.match(html, /id="cookie-guide-dialog"/, '应有 Cookie 教程弹窗');
+  assert.match(html, /src="\/standalone-console\/cookie-guide-network\.png"/, '教程弹窗应优先加载独立模式同源图片');
+  assert.match(consoleScript, /\/blue-fish\/pic\/cookie-guide-network\.png/, '独立路由失败时应回落到桌面宿主素材路由');
+  assert.match(consoleScript, /cookieGuide\.hidden = false/, '点击教程入口应打开图片弹窗');
+  assert.match(consoleScript, /cookie-guide-key/, '教程弹窗应按平台显示关键 Cookie 字段提示');
   for (const id of [...dmIds, ...xsIds, ...ksIds, ...blIds]) {
     assert.match(html, new RegExp(`id="${id}"`), `弹窗内缺少原面板控件：${id}`);
   }
   for (const id of ['dm-toggle', 'xs-toggle', 'ks-toggle', 'bl-toggle']) {
     assert.doesNotMatch(html, new RegExp(`id="${id}"`), `平台卡片里不该再各自放一套按钮：${id}`);
   }
-  // 「跳转直播间」：抖音/快手/B站有直播间地址；状态行下方的纯文本动作，和「刷新状态」同一行、刷新在左
+  // 「跳转直播间」：抖音/快手/B站放在房间号标题行右侧
   for (const id of ['dm-open-live', 'ks-open-live', 'bl-open-live']) {
     assert.match(html, new RegExp(`id="${id}"`), `应有「跳转直播间」动作：${id}`);
   }
@@ -619,9 +655,9 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
     assert.match(
       html,
       new RegExp(
-        `class="liveOpenLiveRow"><button[^>]*class="liveStatusRefresh"[^>]*id="${p}-refresh">刷新状态</button><button[^>]*class="liveOpenLiveText"[^>]*id="${p}-open-live"[^>]*>跳转直播间</button>`,
+        `class="liveUrlLabelRow"><label[^>]*>[^<]+</label><button[^>]*class="liveOpenLiveText"[^>]*id="${p}-open-live"[^>]*>跳转直播间</button></div>`,
       ),
-      `「刷新状态」应排在「跳转直播间」左侧：${p}`,
+      `「跳转直播间」应和房间号标题同一行右侧：${p}`,
     );
   }
   assert.match(styles, /\.liveOpenLiveText\{[^}]*background:none/, '跳转直播间应为纯文本样式');
@@ -843,11 +879,7 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
     /liveChannel\.onmessage = function \(\) \{ void refreshLiveMonitorCard\(\); \}/,
     '控制台收到广播后应立即刷新监听状态卡',
   );
-  assert.match(
-    script,
-    /visibilitychange[\s\S]*?refreshLiveMonitorCard\(\)/,
-    '窗口重新可见时应兜底刷新监听状态卡',
-  );
+  assert.match(script, /visibilitychange[\s\S]*?refreshLiveMonitorCard\(\)/, '窗口重新可见时应兜底刷新监听状态卡');
   assert.match(script, /function liveOpenMini\(platform\)/, '开小窗应带上当前平台');
   assert.match(script, /window\.petBridge\.openLiveMini\(target\)/, '开小窗走主进程桥');
   assert.match(script, /function liveOpenMiniAfterStart\(platform, attempts\)/, '启动后应等状态确认在监听再开小窗');
@@ -1004,6 +1036,11 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   assert.match(script, /dmNode\('span', 'dmFeedVerb', '送了'\)/, '小窗礼物行对齐设计稿：昵称+送了+礼物名+数量');
   assert.match(
     script,
+    /dmNode\('span', 'dmFeedVerb', '送了'\)\);\s*bodyBox\.appendChild\(dmGiftTile\([^)]*\)\);\s*bodyBox\.appendChild\(dmNode\('span', 'dmFeedGiftName'/,
+    '礼物图片应放在“送了”文字之后、礼物名称之前',
+  );
+  assert.match(
+    script,
     /dmNode\('span', 'dmFeedCount', '×' \+ Math\.max\(1, Number\(item\.count\) \|\| 1\)\)/,
     '礼物数量胶囊消费真实 count',
   );
@@ -1011,6 +1048,11 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
     styles,
     /body\.live-mini \.dmFeedItem\.gift\{[^}]*border:1px solid rgba\(255,179,64,\.45\)/,
     '小窗礼物行为金色描边暖底卡片',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.dmFeedItem\.gift \.dmFeedBody\{[^}]*column-gap:6px/,
+    '礼物文案中的昵称、送了、礼物名和数量胶囊应使用清晰的 6px 间距',
   );
   assert.match(
     styles,
@@ -1417,6 +1459,36 @@ test('下播态：状态行第三态「已下播」+ 一次性气泡，轮询不
   assert.ok(mini, '应能取到 miniSyncStats');
   assert.match(mini![1], /dmNode\('span', 'miniEndedTag', '已下播'\)/, '小窗下播应挂胶囊');
   assert.match(consoleStyles(), /\.miniEndedTag\{[^}]*border-radius:999px/, '胶囊样式应存在');
+});
+
+test('礼物区空快照不清空已有礼物，只在本场重启时清空', () => {
+  const script = consoleScript;
+  assert.match(script, /无礼物快照不等于本场已清空/, '抖音礼物区必须容忍空快照');
+  assert.match(script, /dmSessionStartedAt/, '抖音重启必须通过 startedAt 边界识别');
+  assert.match(script, /dmResetFeedSession/, '重启本场才允许清空礼物和弹幕');
+  assert.doesNotMatch(
+    script.slice(script.indexOf('function dmRenderFeed(recent)'), script.indexOf('function dmResetFeedSession()')),
+    /giftBox\.textContent = '';/,
+    '抖音轮询不得直接清空礼物区',
+  );
+});
+
+test('礼物区固定高度，礼物增长只在内部滚动不挤弹幕区', () => {
+  const styles = consoleStyles();
+  assert.match(styles, /\.liveFeedPanel \.dmGiftCard\{[^}]*height:150px/, '普通模式礼物卡必须固定高度');
+  assert.match(styles, /body\.live-mini \.dmGiftCard\{[^}]*height:118px/, '小窗礼物卡必须固定高度');
+  assert.match(styles, /\.liveFeedPanel \.dmGiftCard\{[^}]*overflow:hidden/, '礼物卡超量内容不得撑开容器');
+  assert.match(styles, /\.liveFeedPanel \.dmGift\{[^}]*overflow-y:auto/, '礼物多时应在礼物区内部滚动');
+});
+
+test('直播消息轮询只增量更新，不再整屏清空重建', () => {
+  const script = consoleScript;
+  assert.match(script, /if \(nextSignature === dmFeedSignature\) return;/, '抖音数据指纹相同时不重绘');
+  assert.match(script, /dmFeedNodes\.clear\(\)/, '列表清空时同步清理增量节点');
+  assert.match(script, /dmGiftNodes\.get\(key\)/, '礼物行按 ID 增量更新');
+  assert.match(script, /dmFeedNodes\.get\(key\)/, '弹幕行按 ID 增量更新');
+  assert.match(script, /dmQueueFeedRow\(/, '抖音新消息应进入逐条渲染队列');
+  assert.match(script, /180/, '逐条入场间隔应为连续节奏而非整批同时出现');
 });
 
 test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分别接重连/停听', () => {

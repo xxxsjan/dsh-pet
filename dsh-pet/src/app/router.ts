@@ -8,6 +8,8 @@
  */
 
 import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { RegisteredRoute } from '../standalone/context.ts';
@@ -136,14 +138,30 @@ export function startRouter(
         sendIcon(res, backgroundDark, 'image/webp');
         return;
       }
+      if (url.pathname === '/standalone-console/cookie-guide-network.png') {
+        if (method !== 'GET' && method !== 'HEAD') {
+          rejectRequest(res, 405, '仅支持 GET');
+          return;
+        }
+        try {
+          const image = readFileSync(fileURLToPath(new URL('../../assets/pic/cookie-guide-network.png', import.meta.url)));
+          sendIcon(res, image, 'image/png', 86400);
+        } catch {
+          rejectRequest(res, 404, 'Cookie 教程图片缺失');
+        }
+        return;
+      }
       if (url.pathname === '/standalone-console/gift-icon') {
         if (method !== 'GET' && method !== 'HEAD') {
           rejectRequest(res, 405, '仅支持 GET');
           return;
         }
-        // 同源代取礼物图：页面 CSP 只有 img-src 'self'，外链 CDN 直连会被拦。
-        // 参数只作查表用，真实地址一律取自内置白名单，不接受任意 URL。
-        const giftIcon = await loadGiftIcon(url.searchParams.get('p') ?? '', url.searchParams.get('n') ?? '');
+        // 同源代取礼物图：静态图按内置表查；抖音动态礼物图仅允许其官方礼物 CDN 地址。
+        const giftIcon = await loadGiftIcon(
+          url.searchParams.get('p') ?? '',
+          url.searchParams.get('n') ?? '',
+          url.searchParams.get('u') ?? '',
+        );
         if (!giftIcon) {
           rejectRequest(res, 404, '该礼物暂无可用的官方图');
           return;

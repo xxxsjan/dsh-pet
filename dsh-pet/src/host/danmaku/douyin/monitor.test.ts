@@ -1,5 +1,5 @@
 /**
- * 抖音监听器链路接线：CDP 旁听优先、无桥回退直连、stop 清理桥订阅。
+ * 抖音监听器链路接线：仅使用 CDP 旁听、无桥时明确失败、stop 清理桥订阅。
  * 帧的 protobuf 解码链由 proto.ts 自身覆盖，这里只验证链路选择与状态。
  * @module dsh-pet/src/host/danmaku/douyin/monitor.test
  */
@@ -107,7 +107,6 @@ function makeBridge() {
 function makeDeps(bridge: DouyinCdpBridge | undefined, fetchLiveInfo?: DouyinMonitorDeps['fetchLiveInfo']) {
   return {
     log: { info: noop, warn: noop, debug: noop },
-    getSignBaseUrl: () => undefined,
     getCdpBridge: () => bridge,
     resolvePetId: () => 'main',
     chatWithPet: async () => ({ ok: true }),
@@ -172,9 +171,23 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(mon.status().cdpLoggedIn, true);
   });
 
-  test('无 CDP 桥时回退直连，签名桥未就绪即报错', async () => {
+  test('无 CDP 桥时明确拒绝启动，不回退后端直连', async () => {
     const mon = createDouyinMonitor(makeDeps(undefined));
-    await assert.rejects(() => mon.start({ url: 'https://live.douyin.com/123456789' }), /签名桥未就绪/);
+    await assert.rejects(() => mon.start({ url: 'https://live.douyin.com/123456789' }), /需要桌面 Helper 的 CDP 桥/);
+    assert.equal(mon.status().listening, false);
+  });
+
+  test('CDP 桥启动失败时清理监听状态和桥订阅', async () => {
+    const bridge = makeBridge();
+    bridge.start = async () => {
+      throw new Error('CDP start failed');
+    };
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await assert.rejects(() => mon.start({ url: 'https://live.douyin.com/123456789' }), /CDP start failed/);
+    assert.equal(mon.status().listening, false);
+    assert.equal(mon.status().mode, 'idle');
+    assert.equal(bridge.stopped, true);
+    assert.equal(bridge.subs.frame, null);
   });
 
   test('在线人数统计帧更新 viewerCount，累计观看不覆盖在线数', async () => {
@@ -236,7 +249,7 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(mon.status().chatCount, 0, '点赞帧不计入弹幕数');
     assert.equal(mon.status().giftCount, 0, '点赞帧不计入礼物数');
 
-    // 重启监听 = 新的一场，必须清零；断线重连才保留。
+    // 重启监听 = 新的一场，必须清零。
     mon.stop();
     const restarted = await mon.start({ url: 'https://live.douyin.com/123456789' });
     assert.equal(restarted.likeCount, 0, '重启监听后清零');
@@ -247,8 +260,9 @@ describe('douyin monitor CDP 链路', () => {
   const lastItem = <T>(list: T[]): T | undefined => list[list.length - 1];
 
   /** 组一帧 WebcastGiftMessage 推送（外层 PushFrame + Response 与线上同形）。 */
-  function giftFrame(over: Record<string, unknown>, msgId = 1): Uint8Array {
-    const payload = GiftMessage.encode(GiftMessage.create(over)).finish();
+  function giftFrame(over: Record<string, unknown>, msgId = 1, appendZeroGroupId = false): Uint8Array {
+    const encoded = GiftMessage.encode(GiftMessage.create(over)).finish();
+    const payload = appendZeroGroupId ? new Uint8Array([...encoded, 0x58, 0x00]) : encoded;
     const resp = DyResponse.encode(
       DyResponse.create({ messagesList: [{ method: 'WebcastGiftMessage', payload, msgId }] }),
     ).finish();
@@ -300,6 +314,35 @@ describe('douyin monitor CDP 链路', () => {
     mon.stop();
   });
 
+  test('无效 msgId 不再猜测合并普通礼物，即使是同礼物重复发送', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+
+    bridge.subs.frame?.(
+      giftFrame({ giftId: 1, repeatCount: 1, user: { nickName: '观众A' }, gift: { name: '玫瑰' } }, 0),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    bridge.subs.frame?.(
+      giftFrame({ giftId: 2, repeatCount: 1, user: { nickName: '观众A' }, gift: { name: '荧光棒' } }, 0),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    bridge.subs.frame?.(
+      giftFrame({ giftId: 1, repeatCount: 1, user: { nickName: '观众A' }, gift: { name: '玫瑰' } }, 0),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    assert.equal(mon.status().giftCount, 3, '无效 msgId 时不猜测合并，重复礼物也应保留');
+    assert.deepEqual(
+      mon
+        .status()
+        .recent.filter((item) => item.kind === 'gift')
+        .map((item) => item.text),
+      ['玫瑰', '荧光棒', '玫瑰'],
+    );
+    mon.stop();
+  });
+
   test('非连击礼物一条消息一行；轻礼物也进 feed', async () => {
     const bridge = makeBridge();
     const mon = createDouyinMonitor(makeDeps(bridge));
@@ -307,12 +350,25 @@ describe('douyin monitor CDP 链路', () => {
     const tick = () => new Promise((r) => setTimeout(r, 0));
 
     bridge.subs.frame?.(
-      giftFrame({ giftId: 1, repeatCount: 2, repeatEnd: 1, user: { nickName: '观众' }, gift: { name: '玫瑰' } }, 11),
+      giftFrame(
+        {
+          giftId: 1,
+          repeatCount: 2,
+          repeatEnd: 1,
+          user: { nickName: '观众' },
+          gift: {
+            name: '玫瑰',
+            image: { urlListList: ['https://p3-webcast.douyinpic.com/img/webcast/rose.png'] },
+          },
+        },
+        11,
+      ),
     );
     await tick();
     assert.equal(mon.status().giftCount, 1);
     assert.equal(lastItem(mon.status().recent)?.text, '玫瑰');
     assert.equal(lastItem(mon.status().recent)?.count, 2);
+    assert.equal(lastItem(mon.status().recent)?.giftImageUrl, 'https://p3-webcast.douyinpic.com/img/webcast/rose.png');
 
     const lightPayload = LightGiftMessage.encode(
       LightGiftMessage.create({ count: 1, giftInfo: { giftId: 2001 }, giftStruct: { name: '小心心' } }),
@@ -327,6 +383,28 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(mon.status().giftCount, 2);
     assert.equal(lastItem(mon.status().recent)?.nick, LIGHT_GIFT_NICK);
     assert.equal(lastItem(mon.status().recent)?.text, '小心心');
+    mon.stop();
+  });
+
+  test('不同普通礼物的 group_id 显式为 0 时不合并', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+    const tick = () => new Promise((r) => setTimeout(r, 0));
+
+    bridge.subs.frame?.(
+      giftFrame({ giftId: 1, repeatCount: 1, user: { nickName: '观众' }, gift: { name: '玫瑰' } }, 21, true),
+    );
+    bridge.subs.frame?.(
+      giftFrame({ giftId: 2, repeatCount: 1, user: { nickName: '观众' }, gift: { name: '大啤酒' } }, 22, true),
+    );
+    await tick();
+
+    const gifts = mon.status().recent.filter((item) => item.kind === 'gift');
+    assert.deepEqual(
+      gifts.map((item) => item.text),
+      ['玫瑰', '大啤酒'],
+    );
     mon.stop();
   });
 
@@ -523,23 +601,27 @@ describe('douyin monitor CDP 链路', () => {
     );
     const status = await mon.start({
       url: 'https://live.douyin.com/123456789',
-      cookie: 'sessionid=s; uid_tt=123'
+      cookie: 'sessionid=s; uid_tt=123',
     });
     assert.equal(status.listening, true, 'CDP 可用时网络异常不拦启动');
     assert.equal(bridge.starts.length, 1, 'Cookie 仍要注入内嵌窗');
     mon.stop();
   });
 
-  test('带 Cookie 启动：校验请求网络异常（无 CDP 桥）拦下并透传原因', async () => {
+  test('带 Cookie 启动：校验请求网络异常（CDP 可用）降级继续监听', async () => {
+    const bridge = makeBridge();
     const mon = createDouyinMonitor(
-      makeDeps(undefined, async () => {
+      makeDeps(bridge, async () => {
         throw new Error('网络中断');
       }),
     );
-    await assert.rejects(
-      () => mon.start({ url: 'https://live.douyin.com/123456789', cookie: 'sessionid=s; uid_tt=123' }),
-      /Cookie 校验失败：网络中断/,
-    );
+    const status = await mon.start({
+      url: 'https://live.douyin.com/123456789',
+      cookie: 'sessionid=s; uid_tt=123',
+    });
+    assert.equal(status.listening, true, 'CDP 可用时网络异常不拦启动');
+    assert.equal(bridge.starts.length, 1);
+    mon.stop();
   });
 
   test('带 Cookie 启动：房间已下播也先校验 Cookie，失效时报 Cookie 而不是下播', async () => {
@@ -604,15 +686,14 @@ describe('douyin monitor CDP 链路', () => {
     const mon = createDouyinMonitor(deps);
     const status = await mon.start({
       url: 'https://live.douyin.com/167773402498',
-      cookie: 'sessionid=s; uid_tt=123'
+      cookie: 'sessionid=s; uid_tt=123',
     });
     assert.ok(calls >= 2, '首次未开播应再进房确认一次（CDP 元数据补拉可能再进一次）');
     assert.equal(status.listening, true, '重试在播时应继续启动');
     assert.equal(bridge.starts.length, 1);
     assert.ok(
       logs.some(
-        (line) =>
-          line.includes('liveness offline #1') && line.includes('status=4') && line.includes('reflow=true'),
+        (line) => line.includes('liveness offline #1') && line.includes('status=4') && line.includes('reflow=true'),
       ),
       '首次误报要把判定字段写进 debug 日志',
     );
@@ -654,19 +735,21 @@ describe('douyin monitor CDP 链路', () => {
     mon.stop();
   });
 
-  test('进房接口偶发空响应（带 Cookie，无 CDP 桥）：仍报「暂时不可用」', async () => {
+  test('进房接口偶发空响应（带 Cookie，CDP 可用）：降级继续监听', async () => {
+    const bridge = makeBridge();
     const mon = createDouyinMonitor(
-      makeDeps(undefined, async () => {
+      makeDeps(bridge, async () => {
         throw new DyLivenessUnknownError();
       }),
     );
-    await assert.rejects(
-      () => mon.start({ url: 'https://live.douyin.com/167773402498', cookie: 'sessionid=s; uid_tt=123' }),
-      /进房接口暂时不可用/,
-    );
-    const status = mon.status();
+    const status = await mon.start({
+      url: 'https://live.douyin.com/167773402498',
+      cookie: 'sessionid=s; uid_tt=123',
+    });
+    assert.equal(status.listening, true, 'CDP 可用时进房接口不可用不拦监听');
     assert.equal(status.ended, false, '不能因为进房不可用就落成下播态');
-    assert.doesNotMatch(status.lastError, /下播/);
+    assert.equal(bridge.starts.length, 1);
+    mon.stop();
   });
 
   test('带 Cookie 启动：首次进房不可用、重试成功则继续启动', async () => {
@@ -690,7 +773,7 @@ describe('douyin monitor CDP 链路', () => {
     );
     const status = await mon.start({
       url: 'https://live.douyin.com/167773402498',
-      cookie: 'sessionid=s; uid_tt=123'
+      cookie: 'sessionid=s; uid_tt=123',
     });
     assert.ok(calls >= 2, '空响应应重试一次');
     assert.equal(status.listening, true);

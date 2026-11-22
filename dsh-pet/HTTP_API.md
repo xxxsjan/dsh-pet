@@ -431,7 +431,7 @@ X-Blue-Fish-Token: <token>
 
 ## 抖音弹幕监听
 
-前缀 `/blue-fish/danmaku/douyin`。主路径是桌面 Helper 开一个隐藏内嵌窗加载直播间、用 CDP 旁听弹幕 WebSocket 帧（不自己签名、不发心跳）；拿不到 CDP 桥时回退旧的本机签名桥直连 WSS。Cookie 只由前端手动粘贴；不填时内嵌窗会弹出供扫码登录，登录态留在该窗自己的持久分区。没有 Helper（例如纯 CLI 独立模式）且无桥可用时 `start` 会失败并回 `internal-error`。这些端点不接收 `?pet=` / `?surface=`，回复/答谢对象由宿主按活跃会话自动选择。
+前缀 `/blue-fish/danmaku/douyin`。监听只使用桌面 Helper 开启的内嵌窗，通过 CDP 旁听弹幕 WebSocket 帧；宿主不直接连接 WSS，也不自行签名或发送心跳。Cookie 只由前端手动粘贴；不填时内嵌窗会弹出供扫码登录，登录态留在该窗自己的持久分区。没有可用 CDP 桥时（例如纯 CLI 独立模式）`start` 会失败并回 `internal-error`。这些端点不接收 `?pet=` / `?surface=`，回复/答谢对象由宿主按活跃会话自动选择。
 
 ### GET `/danmaku/douyin/status`
 
@@ -467,7 +467,7 @@ GET http://127.0.0.1:3080/blue-fish/danmaku/douyin/status
 }
 ```
 
-`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `direct`（旧直连回退）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。`interrupted` 为 `true` 表示疑似被其他设备挤下线：弹幕 WS 断开、恢复窗口内没有新帧且房间仍在播；控制页据此弹窗询问是否重连，收到新帧或重新 `start` 后恢复 `false`。
+`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。`interrupted` 为 `true` 表示疑似被其他设备挤下线：CDP 观察到弹幕 WS 断开、恢复窗口内没有新帧且房间仍在播；控制页据此弹窗询问是否重新开始，收到新帧或重新 `start` 后恢复 `false`。
 
 ### POST `/danmaku/douyin/start`
 
@@ -493,7 +493,7 @@ X-Blue-Fish-Token: <token>
 | `replyChat` | boolean | 否 | 把弹幕交给宠物对话（缺省 `false`） |
 | `thankGift` | boolean | 否 | 把礼物答谢交给宠物对话（缺省 `false`） |
 
-成功 `200` 回 `{ ok: true, ...status }`（字段同 `/status`）；失败 `200` + `ok:false`，`reason` 为 `bad-request`（缺 `url`）或 `internal-error`（连接失败 / 无签名桥）。连接是异步的：`start` 返回时未必已连上，以随后 `GET /status` 的 `listening` / `lastError` 为准。
+成功 `200` 回 `{ ok: true, ...status }`（字段同 `/status`）；失败 `200` + `ok:false`，`reason` 为 `bad-request`（缺 `url`）或 `internal-error`（连接失败 / 无可用 CDP 桥）。`start` 返回后以 `GET /status` 的 `listening` / `lastError` 为准。
 
 ### POST `/danmaku/douyin/options`
 

@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import {
   giftIconProxyPath,
   giftIconUrlMapJson,
+  resolveDouyinGiftImageUrl,
   resolveGiftIconUrl,
 } from './live-gift-icon.ts';
 import { consoleScript } from './console-page.ts';
@@ -52,6 +53,14 @@ test('代理路径：同源、参数编码、未收录为空', () => {
   assert.equal(giftIconProxyPath('douyin', '神秘礼物'), '');
 });
 
+test('抖音动态礼物图片只允许官方礼物 CDN 路径', () => {
+  const url = 'https://p3-webcast.douyinpic.com/img/webcast/gift.png~tplv-obj.png';
+  assert.equal(resolveDouyinGiftImageUrl(url), url);
+  assert.equal(resolveDouyinGiftImageUrl('http://p3-webcast.douyinpic.com/img/webcast/gift.png'), '');
+  assert.equal(resolveDouyinGiftImageUrl('https://example.com/img/webcast/gift.png'), '');
+  assert.equal(resolveDouyinGiftImageUrl('https://p3-webcast.douyinpic.com/other/gift.png'), '');
+});
+
 test('页面注入的映射：标准名与别名都在，且只指向同源代理', () => {
   const map = JSON.parse(giftIconUrlMapJson()) as Record<string, string>;
   assert.ok(Object.keys(map).length > 20, '至少覆盖三个平台的常见礼物');
@@ -68,7 +77,9 @@ test('控制台脚本接线：注入映射表，四个平台的礼物行都按�
   for (const platform of ['douyin', 'xiaohongshu', 'kuaishou', 'bilibili']) {
     assert.match(
       consoleScript,
-      new RegExp(`row\\.appendChild\\(dmGiftTile\\(item\\.text, '${platform}'\\)\\)`),
+      new RegExp(
+        `bodyBox\\.appendChild\\(dmGiftTile\\(item\\.text, '${platform}'${platform === 'douyin' ? ', item\\.giftImageUrl' : ''}\\)\\)`,
+      ),
       `${platform} 礼物行应把礼物名交给礼物托`,
     );
   }

@@ -126,6 +126,33 @@ export function resolveGiftIconUrl(platform: string, name: unknown): string {
 }
 
 /**
+ * 校验抖音礼物帧携带的官方图片地址，限制到礼物图片 CDN 路径，避免把代理变成任意 URL 抓取器。
+ *
+ * @param value - 抖音礼物结构中的图片地址。
+ * @returns 安全的 HTTPS 图片地址；非抖音 CDN 礼物地址返回空串。
+ */
+export function resolveDouyinGiftImageUrl(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw.length > 2048) return '';
+  try {
+    const url = new URL(raw);
+    if (
+      url.protocol !== 'https:' ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !/^p\d+-webcast\.douyinpic\.com$/i.test(url.hostname) ||
+      !url.pathname.startsWith('/img/webcast/')
+    ) {
+      return '';
+    }
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * 页面用的同源取图地址；未收录返回空串。
  *
  * @param platform - 平台标识。
@@ -181,10 +208,19 @@ const CACHE_LIMIT = 120;
  * @param name - 礼物名。
  * @returns 命中且取图成功返回图片，未收录或上游失败返回 null。
  */
-export async function loadGiftIcon(platform: string, name: unknown): Promise<GiftIconAsset | null> {
+export async function loadGiftIcon(
+  platform: string,
+  name: unknown,
+  sourceUrl?: unknown,
+): Promise<GiftIconAsset | null> {
   const key = String(platform ?? '').trim();
   if (!isPlatform(key)) return null;
-  const url = resolveGiftIconUrl(key, name);
+  const rawSourceUrl = String(sourceUrl ?? '').trim();
+  const url = rawSourceUrl
+    ? key === 'douyin'
+      ? resolveDouyinGiftImageUrl(rawSourceUrl)
+      : ''
+    : resolveGiftIconUrl(key, name);
   if (!url) return null;
   const cached = iconCache.get(url);
   if (cached) return cached;

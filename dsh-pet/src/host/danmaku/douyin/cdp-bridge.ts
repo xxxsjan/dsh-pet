@@ -1,8 +1,8 @@
 /**
  * 抖音 CDP 旁听桥的宿主侧接缝。
  *
- * 同进程应用模式下，Helper 在 globalThis 上挂控制器（见 runtime/electron-helper/main/douyin-cdp.js）；
- * 子进程（插件 / CLI）形态的 HTTP/WS 回传通道暂未接，此时返回 undefined，monitor 回退旧直连链路。
+ * 同进程应用模式下，Helper 在 globalThis 上挂控制器（见 runtime/electron-helper/main/douyin-cdp.js）。
+ * 其它运行形态暂未接入回传通道，返回 undefined；monitor 会明确拒绝启动而不尝试后端直连。
  * @module dsh-pet/src/host/danmaku/douyin/cdp-bridge
  */
 

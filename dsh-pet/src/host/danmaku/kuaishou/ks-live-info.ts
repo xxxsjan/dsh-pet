@@ -63,6 +63,16 @@ export function normalizeKsRoomUrl(url: string): string {
   return `https://${trimmed}`;
 }
 
+function retryUrl(roomUrl: string): string {
+  try {
+    const url = new URL(roomUrl);
+    url.searchParams.set('_ks_guest_retry', String(Date.now()).slice(-8));
+    return url.toString();
+  } catch {
+    return roomUrl;
+  }
+}
+
 /** 自维护 Cookie jar：name→value 合并；响应 Set-Cookie 覆盖旧值。 */
 export type KsCookieJar = {
   /** 合并一段 `k=v; k2=v2` 形式的 Cookie（重复键覆盖）。 */
@@ -206,14 +216,16 @@ export function extractKsEmojiPanel(body: string): Record<string, string> {
 
 /** 从页面 HTML / 注入 JSON 提取 liveStreamId。 */
 export function extractKsLiveStreamId(body: string): string {
+  const normalized = String(body || '').replace(/\\(["'])/g, '$1');
   const patterns = [
+    /["\\]liveStreamId["\\]\s*:\s*["\\]?([A-Za-z0-9_-]{6,})["\\]?/,
     /"liveStreamId"\s*:\s*"([A-Za-z0-9_-]+)"/,
     /"liveStream"\s*:\s*\{[^{}]{0,800}?"id"\s*:\s*"([A-Za-z0-9_-]+)"/,
     /liveStreamId=([A-Za-z0-9_-]+)/,
-    /"id"\s*:\s*"([A-Za-z0-9_-]{6,})"\s*,\s*"liveStreamId"/,
+    /(?:"|\\")streamId(?:"|\\")\s*:\s*(?:"|\\")([A-Za-z0-9_-]{6,})(?:"|\\")/,
   ];
   for (const re of patterns) {
-    const cap = re.exec(body)?.[1]?.trim();
+    const cap = re.exec(normalized)?.[1]?.trim();
     if (cap && cap !== 'null') return cap;
   }
   return '';
@@ -301,20 +313,33 @@ export async function resolveKsWsInfo(
     /* 预热失败不阻断，继续拉直播间页 */
   }
 
-  const pageResp = await fetchFn(roomUrl, {
+  const pageInit = (retry = false): ProxyFetchInit => ({
     method: 'GET',
-    headers: pageHeaders(jar.header(), 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+    headers: {
+      ...pageHeaders(jar.header(), 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+      'Cache-Control': retry ? 'no-cache' : 'max-age=0',
+    },
   });
+  let pageResp = await fetchFn(retryUrl(roomUrl), pageInit(false));
   jar.applySetCookie(pageResp.headers.getSetCookie?.() ?? pageResp.headers.get('set-cookie'));
-  const body = await pageResp.text();
+  let body = await pageResp.text();
 
   if (!pageResp.ok) throw new Error(`打开直播间失败 HTTP ${pageResp.status}`);
-  if (body.includes('captcha') && body.length < 30_000) {
-    throw new Error('快手要求验证：请用浏览器打开直播间完成验证后，复制 Cookie 粘贴到面板再试');
+  let rateLimit = extractKsRateLimit(body);
+  if (rateLimit && !cleaned) {
+    // 匿名访客也会偶发一次限流。短重试一次并重拿页面 Set-Cookie，不把它误报成缺 Cookie。
+    await Promise.resolve();
+    pageResp = await fetchFn(retryUrl(roomUrl), pageInit(true));
+    jar.applySetCookie(pageResp.headers.getSetCookie?.() ?? pageResp.headers.get('set-cookie'));
+    body = await pageResp.text();
+    rateLimit = extractKsRateLimit(body);
   }
-  const rateLimit = extractKsRateLimit(body);
+  if (!pageResp.ok) throw new Error(`打开直播间失败 HTTP ${pageResp.status}`);
+  if (body.includes('captcha') && body.length < 30_000) {
+    throw new Error('快手要求验证：请用浏览器打开直播间完成验证或登录后再试；若仍失败，可复制登录 Cookie 后重试');
+  }
   if (rateLimit) {
-    throw new Error(`快手限流：${rateLimit}（稍等几分钟再点开始监听，别连续重试）`);
+    throw new Error(`快手限流：${rateLimit}（无 Cookie 时也可能触发，请稍等几分钟再点开始监听，别连续重试）`);
   }
 
   const title = extractKsTitle(body);
@@ -326,7 +351,7 @@ export async function resolveKsWsInfo(
 
   const liveStreamId = extractKsLiveStreamId(body);
   if (!liveStreamId) {
-    if (!cleaned) throw new Error('未解析到 liveStreamId（可能未开播或需要登录 Cookie）');
+    if (!cleaned) throw new Error('未解析到 liveStreamId（主播可能未开播、链接无效，或快手暂时拦截了匿名访问；稍后重试或粘贴登录 Cookie）');
     if (!cookieHasKsLogin(cleaned)) {
       throw new Error('未解析到 liveStreamId：Cookie 缺少登录会话（需 userId + passToken/web_st/webday7_st）');
     }
@@ -337,7 +362,7 @@ export async function resolveKsWsInfo(
   const infoJson = await getJson(infoUrl, jar, fetchFn);
   const parsed = parseKsWebsocketInfo(infoJson);
   if (!parsed) {
-    if (!cleaned) throw new Error('未拿到进房 token：直连需粘贴登录 Cookie（含 userId + passToken/webday7_st）');
+    if (!cleaned) throw new Error('未拿到进房 token（快手可能拦截了匿名访问或直播会话已失效；稍后重试，或粘贴登录 Cookie 后再试）');
     if (!cookieHasKsLogin(cleaned)) {
       throw new Error('未拿到进房 token：Cookie 不像已登录态（需 userId + passToken/web_st/webday7_st）');
     }

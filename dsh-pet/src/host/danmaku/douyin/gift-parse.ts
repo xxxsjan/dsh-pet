@@ -16,6 +16,7 @@ export type DyGiftItem = {
   nick: string;
   giftName: string;
   giftId: string;
+  giftImageUrl: string;
   count: number;
   /** 连击定稿标记；轻礼物恒为 1。 */
   repeatEnd: number;
@@ -23,6 +24,9 @@ export type DyGiftItem = {
   combo: boolean;
   groupId: string;
 };
+
+type GiftImage = { urlListList?: string[]; uri?: string };
+type GiftVisual = { image?: GiftImage; icon?: GiftImage };
 
 /**
  * 单次礼物件数上限：真人连击/组刷远低于此值，
@@ -72,6 +76,16 @@ function nameFromDescribe(describe: unknown): string {
     .trim();
 }
 
+/** protobuf 会显式携带 group_id=0；0 不是有效连击组，不能拿它合并所有礼物。 */
+function parseGroupId(value: unknown): string {
+  const groupId = String(value ?? '').trim();
+  return /^0+$/.test(groupId) ? '' : groupId;
+}
+
+function readGiftImageUrl(gift: GiftVisual): string {
+  return String(gift.image?.urlListList?.[0] || gift.image?.uri || gift.icon?.urlListList?.[0] || gift.icon?.uri || '');
+}
+
 /**
  * 解 `WebcastGiftMessage`（正常礼物，带送礼人 User 与连击信息）。
  */
@@ -83,7 +97,15 @@ export function parseGiftMessage(payload: Uint8Array): DyGiftItem {
     repeatEnd?: unknown;
     groupId?: unknown;
     user?: { nickName?: string };
-    gift?: { name?: string; describe?: string; combo?: boolean; type?: number; id?: unknown };
+    gift?: {
+      name?: string;
+      describe?: string;
+      combo?: boolean;
+      type?: number;
+      id?: unknown;
+      image?: GiftImage;
+      icon?: GiftImage;
+    };
   };
   const nick = String(giftMsg.user?.nickName || '').trim() || '匿名';
   const giftObj = giftMsg.gift || {};
@@ -91,20 +113,23 @@ export function parseGiftMessage(payload: Uint8Array): DyGiftItem {
   if (!giftName) giftName = nameFromDescribe(giftObj.describe);
   const giftId = String(giftMsg.giftId ?? giftObj.id ?? '').trim();
   if (!giftName) giftName = giftId ? `礼物#${giftId}` : '礼物';
-  // combo_count 是本次连击累计，repeat_count 是本段件数；先取 combo 再退 repeat。
-  const count = safeCount(giftMsg.comboCount) || safeCount(giftMsg.repeatCount) || 1;
+  // 两个字段可能分别表示连击累计与本段件数：取较大且可信值，避免只取较小字段低估连击。
+  const comboCount = safeCount(giftMsg.comboCount);
+  const repeatCount = safeCount(giftMsg.repeatCount);
+  const count = Math.max(comboCount, repeatCount, 1);
   const repeatEnd = numish(giftMsg.repeatEnd, 0);
   const giftType = numish(giftObj.type, 0);
-  const combo = !!giftObj.combo || giftType === 1;
+  const combo = !!giftObj.combo || giftType === 1 || comboCount > 1 || repeatCount > 1;
   return {
     source: 'gift',
     nick,
     giftName,
     giftId,
+    giftImageUrl: readGiftImageUrl(giftObj),
     count,
     repeatEnd,
     combo,
-    groupId: String(giftMsg.groupId ?? '').trim(),
+    groupId: parseGroupId(giftMsg.groupId),
   };
 }
 
@@ -119,20 +144,27 @@ export function parseLightGiftMessage(payload: Uint8Array): DyGiftItem {
     comboCount?: unknown;
     count?: unknown;
     giftInfo?: { giftId?: unknown };
-    giftStruct?: { name?: string; describe?: string; id?: unknown };
+    giftStruct?: {
+      name?: string;
+      describe?: string;
+      id?: unknown;
+      image?: GiftImage;
+      icon?: GiftImage;
+    };
   };
   const giftObj = m.giftStruct || {};
   let giftName = String(giftObj.name || '').trim();
   if (!giftName) giftName = nameFromDescribe(giftObj.describe);
   const giftId = String(m.giftInfo?.giftId ?? giftObj.id ?? '').trim();
   if (!giftName) giftName = giftId ? `礼物#${giftId}` : '礼物';
-  // count 是总件数；退 repeat_count，再退 group_count（原 schema 里错位成 giftId 的那个字段）。
-  const count = safeCount(m.count) || safeCount(m.repeatCount) || safeCount(m.groupCount) || 1;
+  // 多个字段可能分别表示总数、段数或分组数；取可靠最大值，避免低估轻礼物件数。
+  const count = Math.max(safeCount(m.count), safeCount(m.repeatCount), safeCount(m.groupCount), 1);
   return {
     source: 'light',
     nick: LIGHT_GIFT_NICK,
     giftName,
     giftId,
+    giftImageUrl: readGiftImageUrl(giftObj),
     count,
     repeatEnd: 1,
     combo: false,

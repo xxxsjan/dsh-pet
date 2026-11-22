@@ -63,6 +63,11 @@ describe('快手 URL 归一化', () => {
     assert.equal(extractKsPrincipalId('https://live.kuaishou.com/u/abc_123/'), 'abc_123');
     assert.equal(extractKsPrincipalId('https://live.kuaishou.com/r/999'), '');
   });
+
+  test('无 Cookie 页面内的 liveStreamId 也能提取', () => {
+    assert.equal(extractKsLiveStreamId('{"liveStreamId":"stream_123456"}'), 'stream_123456');
+    assert.equal(extractKsLiveStreamId('{\\"liveStreamId\\":\\"stream_654321\\"}'), 'stream_654321');
+  });
 });
 
 describe('快手页面限流识别', () => {

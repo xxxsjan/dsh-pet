@@ -29,12 +29,17 @@ describe('抖音轻礼物解码', () => {
         toUserId: TO_USER_ID,
         sendType: 0,
         giftInfo: { giftId: 2001, diamondCount: 0 },
-        giftStruct: { name: '小心心', combo: false },
+        giftStruct: {
+          name: '小心心',
+          combo: false,
+          image: { urlListList: ['https://p3-webcast.douyinpic.com/img/webcast/gift.png'] },
+        },
       }),
     );
     assert.equal(item.source, 'light');
     assert.equal(item.giftName, '小心心', '礼物名应来自 gift_struct（字段 13）');
     assert.equal(item.giftId, '2001', '礼物 ID 应来自 gift_info.gift_id（字段 1）');
+    assert.equal(item.giftImageUrl, 'https://p3-webcast.douyinpic.com/img/webcast/gift.png');
     assert.equal(item.count, 1, '件数应来自 count（字段 10），而不是 to_user_id');
     assert.equal(item.nick, LIGHT_GIFT_NICK, '轻礼物没有送礼人，用占位昵称');
     assert.equal(item.combo, false);
@@ -80,10 +85,13 @@ describe('抖音正常礼物解码', () => {
     assert.equal(item.groupId, '99');
   });
 
+  test('combo_count 与 repeat_count 不一致时取较大可靠件数', () => {
+    const item = parseGiftMessage(encodeGift({ giftId: 762, repeatCount: 5, comboCount: 1, gift: { name: '大啤酒' } }));
+    assert.equal(item.count, 5, '不应只取较小的 combo_count 低估连击');
+  });
+
   test('超大「件数」不采信：字段错位/精度丢失时兜底 1', () => {
-    const item = parseGiftMessage(
-      encodeGift({ giftId: 762, repeatCount: TO_USER_ID, gift: { name: '大啤酒' } }),
-    );
+    const item = parseGiftMessage(encodeGift({ giftId: 762, repeatCount: TO_USER_ID, gift: { name: '大啤酒' } }));
     assert.equal(item.count, 1, '超出可信范围的件数应按 1 处理');
   });
 
@@ -91,5 +99,17 @@ describe('抖音正常礼物解码', () => {
     const item = parseGiftMessage(encodeGift({ giftId: 762, repeatCount: 1 }));
     assert.equal(item.nick, '匿名');
     assert.equal(item.giftName, '礼物#762');
+  });
+
+  test('礼物标记缺失但件数已增长时仍识别为可连击', () => {
+    const item = parseGiftMessage(encodeGift({ giftId: 762, repeatCount: 5, comboCount: 5, gift: { name: '大啤酒' } }));
+    assert.equal(item.combo, true);
+  });
+
+  test('显式 group_id=0 视为无连击组，避免不同礼物被错误合并', () => {
+    const encoded = encodeGift({ giftId: 762, repeatCount: 1 });
+    const payload = new Uint8Array([...encoded, 0x58, 0x00]);
+    const item = parseGiftMessage(payload);
+    assert.equal(item.groupId, '');
   });
 });

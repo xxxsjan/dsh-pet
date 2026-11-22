@@ -1,36 +1,23 @@
 /**
- * 抖音弹幕监听器：进房 → 签名桥 → WSS → 打日志；可选把弹幕/礼物交给活跃宠物 /chat。
+ * 抖音弹幕监听器：通过桌面 Helper 的 CDP 旁听接收帧；可选把弹幕/礼物交给活跃宠物 /chat。
  *
  * @module dsh-pet/src/host/danmaku/douyin/monitor
  */
 import { inflate } from 'pako';
 import { brotliDecompressSync } from 'node:zlib';
-import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
 import {
-  DY_UA,
   DyLivenessUnknownError,
   DyRoomOfflineError,
   checkDyCookie,
   checkDyCookieShape,
   fetchDyLiveInfo,
-  normalizeDyCookieHeader,
   type DyCookieCheckReason,
   type DyLiveInfo,
 } from './live-info.ts';
-import {
-  ChatMessage,
-  ControlMessage,
-  DyResponse,
-  LikeMessage,
-  PushFrame,
-  RoomUserSeqMessage,
-  encodeAck,
-  encodeHeartbeat,
-} from './proto.ts';
+import { ChatMessage, ControlMessage, DyResponse, LikeMessage, PushFrame, RoomUserSeqMessage } from './proto.ts';
 import { numish, parseGiftMessage, parseLightGiftMessage } from './gift-parse.ts';
-import { readInProcessSignBaseUrl, requestDySignature } from './sign-client.ts';
 import type { DouyinCdpBridge } from './cdp-bridge.ts';
 
 /** 启动参数。 */
@@ -60,6 +47,8 @@ export type DouyinFeedItem = {
   text: string;
   /** 礼物件数；聊天为 0。 */
   count: number;
+  /** 抖音礼物官方图地址；仅供本机白名单图片代理使用。 */
+  giftImageUrl?: string;
 };
 
 /** 对外状态快照。 */
@@ -80,8 +69,8 @@ export type DouyinMonitorStatus = {
   startedAt: number | null;
   replyChat: boolean;
   thankGift: boolean;
-  /** 当前链路：cdp = 内嵌窗旁听；direct = 旧直连 WSS（回退）；idle = 未启动。 */
-  mode: 'cdp' | 'direct' | 'idle';
+  /** 当前链路：cdp = 内嵌窗旁听；idle = 未启动。 */
+  mode: 'cdp' | 'idle';
   /** CDP 内嵌窗当前是否可见（扫码登录时为 true）。 */
   cdpVisible: boolean;
   /** CDP 分区内是否已检测到登录态。 */
@@ -104,10 +93,8 @@ export type DouyinChatFn = (
 /** createDouyinMonitor 依赖。 */
 export type DouyinMonitorDeps = {
   log: LoggerLike;
-  /** 解析签名桥基址；缺省时再读同进程 globalThis。 */
-  getSignBaseUrl: () => string | undefined;
-  /** 取进程内 CDP 旁听桥控制器；返回 undefined 时回退旧直连链路。 */
-  getCdpBridge?: () => DouyinCdpBridge | undefined;
+  /** 取进程内 CDP 旁听桥控制器；缺失时 start() 明确失败，不回退后端直连。 */
+  getCdpBridge: () => DouyinCdpBridge | undefined;
   /** 活跃宠物；空串时回落 main。 */
   resolvePetId: () => string;
   /** 把一条用户文本交给宠物对话。 */
@@ -122,49 +109,6 @@ export type DouyinMonitorDeps = {
   interruptGraceMs?: number;
 };
 
-function parseCookieMap(cookieStr: string): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const part of String(cookieStr || '').split(/[;\n\r]+/)) {
-    const p = part.trim();
-    if (!p) continue;
-    const i = p.indexOf('=');
-    if (i <= 0) continue;
-    map.set(p.slice(0, i).trim(), p.slice(i + 1).trim());
-  }
-  return map;
-}
-
-function cookieMapToHeader(map: Map<string, string>): string {
-  return [...map.entries()].map(([k, v]) => `${k}=${v}`).join('; ');
-}
-
-function buildWsUrl(roomId: string, userUniqueId: string, signature: string): string {
-  const sdkVer = '1.0.15.0';
-  const now = Date.now();
-  const uaEnc = encodeURIComponent(
-    '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  );
-  return (
-    `wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/` +
-    `?app_name=douyin_web&version_code=180800&webcast_sdk_version=${sdkVer}` +
-    `&update_version_code=${sdkVer}&compress=gzip&device_platform=web` +
-    `&cookie_enabled=true&screen_width=1920&screen_height=1080` +
-    `&browser_language=zh-CN&browser_platform=Win32&browser_name=Mozilla` +
-    `&browser_version=${uaEnc}&browser_online=true&tz_name=Asia/Shanghai` +
-    `&cursor=d-1_u-1_fh-0_t-${now}_r-1` +
-    `&internal_ext=${encodeURIComponent(
-      `internal_src:dim|wss_push_room_id:${roomId}|wss_push_did:${userUniqueId}|first_req_ms:${now}|fetch_time:${now}|seq:1|wss_info:0-${now}-0-0|wrds_v:0`,
-    )}` +
-    `&host=https://live.douyin.com&aid=6383&live_id=1&did_rule=3` +
-    `&endpoint=live_pc&support_wrds=1&user_unique_id=${userUniqueId}` +
-    `&im_path=/webcast/im/fetch/&identity=audience&need_persist_msg_count=0` +
-    `&insert_task_id=&live_reason=&room_id=${roomId}&heartbeatDuration=0` +
-    `&signature=${signature}`
-  );
-}
-
-/** 断线重连退避：2s → 5s → 15s → 30s；用完仍起不来就判定下播，不再无限重连。 */
-const RECONNECT_DELAYS = [2000, 5000, 15000, 30_000];
 /** 静默探活：多久没有业务帧才去查房间是否还在播（CDP 旁听收不到页面内 WS 的 close）。 */
 const IDLE_PROBE_SILENT_MS = 180_000;
 /** 静默探活的检查间隔。 */
@@ -184,14 +128,10 @@ const INTERRUPT_MESSAGE = '弹幕连接已中断：可能该账号已在其他�
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createDouyinMonitor(deps: DouyinMonitorDeps) {
-  const { log, getSignBaseUrl, getCdpBridge, resolvePetId, chatWithPet, cancelVoice, onEnded } = deps;
+  const { log, getCdpBridge, resolvePetId, chatWithPet, cancelVoice, onEnded } = deps;
   const fetchLiveInfo = deps.fetchLiveInfo ?? fetchDyLiveInfo;
 
   let listening = false;
-  let connecting = false;
-  let ws: WebSocket | null = null;
-  let hbTimer: ReturnType<typeof setInterval> | null = null;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let wantListen = false;
   let chatCount = 0;
   let giftCount = 0;
@@ -204,6 +144,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   /** 在线观众人数；-1 表示本场还没收到统计帧。 */
   let viewerCount = -1;
   let feedSeq = 0;
+  let giftFallbackSeq = 0;
   let lastError = '';
   let startedAt: number | null = null;
   let currentUrl = '';
@@ -212,13 +153,13 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let thankGift = false;
   let info: DyLiveInfo | null = null;
   /** 当前链路模式。 */
-  let mode: 'cdp' | 'direct' | 'idle' = 'idle';
-  /** CDP 桥实例与订阅回退集合。 */
+  let mode: 'cdp' | 'idle' = 'idle';
+  /** CDP 桥实例与订阅清理集合。 */
   let cdp: DouyinCdpBridge | null = null;
   let cdpUnsubs: Array<() => void> = [];
   let cdpVisible = false;
   let cdpLoggedIn = false;
-  /** CDP 旁听不做签名进房，标题/主播由内嵌页 RENDER_DATA 补（直连路径仍用 info）。 */
+  /** 标题/主播优先由内嵌页 RENDER_DATA 补，接口探活结果作为兜底。 */
   let cdpMeta = { title: '', anchor: '' };
   const recentKeys = new Map<string, number>();
   /**
@@ -246,13 +187,11 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let interruptTimer: ReturnType<typeof setTimeout> | null = null;
   /** 最近一帧业务帧的时间；用于长时间静默后的探活。 */
   let lastFrameAt = 0;
-  /** 当前连续重连次数；连上或探活确认在播即清零。 */
-  let reconnectAttempts = 0;
   /** 静默探活定时器（每个监听周期最多一个）。 */
   let idleProbeTimer: ReturnType<typeof setInterval> | null = null;
 
   /** 追加一条互动消息；返回落地的条目，礼物连击后续帧据此原地抬高件数。 */
-  function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): DouyinFeedItem {
+  function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0, giftImageUrl = ''): DouyinFeedItem {
     feedSeq += 1;
     const item: DouyinFeedItem = {
       id: feedSeq,
@@ -261,6 +200,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       nick,
       text,
       count: kind === 'gift' ? Math.max(1, count) : 0,
+      ...(giftImageUrl ? { giftImageUrl } : {}),
     };
     recentFeed.push(item);
     while (recentFeed.length > FEED_MAX) recentFeed.shift();
@@ -282,18 +222,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   /** 新一场/停听：清空礼物组与解码样本，避免跨场串数据；已展示的 feed 保留。 */
   function clearGiftSessions(): void {
     giftSessions.clear();
+    giftFallbackSeq = 0;
     seenMethods.clear();
     decodeFailures.clear();
-  }
-
-  function clearHb(): void {
-    if (hbTimer) clearInterval(hbTimer);
-    hbTimer = null;
-  }
-
-  function clearReconnect(): void {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    reconnectTimer = null;
   }
 
   function clearIdleProbe(): void {
@@ -330,15 +261,15 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
         if (!wantListen || ended || interrupted) return;
         interrupted = true;
         lastError = INTERRUPT_MESSAGE;
-        log.warn?.(`[blue-fish][douyin] interrupted: no frames ${grace}ms after ws closed, room living`);
+        log.warn?.(`[blue-fish][douyin] interrupted: no frames ${grace}ms after push ws closed, room living`);
       })().catch((e) => noteError(e));
     }, grace);
     interruptTimer.unref?.();
   }
 
   /**
-   * 主播下播：停听 + 标记 ended，不再重连。
-   * 三个触发点：控制帧 status=3、重连/静默探活拿到「主播未开播」、退避重连次数耗尽。
+   * 主播下播：停听 + 标记 ended。
+   * 两个触发点：控制帧 status=3、静默探活拿到「主播未开播」。
    */
   function markEnded(reason: string): void {
     // 同一次收听里重复的下播帧 / 再次探活：状态照旧刷新，但不重复回调宿主。
@@ -347,13 +278,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     ended = true;
     listening = false;
     mode = 'idle';
-    clearReconnect();
     clearIdleProbe();
-    clearHb();
     clearInterrupt();
-    teardownSocket();
     clearCdp();
-    reconnectAttempts = 0;
     if (pendingChats.length) {
       log.info?.(`[blue-fish][douyin] ended: clear chat queue dropped=${pendingChats.length}`);
       pendingChats.length = 0;
@@ -370,14 +297,13 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   }
 
   /**
-   * 探活：能进房 = 在播；抛「主播未开播」= 已下播（直接 markEnded）；其它错误（风控 / 网络）当未知，继续重连。
-   * 返回 false 表示调用方不要再连。
+   * 探活：能进房 = 在播；抛「主播未开播」= 已下播（直接 markEnded）；其它错误（风控 / 网络）当未知。
+   * 返回 false 表示监听应结束。
    */
   async function probeRoomLiving(): Promise<boolean> {
     if (!wantListen || ended) return false;
     try {
       await probeLive(currentUrl, currentCookie);
-      reconnectAttempts = 0;
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -398,7 +324,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     clearIdleProbe();
     if (typeof setInterval !== 'function') return;
     idleProbeTimer = setInterval(() => {
-      if (!wantListen || ended || connecting) return;
+      if (!wantListen || ended) return;
       if (Date.now() - lastFrameAt < IDLE_PROBE_SILENT_MS) return;
       void (async () => {
         // 探到还在播：重置静默窗口，避免每隔 90s 就请求一次房间接口。
@@ -406,19 +332,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       })().catch((e) => noteError(e));
     }, IDLE_PROBE_TICK_MS);
     idleProbeTimer.unref?.();
-  }
-
-  function teardownSocket(): void {
-    clearHb();
-    const cur = ws;
-    ws = null;
-    if (!cur) return;
-    try {
-      cur.removeAllListeners();
-      cur.close();
-    } catch {
-      /* ignore */
-    }
   }
 
   function clearCdp(): void {
@@ -481,6 +394,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     void fetchLiveInfo(currentUrl, currentCookie)
       .then((meta) => {
         if (mode !== 'cdp') return;
+        info = meta;
         cdpMeta = {
           title: String(meta.title || '').trim() || cdpMeta.title,
           anchor: String(meta.anchor || '').trim() || cdpMeta.anchor,
@@ -571,119 +485,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     }
   }
 
-  function scheduleReconnect(reason: string): void {
-    if (!wantListen || reconnectTimer || ended) return;
-    noteError(reason);
-    if (reconnectAttempts >= RECONNECT_DELAYS.length) {
-      markEnded('重连多次失败，已停止监听');
-      return;
-    }
-    const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length - 1)] ?? 2000;
-    reconnectAttempts += 1;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      if (!wantListen) return;
-      void (async () => {
-        // 重连前先确认房间还在播：下播后无限重连没有任何意义。
-        if (!(await probeRoomLiving())) return;
-        await connect();
-      })().catch((e) => {
-        noteError(e);
-        scheduleReconnect('reconnect failed');
-      });
-    }, delay);
-    reconnectTimer.unref?.();
-  }
-
-  async function connect(): Promise<void> {
-    if (connecting) return;
-    connecting = true;
-    try {
-      teardownSocket();
-      const signBase = getSignBaseUrl() || readInProcessSignBaseUrl();
-      if (!signBase) {
-        throw new Error('签名桥未就绪：需要桌面 Helper 在跑（应用模式或桌面宠物已启动）');
-      }
-
-      info = await fetchDyLiveInfo(currentUrl, currentCookie);
-      const signature = await requestDySignature(signBase, info.roomId, info.uniqueId);
-      const wsUrl = buildWsUrl(info.roomId, info.uniqueId, signature);
-
-      const cookieMap = parseCookieMap(info.cookie);
-      cookieMap.set('ttwid', info.ttwid);
-      if (!cookieMap.has('__live_version__')) cookieMap.set('__live_version__', '%221.1.4.7838%22');
-      if (!cookieMap.has('live_use_vvc')) cookieMap.set('live_use_vvc', '%22false%22');
-      for (const [k, v] of parseCookieMap(normalizeDyCookieHeader(currentCookie))) {
-        cookieMap.set(k, v);
-      }
-      if (!cookieMap.get('ttwid')) cookieMap.set('ttwid', info.ttwid);
-
-      log.info?.(
-        `[blue-fish][douyin] connect room=${info.roomId} title=${info.title || '-'} anchor=${info.anchor || '-'} replyChat=${replyChat} thankGift=${thankGift}`,
-      );
-
-      const socket = new WebSocket(wsUrl, {
-        headers: {
-          cookie: cookieMapToHeader(cookieMap),
-          'user-agent': DY_UA,
-          origin: 'https://live.douyin.com',
-          referer: 'https://live.douyin.com/',
-        },
-        perMessageDeflate: false,
-      });
-      ws = socket;
-
-      await new Promise<void>((resolve, reject) => {
-        const onOpen = () => {
-          cleanup();
-          resolve();
-        };
-        const onError = (err: Error) => {
-          cleanup();
-          reject(err);
-        };
-        const cleanup = () => {
-          socket.off('open', onOpen);
-          socket.off('error', onError);
-        };
-        socket.once('open', onOpen);
-        socket.once('error', onError);
-      });
-
-      listening = true;
-      mode = 'direct';
-      lastError = '';
-      reconnectAttempts = 0;
-      if (!startedAt) startedAt = Date.now();
-
-      hbTimer = setInterval(() => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        try {
-          ws.send(encodeHeartbeat());
-        } catch {
-          scheduleReconnect('heartbeat send failed');
-        }
-      }, 10_000);
-      hbTimer.unref?.();
-
-      socket.on('message', (data) => {
-        void onBinary(data).catch((e) => noteError(e));
-      });
-      socket.on('close', () => {
-        ws = null;
-        clearHb();
-        listening = false;
-        scheduleInterruptProbe();
-        if (wantListen) scheduleReconnect('closed');
-      });
-      socket.on('error', (err) => {
-        noteError(err);
-      });
-    } finally {
-      connecting = false;
-    }
-  }
-
   function handleChatPayload(m: { method?: string; payload?: Uint8Array; msgId?: unknown }): void {
     if (!m.payload) return;
     const chat = ChatMessage.decode(m.payload) as {
@@ -709,19 +510,21 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     const giftName = item.giftName;
     // 同一条连击要能合并：有 groupId 用组号；没有的连击按「昵称+礼物名+8s 窗口」归并，
     // 非连击礼物一条消息一行，避免中间帧刷屏。
-    const bucket = `${item.nick}|${giftName}|${Math.floor(Date.now() / 8000)}`;
+    const bucket = `${item.nick}|${item.giftId}|${giftName}|${Math.floor(Date.now() / 8000)}`;
+    const msgId = String(m.msgId ?? '').trim();
+    const hasValidMsgId = msgId !== '' && msgId !== '0';
     const key = item.groupId
-      ? `gift:g:${item.groupId}`
+      ? `gift:g:${item.groupId}|${item.nick}|${item.giftId}`
       : item.combo
         ? `gift:c:${bucket}`
-        : `gift:m:${String(m.msgId ?? '') || bucket}`;
+        : `gift:m:${hasValidMsgId ? `${item.nick}|${item.giftId}|${msgId}` : `${item.nick}|${item.giftId}|fallback:${++giftFallbackSeq}`}`;
     const session = giftSessions.get(key);
 
     // 首帧就落地：抖音的 repeat_end=1 定稿帧不保证会到（隐藏窗 / 丢帧 / 服务端不发），
     // 等定稿会把整场礼物等丢，线上表现就是「一条礼物都没有」。
     if (!session) {
       giftCount += 1;
-      const feedItem = pushFeed('gift', item.nick, giftName, item.count);
+      const feedItem = pushFeed('gift', item.nick, giftName, item.count, item.giftImageUrl);
       giftSessions.set(key, { item: feedItem, at: Date.now() });
       pruneGiftSessions();
       log.info?.(`[blue-fish][douyin] gift nick=${item.nick} gift=${giftName} x${feedItem.count}`);
@@ -737,6 +540,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     // 同组后续帧（连击升高 / 定稿）：只把这一条的件数往上抬，不重复计数、不重复答谢。
     const finalCount = Math.max(item.count, session.item.count);
     session.at = Date.now();
+    if (!session.item.giftImageUrl && item.giftImageUrl) session.item.giftImageUrl = item.giftImageUrl;
     if (finalCount > session.item.count) {
       session.item.count = finalCount;
       log.debug?.(`[blue-fish][douyin] gift combo update nick=${item.nick} gift=${giftName} x${finalCount}`);
@@ -753,10 +557,14 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   function handleLightGiftPayload(m: { method?: string; payload?: Uint8Array; msgId?: unknown }): void {
     if (!m.payload) return;
     const item = parseLightGiftMessage(m.payload);
-    const key = `light-gift:${String(m.msgId ?? '') || `${item.giftId}|${item.count}`}`;
-    if (isDup(key)) return;
+    const msgId = String(m.msgId ?? '').trim();
+    const hasValidMsgId = msgId !== '' && msgId !== '0';
+    const key = hasValidMsgId
+      ? `light-gift:${item.giftId}|${msgId}`
+      : `light-gift:fallback:${++giftFallbackSeq}|${item.giftId}`;
+    if (hasValidMsgId && isDup(key)) return;
     giftCount += 1;
-    pushFeed('gift', item.nick, item.giftName, item.count);
+    pushFeed('gift', item.nick, item.giftName, item.count, item.giftImageUrl);
     log.info?.(`[blue-fish][douyin] light gift gift=${item.giftName} x${item.count}`);
   }
 
@@ -797,18 +605,10 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     else log.debug?.(`[blue-fish][douyin] control status=${code}`);
   }
 
-  async function onBinary(data: WebSocket.RawData): Promise<void> {
-    const buf =
-      data instanceof Buffer
-        ? new Uint8Array(data)
-        : data instanceof ArrayBuffer
-          ? new Uint8Array(data)
-          : Array.isArray(data)
-            ? Buffer.concat(data)
-            : new Uint8Array(data as Uint8Array);
+  async function onBinary(data: Uint8Array): Promise<void> {
+    const buf = data;
     const frame = PushFrame.decode(buf) as {
       payload?: Uint8Array;
-      logId?: unknown;
       payloadType?: string;
       payloadEncoding?: string;
     };
@@ -836,8 +636,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       }
     }
     const resp = DyResponse.decode(payload) as {
-      needAck?: boolean;
-      internalExt?: string;
       messagesList?: Array<{ method?: string; payload?: Uint8Array; msgId?: unknown }>;
     };
     // 只有解出合法推送帧（含心跳帧）才算链路恢复：桥会把所有 WS 的 payload 都喂进来，
@@ -845,7 +643,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     clearInterrupt();
     lastFrameAt = Date.now();
     // 每帧都打 payloadEncoding / 解压状态 / messagesList 数量——info 级别确保进日志。
-    const methods = (resp.messagesList || []).map((m) => m.method).filter(Boolean);
+    const methods = (resp.messagesList || []).flatMap((message) =>
+      typeof message.method === 'string' && message.method ? [message.method] : [],
+    );
     const methodCounter: Record<string, number> = {};
     for (const n of methods) methodCounter[n] = (methodCounter[n] || 0) + 1;
     const methodSummary = Object.entries(methodCounter)
@@ -857,14 +657,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     );
     if (decompressError) {
       log.warn?.(`[blue-fish][douyin] decompress failed err=${decompressError}`);
-    }
-    if (resp.needAck && ws && ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(encodeAck(frame.logId, resp.internalExt || ''));
-      } catch {
-        scheduleReconnect('ack send failed');
-        return;
-      }
     }
     for (const m of resp.messagesList || []) {
       try {
@@ -957,9 +749,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     } catch (e) {
       const unknown = isUnknownLiveness(e);
       if (!unknown && !isOfflineError(e)) throw e;
-      log.debug?.(
-        `[blue-fish][douyin] liveness ${unknown ? 'unknown' : 'offline'} #1: ${offlineLogText(e)}`,
-      );
+      log.debug?.(`[blue-fish][douyin] liveness ${unknown ? 'unknown' : 'offline'} #1: ${offlineLogText(e)}`);
       await new Promise((resolve) => setTimeout(resolve, OFFLINE_RETRY_DELAY_MS));
       try {
         const info = await fetchLiveInfo(url, cookie);
@@ -1018,8 +808,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
   /** 带 Cookie 启动时，校验失败原因 → 给用户看的中文文案。 */
   const COOKIE_REASON_TEXT: Record<DyCookieCheckReason, string> = {
-    'no-session':
-      'Cookie 缺少登录凭证（sessionid），这不是登录态 Cookie，请重新从已登录浏览器复制完整 Cookie',
+    'no-session': 'Cookie 缺少登录凭证（sessionid），这不是登录态 Cookie，请重新从已登录浏览器复制完整 Cookie',
     'no-server-uid': '抖音未确认登录态（进房未回显用户），请稍后重试或检查 Cookie 是否完整',
     'guest-placeholder': 'Cookie 登录态已失效（被抖音打回游客），请重新登录后复制新的 Cookie',
   };
@@ -1102,13 +891,16 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   async function start(input: DouyinMonitorStartInput): Promise<DouyinMonitorStatus> {
     const url = String(input.url || '').trim();
     if (!url) throw new Error('缺少直播间 url');
+    const bridge = getCdpBridge();
+    if (!bridge) {
+      throw new Error('抖音监听需要桌面 Helper 的 CDP 桥；当前运行环境不支持监听');
+    }
     const cookie = String(input.cookie || '');
-    const bridge = getCdpBridge?.();
     // 填了 Cookie：先严格校验登录态（进房同时确认在播），无效直接拦下；
     // 没填 Cookie：保持原有「在播探活、超时放行」的宽松行为（游客也能看纯聊天）。
-    // CDP 可用时把「进房接口不可用」降级为警告：登录态由内嵌页确认，不因风控拦死启动。
+    // 登录态由内嵌页确认；进房接口不可用时只告警，不因风控拦死 CDP 旁听。
     if (cookie.trim()) {
-      await assertCookieValid(url, cookie, { degradeUnknown: !!bridge });
+      await assertCookieValid(url, cookie, { degradeUnknown: true });
     } else {
       await assertRoomLiving(url, cookie);
     }
@@ -1119,12 +911,12 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       replyChat: input.replyChat === true,
       thankGift: input.thankGift === true,
     });
-    clearReconnect();
     clearIdleProbe();
     clearCdp();
+    info = null;
     chatCount = 0;
     giftCount = 0;
-    // 本场累计点赞只在 start() 清零；断线重连（scheduleReconnect）不清，否则数字会归零。
+    // 本场累计点赞只在 start() 清零，静默探活不影响累计值。
     likeTotal = 0;
     viewerCount = -1;
     feedSeq = 0;
@@ -1134,12 +926,16 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     lastError = '';
     ended = false;
     clearInterrupt();
-    reconnectAttempts = 0;
     lastFrameAt = Date.now();
-    if (bridge) {
+    try {
       await startCdp(bridge);
-    } else {
-      await connect();
+    } catch (e) {
+      wantListen = false;
+      listening = false;
+      mode = 'idle';
+      clearCdp();
+      noteError(e);
+      throw e;
     }
     startIdleProbe();
     return status();
@@ -1148,14 +944,11 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   function stop(): DouyinMonitorStatus {
     wantListen = false;
     ended = false;
-    reconnectAttempts = 0;
-    clearReconnect();
     clearIdleProbe();
     clearInterruptTimer();
-    // 保留 lastError：用户选择「暂不重连」后，状态行仍要能看到被挤下线的原因。
+    // 保留 lastError：用户选择「暂不重新开始」后，状态行仍能看到被挤下线的原因。
     interrupted = false;
     clearCdp();
-    teardownSocket();
     listening = false;
     mode = 'idle';
     if (pendingChats.length) {

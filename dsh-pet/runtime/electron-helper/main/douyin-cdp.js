@@ -2,9 +2,8 @@
 /**
  * 抖音弹幕 CDP 旁听桥（对齐 danmuapp 的「内嵌隐藏浏览器 + CDP 抓帧」方案）。
  *
- * 与旧「本机签名桥 + 后端直连 WSS」不同：这里不自己握手、不发心跳/ACK，而是开一个隐藏
- * BrowserWindow 加载直播间，让页面自己连弹幕 WebSocket；再用 webContents.debugger 挂 CDP，
- * 只旁听 `/webcast/im/push/` 入站帧，base64 解码后原样回给宿主半侧解码分发。
+ * 开一个隐藏 BrowserWindow 加载直播间，让页面自己连接弹幕 WebSocket；用 webContents.debugger
+ * 挂 CDP，只旁听 `/webcast/im/push/` 入站帧，base64 解码后原样回给宿主半侧解码分发。
  *
  * 登录态：
  *  - 有手填 Cookie：加载前写进独立持久分区 `persist:blue-fish-douyin`；
@@ -24,6 +23,8 @@ const SESSION_KEYS = ['sessionid', 'sessionid_ss', 'sid_tt', 'uid_tt'];
 const STREAM_RE = /\.(flv|m3u8|ts|m4s|mp4)(\?|$)|pull-flv|pull-hls|live-play/i;
 /** 轮询登录态间隔。 */
 const LOGIN_POLL_MS = 2000;
+/** 浏览器窗口使用正常桌面 Chrome UA，避免抖音把 Electron 壳识别成异常环境并渲染空白页。 */
+const DY_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 /** DOM 探测：页面加载 15s 后把礼物面板 / 弹幕 / 进场 / 点赞 的 DOM 结构打出来。
  * 等拿到真实选择器后再换成稳定的 MutationObserver。 */
@@ -530,8 +531,12 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
 
   function injectScript() {
     if (!win || win.isDestroyed()) return;
-    win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
-    // DOM 探测脚本：15s 后打 DOM 结构
+    // 未登录的扫码窗口必须保留直播页和播放器，不能在 dom-ready 阶段就删视频/隐藏播放器；
+    // 否则抖音会只剩黑色壳页，用户既看不到二维码也无法完成登录。
+    if (state.loggedIn) {
+      win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
+    }
+    // DOM 探测脚本只读结构，不修改页面。
     win.webContents.executeJavaScript(DY_DOM_PROBE_SCRIPT).catch(() => undefined);
   }
 
@@ -580,8 +585,18 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
       },
     });
 
+    try {
+      if (typeof win.webContents.setUserAgent === 'function') win.webContents.setUserAgent(DY_USER_AGENT);
+    } catch (e) {
+      log?.warn?.(`[blue-fish][douyin-cdp] set user-agent failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
     attachDebugger(win.webContents);
     win.webContents.on('dom-ready', injectScript);
+    win.webContents.on('did-fail-load', (_event, code, description) => {
+      if (code === -3) return;
+      state.lastError = `抖音直播页加载失败：${description || '未知错误'}（${code}）`;
+      log?.warn?.(`[blue-fish][douyin-cdp] ${state.lastError}`);
+    });
     win.on('closed', () => {
       if (win) win = null;
       state.running = false;
@@ -625,6 +640,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
 
   function hide() {
     if (!win || win.isDestroyed()) return;
+    // 登录后再启用省流脚本：先暂停并移除播放器，再隐藏窗口。
+    win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
     pauseVideo();
     win.hide();
     state.visible = false;

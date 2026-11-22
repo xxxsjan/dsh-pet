@@ -339,13 +339,13 @@ export function consolePage(): string {
 <div class="livePlatform" data-platform="dm">
 <div class="liveConfigPanel" data-panel="dm">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="dm-url-history" role="group" aria-label="最近使用的房间号"></div></div>
-<div class="dmField"><label class="dmLabel" for="dm-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="dm-cookie" placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里" spellcheck="false"></textarea><div class="dmCookieRow"><button type="button" class="liveStatusRefresh" id="dm-check-cookie" title="校验 Cookie 有效性（进房接口回显登录态 + 游客占位判定）">检测 Cookie</button></div></div>
+<div class="dmField"><div class="liveUrlLabelRow"><label class="dmLabel" for="dm-url">直播间链接或房间号</label><button type="button" class="liveOpenLiveText" id="dm-open-live" title="用浏览器跳转直播间">跳转直播间</button></div><div class="liveUrlRow"><input class="fieldInput" id="dm-url" type="text" placeholder="粘贴直播间链接，或直接填纯数字房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="dm-url-history" role="group" aria-label="最近使用的房间号"></div></div>
+<div class="dmField"><div class="dmCookieLabelRow"><label class="dmLabel" for="dm-cookie">Cookie <span class="dmLabelOpt">可选</span></label><div class="dmCookieRow"><button type="button" class="liveStatusRefresh" id="dm-check-cookie" title="校验 Cookie 有效性（进房接口回显登录态 + 游客占位判定）">检测 Cookie</button><button type="button" class="liveStatusRefresh dmCookieGuideBtn" data-cookie-guide="dm">获取 Cookie</button></div></div><textarea class="fieldInput area" id="dm-cookie" placeholder="不填将弹出窗口扫码登录；有登录 Cookie 可粘贴到这里" spellcheck="false"></textarea></div>
 <p class="dmCookieNote">提示：该账号若已在其他直播间观看（如手机端），开始监听会将其从原直播间踢出。</p>
 <p class="status" id="dm-msg" role="status" aria-live="polite"></p>
 </div>
 <div class="liveStatusRow"><p class="liveStatus" id="dm-status">加载中…</p></div>
-<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="dm-refresh">刷新状态</button><button type="button" class="liveOpenLiveText" id="dm-open-live" title="用浏览器跳转直播间">跳转直播间</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="dm-refresh">刷新状态</button></div>
 </div>
 </div>
 <div class="livePlatform" data-platform="xs">
@@ -361,23 +361,23 @@ export function consolePage(): string {
 <div class="livePlatform" data-platform="ks">
 <div class="liveConfigPanel" data-panel="ks">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="ks-url-history" role="group" aria-label="最近使用的房间号"></div></div>
-<div class="dmField"><label class="dmLabel" for="ks-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="ks-cookie" placeholder="直连需登录 Cookie（userId + passToken/web_st/webday7_st）；有就粘贴，没有可留空尝试" spellcheck="false"></textarea></div>
+<div class="dmField"><div class="liveUrlLabelRow"><label class="dmLabel" for="ks-url">直播间链接或主播短链</label><button type="button" class="liveOpenLiveText" id="ks-open-live" title="用浏览器跳转直播间">跳转直播间</button></div><div class="liveUrlRow"><input class="fieldInput" id="ks-url" type="text" placeholder="粘贴直播间链接，或直接填主播短链 / 裸 id" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="ks-url-history" role="group" aria-label="最近使用的房间号"></div></div>
+<div class="dmField"><div class="dmCookieLabelRow"><label class="dmLabel" for="ks-cookie">Cookie <span class="dmLabelOpt">必填</span></label><div class="dmCookieRow"><button type="button" class="liveStatusRefresh dmCookieGuideBtn" data-cookie-guide="ks">获取 Cookie</button></div></div><textarea class="fieldInput area" id="ks-cookie" placeholder="请粘贴登录 Cookie（必须包含 userId + passToken/web_st/webday7_st）" spellcheck="false"></textarea></div>
 <p class="status" id="ks-msg" role="status" aria-live="polite"></p>
 </div>
 <div class="liveStatusRow"><p class="liveStatus" id="ks-status">加载中…</p></div>
-<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="ks-refresh">刷新状态</button><button type="button" class="liveOpenLiveText" id="ks-open-live" title="用浏览器跳转直播间">跳转直播间</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="ks-refresh">刷新状态</button></div>
 </div>
 </div>
 <div class="livePlatform" data-platform="bl">
 <div class="liveConfigPanel" data-panel="bl">
 <div class="dmCard">
-<div class="dmField"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="bl-url-history" role="group" aria-label="最近使用的房间号"></div></div>
-<div class="dmField"><label class="dmLabel" for="bl-cookie">Cookie <span class="dmLabelOpt">可选</span></label><textarea class="fieldInput area" id="bl-cookie" placeholder="不填走访客匿名；登录可粘贴 SESSDATA，失效会自动回落访客" spellcheck="false"></textarea></div>
+<div class="dmField"><div class="liveUrlLabelRow"><label class="dmLabel" for="bl-url">直播间链接或房间号</label><button type="button" class="liveOpenLiveText" id="bl-open-live" title="用浏览器跳转直播间">跳转直播间</button></div><div class="liveUrlRow"><input class="fieldInput" id="bl-url" type="text" placeholder="粘贴直播间链接，或直接填裸房间号" autocomplete="off" spellcheck="false"></div><div class="liveIdHistory" id="bl-url-history" role="group" aria-label="最近使用的房间号"></div></div>
+<div class="dmField"><div class="dmCookieLabelRow"><label class="dmLabel" for="bl-cookie">Cookie <span class="dmLabelOpt">可选</span></label><div class="dmCookieRow"><button type="button" class="liveStatusRefresh dmCookieGuideBtn" data-cookie-guide="bl">获取 Cookie</button></div></div><textarea class="fieldInput area" id="bl-cookie" placeholder="不填走访客匿名；登录可粘贴 SESSDATA，失效会自动回落访客" spellcheck="false"></textarea></div>
 <p class="status" id="bl-msg" role="status" aria-live="polite"></p>
 </div>
 <div class="liveStatusRow"><p class="liveStatus" id="bl-status">加载中…</p></div>
-<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="bl-refresh">刷新状态</button><button type="button" class="liveOpenLiveText" id="bl-open-live" title="用浏览器跳转直播间">跳转直播间</button></div>
+<div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="bl-refresh">刷新状态</button></div>
 </div>
 </div>
 </div>
@@ -428,6 +428,12 @@ export function consolePage(): string {
 </div>
 </section>
 </div>
+</div>
+</div>
+<div class="chatMask" id="cookie-guide-dialog" hidden>
+<div class="chatDialog cookieGuideDialog" role="dialog" aria-modal="true" aria-labelledby="cookie-guide-title">
+<div class="chatHead"><h2 class="chatTitle" id="cookie-guide-title">获取 Cookie 教程</h2><button type="button" class="chatClose" id="cookie-guide-close" aria-label="关闭 Cookie 教程"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+<div class="cookieGuideBody"><ol class="cookieGuideSteps"><li>在浏览器登录对应直播平台。</li><li>按 <b>F12</b> 打开开发者工具，切到 <b>Network</b>。</li><li>刷新直播间页面，在请求列表中选择任意直播或文档请求。</li><li>在 <b>Headers → Request Headers</b> 中找到 <b>Cookie</b>，复制整行值。</li><li id="cookie-guide-key">再将完整 Cookie 粘贴到输入框。</li></ol><div class="cookieGuideImageWrap"><img class="cookieGuideImage" src="/standalone-console/cookie-guide-network.png" alt="浏览器 Network 面板中复制 Cookie 的示例"></div></div>
 </div>
 </div>
 <div class="chatMask" id="dm-kick-dialog" hidden>
@@ -685,10 +691,13 @@ export const consoleScript = `
     textNode.textContent = (isGift ? ' ' : '：') + body;
   }
   // 小窗礼物行的礼物托：礼物名在图标表里就放真实礼物图，否则保持金色礼盒占位。
-  function dmGiftTile(giftName, platform) {
+  function dmGiftTile(giftName, platform, imageUrl) {
     var tile = dmNode('span', 'dmGiftTile');
     var key = String(platform || '') + '|' + String(giftName == null ? '' : giftName).trim();
-    var src = giftName ? GIFT_ICON_URLS[key] || '' : '';
+    var src = platform === 'douyin' && imageUrl
+      ? '/standalone-console/gift-icon?p=douyin&u=' + encodeURIComponent(String(imageUrl))
+      : '';
+    if (!src) src = giftName ? GIFT_ICON_URLS[key] || '' : '';
     if (!src) {
       tile.innerHTML = GIFT_TILE_SVG;
       return tile;
@@ -774,7 +783,7 @@ export const consoleScript = `
   }
   /** 抖音弹幕弹窗：整套搬自旧设置页「抖音弹幕」分区，缓存 key 与旧页一致，升级后已填内容不丢。 */
   var DM_CACHE_KEY = 'blue_fish_douyin_danmaku_form_v1';
-  var DM_POLL_MS = 3000;
+  var DM_POLL_MS = 1000;
   var dmListening = false;
   /** 下播提示只弹一次：状态里 ended 由 false→true 时提示，回到非 ended 时重置。 */
   var dmEndedNotified = false;
@@ -795,8 +804,16 @@ export const consoleScript = `
     );
   }
   var dmLastFeedId = 0;
+  var dmFeedSignature = '';
+  var dmFeedNodes = new Map();
+  var dmGiftNodes = new Map();
+  var dmFeedQueue = [];
+  var dmFeedQueueTimer = null;
   var dmStickBottom = true;
+  var dmLastGiftId = 0;
+  var dmGiftStickBottom = true;
   var dmLastStatusUrl = '';
+  var dmSessionStartedAt = null;
   /** 被挤下线确认框每次中断只弹一次：状态 interrupted 回到 false 时重置。 */
   var dmKickPrompted = false;
 
@@ -1026,6 +1043,73 @@ export const consoleScript = `
       localStorage.setItem(DM_CACHE_KEY, JSON.stringify(form));
     } catch (_) { /* 隐私模式写不进去也不影响使用 */ }
   }
+  function liveFeedFingerprint(list) {
+    if (!Array.isArray(list)) return '';
+    return list.map(function (item) {
+      return [
+        Number(item.id) || 0,
+        String(item.kind || ''),
+        String(item.nick || ''),
+        String(item.text || ''),
+        Number(item.count) || 0,
+        String(item.giftImageUrl || ''),
+      ].join('|');
+    }).join(';;');
+  }
+  function dmClearFeedQueue() {
+    dmFeedQueue.length = 0;
+    if (dmFeedQueueTimer) {
+      clearTimeout(dmFeedQueueTimer);
+      dmFeedQueueTimer = null;
+    }
+  }
+  function dmQueueFeedRow(box, row, stickToBottom) {
+    dmFeedQueue.push({ box: box, row: row, stickToBottom: stickToBottom });
+    if (dmFeedQueueTimer) return;
+    var pump = function () {
+      var next = dmFeedQueue.shift();
+      if (!next) {
+        dmFeedQueueTimer = null;
+        return;
+      }
+      if (!next.row.parentNode) next.box.appendChild(next.row);
+      if (next.stickToBottom) next.box.scrollTop = next.box.scrollHeight;
+      dmFeedQueueTimer = setTimeout(pump, 180);
+    };
+    dmFeedQueueTimer = setTimeout(pump, 0);
+  }
+  function dmCreateGiftRow(item, prevId) {
+    var nickText = String(item.nick || '匿名');
+    var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+    row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
+    var bodyBox = dmNode('div', 'dmFeedBody');
+    if (LIVE_MINI) {
+      bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
+      bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+      bodyBox.appendChild(dmGiftTile(item.text, 'douyin', item.giftImageUrl));
+      bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
+      bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
+    } else {
+      row.appendChild(dmFeedAvatar(nickText, 'gift'));
+      bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+      bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
+    }
+    row.appendChild(bodyBox);
+    row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
+    return row;
+  }
+  function dmCreateChatRow(item, prevId) {
+    var nickText = String(item.nick || '匿名');
+    var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+    row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
+    if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
+    var bodyBox = dmNode('div', 'dmFeedBody');
+    bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
+    bodyBox.appendChild(dmRichText(item.text));
+    row.appendChild(bodyBox);
+    row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
+    return row;
+  }
   function dmSyncToggle() {
     var button = byId('dm-toggle');
     if (!button) return;
@@ -1034,6 +1118,9 @@ export const consoleScript = `
   }
   function dmRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
+    var nextSignature = liveFeedFingerprint(list);
+    if (nextSignature === dmFeedSignature) return;
+    dmFeedSignature = nextSignature;
     var prevId = dmLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
@@ -1042,52 +1129,88 @@ export const consoleScript = `
     var feedBox = byId('dm-feed');
     var giftBox = byId('dm-gift');
     if (!feedBox || !giftBox) return;
+    if (list.length === 0) dmClearFeedQueue();
     var nearBottom = feedBox.scrollHeight - feedBox.scrollTop - feedBox.clientHeight < 48;
     var shouldStick = dmStickBottom || nearBottom;
     var maxId = 0;
     list.forEach(function (item) { maxId = Math.max(maxId, Number(item.id) || 0); });
+    var maxGiftId = 0;
+    gifts.forEach(function (item) { maxGiftId = Math.max(maxGiftId, Number(item.id) || 0); });
     if (list.length === 0) dmLastFeedId = 0;
-    feedBox.textContent = '';
-    giftBox.textContent = '';
-    gifts.forEach(function (item) {
-      var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      var bodyBox = dmNode('div', 'dmFeedBody');
-      if (LIVE_MINI) {
-        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile(item.text, 'douyin'));
-        bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
-        bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
-        bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
-        bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
-      } else {
-        row.appendChild(dmFeedAvatar(nickText, 'gift'));
-        bodyBox.appendChild(dmNode('span', 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-        bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '') + ' ×' + Math.max(1, Number(item.count) || 1)));
-      }
-      row.appendChild(bodyBox);
-      row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
-      giftBox.appendChild(row);
-    });
-    chats.forEach(function (item) {
-      var nickText = String(item.nick || '匿名');
-      var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
-      var bodyBox = dmNode('div', 'dmFeedBody');
-      bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
-      bodyBox.appendChild(dmRichText(item.text));
-      row.appendChild(bodyBox);
-      row.appendChild(dmNode('span', 'dmFeedTime', dmFormatTime(item.at)));
-      feedBox.appendChild(row);
-    });
+    if (gifts.length === 0) dmLastGiftId = 0;
+    var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+    var shouldStickGift = dmGiftStickBottom || giftNearBottom;
+    if (gifts.length === 0) {
+      // 无礼物快照不等于本场已清空：轮询可能短暂落后或只带聊天帧，保留已有礼物。
+    } else {
+      var giftFreshIndex = 0;
+      gifts.forEach(function (item) {
+        var key = String(item.id);
+        var signature = liveFeedFingerprint([item]);
+        var existing = dmGiftNodes.get(key);
+        if (existing && existing.getAttribute('data-feed-signature') !== signature) {
+          var replacement = dmCreateGiftRow(item, 0);
+          existing.parentNode.replaceChild(replacement, existing);
+          dmGiftNodes.set(key, replacement);
+        } else if (!existing) {
+          var newRow = dmCreateGiftRow(item, prevId);
+          dmGiftNodes.set(key, newRow);
+          giftFreshIndex += 1;
+          dmQueueFeedRow(giftBox, newRow, shouldStickGift);
+        }
+      });
+    }
+    if (chats.length === 0) {
+      // 聊天空快照同样保留最近消息，避免轮询分帧造成闪空。
+    } else {
+      var chatFreshIndex = 0;
+      chats.forEach(function (item) {
+        var key = String(item.id);
+        var signature = liveFeedFingerprint([item]);
+        var existing = dmFeedNodes.get(key);
+        if (existing && existing.getAttribute('data-feed-signature') !== signature) {
+          var replacement = dmCreateChatRow(item, 0);
+          existing.parentNode.replaceChild(replacement, existing);
+          dmFeedNodes.set(key, replacement);
+        } else if (!existing) {
+          var newRow = dmCreateChatRow(item, prevId);
+          dmFeedNodes.set(key, newRow);
+          chatFreshIndex += 1;
+          dmQueueFeedRow(feedBox, newRow, shouldStick);
+        }
+      });
+    }
     if (shouldStick && (list.length === 0 || maxId !== dmLastFeedId)) {
       feedBox.scrollTop = feedBox.scrollHeight;
     }
+    if (shouldStickGift && (gifts.length === 0 || maxGiftId !== dmLastGiftId)) {
+      giftBox.scrollTop = giftBox.scrollHeight;
+    }
     dmLastFeedId = maxId;
+    dmLastGiftId = maxGiftId;
     miniSyncLatest(recent);
+  }
+  function dmResetFeedSession() {
+    dmFeedSignature = '';
+    dmLastFeedId = 0;
+    dmLastGiftId = 0;
+    dmClearFeedQueue();
+    var feedBox = byId('dm-feed');
+    var giftBox = byId('dm-gift');
+    dmFeedNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    dmGiftNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    dmFeedNodes.clear();
+    dmGiftNodes.clear();
+    if (feedBox) feedBox.textContent = '';
+    if (giftBox) giftBox.textContent = '';
   }
   function dmRenderStatus(data, syncToggles) {
     var status = data || {};
+    var startedAt = Number(status.startedAt) || 0;
+    if (startedAt > 0 && dmSessionStartedAt !== startedAt) {
+      dmSessionStartedAt = startedAt;
+      dmResetFeedSession();
+    }
     dmListening = !!status.listening;
     liveSyncPill('dm', dmListening);
     liveMonitorSnapshots.dm = status;
@@ -1175,6 +1298,7 @@ export const consoleScript = `
     return data;
   }
   async function dmStart() {
+    dmClearFeedQueue();
     var button = byId('dm-toggle');
     hideDmKickDialog();
     setStatus(byId('dm-msg'), '正在连接…');
@@ -1212,6 +1336,7 @@ export const consoleScript = `
     }
   }
   async function dmStop() {
+    dmClearFeedQueue();
     var button = byId('dm-toggle');
     hideDmKickDialog();
     setStatus(byId('dm-msg'), '正在停止…');
@@ -1239,6 +1364,12 @@ export const consoleScript = `
     if (feedBox) {
       feedBox.addEventListener('scroll', function () {
         dmStickBottom = feedBox.scrollHeight - feedBox.scrollTop - feedBox.clientHeight < 48;
+      });
+    }
+    var giftBox = byId('dm-gift');
+    if (giftBox) {
+      giftBox.addEventListener('scroll', function () {
+        dmGiftStickBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
       });
     }
     ['dm-url', 'dm-cookie'].forEach(function (id) {
@@ -1310,7 +1441,10 @@ export const consoleScript = `
   var XS_POLL_MS = 3000;
   var xsListening = false;
   var xsLastFeedId = 0;
+  var xsFeedSignature = '';
   var xsStickBottom = true;
+  var xsLastGiftId = 0;
+  var xsGiftStickBottom = true;
 
   function xsInputValue(id) {
     var node = byId(id);
@@ -1394,6 +1528,9 @@ export const consoleScript = `
   }
   function xsRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
+    var nextSignature = liveFeedFingerprint(list);
+    if (nextSignature === xsFeedSignature) return;
+    xsFeedSignature = nextSignature;
     var prevId = xsLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
@@ -1406,18 +1543,23 @@ export const consoleScript = `
     var shouldStick = xsStickBottom || nearBottom;
     var maxId = 0;
     list.forEach(function (item) { maxId = Math.max(maxId, Number(item.id) || 0); });
+    var maxGiftId = 0;
+    gifts.forEach(function (item) { maxGiftId = Math.max(maxGiftId, Number(item.id) || 0); });
     if (list.length === 0) xsLastFeedId = 0;
-    feedBox.textContent = '';
-    giftBox.textContent = '';
-    gifts.forEach(function (item) {
+    if (gifts.length === 0) xsLastGiftId = 0;
+    var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+    var shouldStickGift = xsGiftStickBottom || giftNearBottom;
+    if (gifts.length > 0) giftBox.textContent = '';
+    gifts.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile(item.text, 'xiaohongshu'));
+        // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmGiftTile(item.text, 'xiaohongshu'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
         bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
       } else {
@@ -1429,9 +1571,11 @@ export const consoleScript = `
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
       giftBox.appendChild(row);
     });
-    chats.forEach(function (item) {
+    if (chats.length > 0) feedBox.textContent = '';
+    chats.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
@@ -1443,7 +1587,11 @@ export const consoleScript = `
     if (shouldStick && (list.length === 0 || maxId !== xsLastFeedId)) {
       feedBox.scrollTop = feedBox.scrollHeight;
     }
+    if (shouldStickGift && (gifts.length === 0 || maxGiftId !== xsLastGiftId)) {
+      giftBox.scrollTop = giftBox.scrollHeight;
+    }
     xsLastFeedId = maxId;
+    xsLastGiftId = maxGiftId;
     miniSyncLatest(recent);
   }
   function xsRenderStatus(data, syncToggles) {
@@ -1548,6 +1696,12 @@ export const consoleScript = `
         xsStickBottom = feedBox.scrollHeight - feedBox.scrollTop - feedBox.clientHeight < 48;
       });
     }
+    var giftBox = byId('xs-gift');
+    if (giftBox) {
+      giftBox.addEventListener('scroll', function () {
+        xsGiftStickBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+      });
+    }
     ['xs-reply-chat', 'xs-thank-gift'].forEach(function (id) {
       var node = byId(id);
       if (!node) return;
@@ -1588,7 +1742,10 @@ export const consoleScript = `
   var KS_POLL_MS = 3000;
   var ksListening = false;
   var ksLastFeedId = 0;
+  var ksFeedSignature = '';
   var ksStickBottom = true;
+  var ksLastGiftId = 0;
+  var ksGiftStickBottom = true;
   /** 快手表情表：[表情名] → 图片地址，来自直播间页 webConfig，进房后由状态带回。 */
   var KS_EMOJI_URLS = {};
 
@@ -1685,6 +1842,9 @@ export const consoleScript = `
   }
   function ksRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
+    var nextSignature = liveFeedFingerprint(list);
+    if (nextSignature === ksFeedSignature) return;
+    ksFeedSignature = nextSignature;
     var prevId = ksLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
@@ -1697,18 +1857,23 @@ export const consoleScript = `
     var shouldStick = ksStickBottom || nearBottom;
     var maxId = 0;
     list.forEach(function (item) { maxId = Math.max(maxId, Number(item.id) || 0); });
+    var maxGiftId = 0;
+    gifts.forEach(function (item) { maxGiftId = Math.max(maxGiftId, Number(item.id) || 0); });
     if (list.length === 0) ksLastFeedId = 0;
-    feedBox.textContent = '';
-    giftBox.textContent = '';
-    gifts.forEach(function (item) {
+    if (gifts.length === 0) ksLastGiftId = 0;
+    var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+    var shouldStickGift = ksGiftStickBottom || giftNearBottom;
+    if (gifts.length > 0) giftBox.textContent = '';
+    gifts.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile(item.text, 'kuaishou'));
+        // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmGiftTile(item.text, 'kuaishou'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
         bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
       } else {
@@ -1720,9 +1885,11 @@ export const consoleScript = `
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
       giftBox.appendChild(row);
     });
-    chats.forEach(function (item) {
+    if (chats.length > 0) feedBox.textContent = '';
+    chats.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
@@ -1736,7 +1903,11 @@ export const consoleScript = `
     if (shouldStick && (list.length === 0 || maxId !== ksLastFeedId)) {
       feedBox.scrollTop = feedBox.scrollHeight;
     }
+    if (shouldStickGift && (gifts.length === 0 || maxGiftId !== ksLastGiftId)) {
+      giftBox.scrollTop = giftBox.scrollHeight;
+    }
     ksLastFeedId = maxId;
+    ksLastGiftId = maxGiftId;
     miniSyncLatest(recent);
   }
   function ksRenderStatus(data, syncToggles) {
@@ -1788,6 +1959,10 @@ export const consoleScript = `
     var form = ksFormState();
     if (!form.url) {
       setStatus(byId('ks-msg'), '请填写直播间链接或主播短链', 'error');
+      return;
+    }
+    if (!form.cookie) {
+      setStatus(byId('ks-msg'), '快手直连监听需要登录 Cookie，请在浏览器登录后复制完整 Cookie', 'error');
       return;
     }
     setStatus(byId('ks-msg'), '正在连接…');
@@ -1849,6 +2024,12 @@ export const consoleScript = `
         ksStickBottom = feedBox.scrollHeight - feedBox.scrollTop - feedBox.clientHeight < 48;
       });
     }
+    var giftBox = byId('ks-gift');
+    if (giftBox) {
+      giftBox.addEventListener('scroll', function () {
+        ksGiftStickBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+      });
+    }
     var urlNode = byId('ks-url');
     if (urlNode) {
       urlNode.addEventListener('input', ksSaveCache);
@@ -1900,7 +2081,10 @@ export const consoleScript = `
   var BL_POLL_MS = 3000;
   var blListening = false;
   var blLastFeedId = 0;
+  var blFeedSignature = '';
   var blStickBottom = true;
+  var blLastGiftId = 0;
+  var blGiftStickBottom = true;
 
   function blInputValue(id) {
     var node = byId(id);
@@ -1954,6 +2138,9 @@ export const consoleScript = `
   }
   function blRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
+    var nextSignature = liveFeedFingerprint(list);
+    if (nextSignature === blFeedSignature) return;
+    blFeedSignature = nextSignature;
     var prevId = blLastFeedId;
     var chats = list.filter(function (item) { return item.kind !== 'gift'; });
     var gifts = list.filter(function (item) { return item.kind === 'gift'; });
@@ -1966,18 +2153,23 @@ export const consoleScript = `
     var shouldStick = blStickBottom || nearBottom;
     var maxId = 0;
     list.forEach(function (item) { maxId = Math.max(maxId, Number(item.id) || 0); });
+    var maxGiftId = 0;
+    gifts.forEach(function (item) { maxGiftId = Math.max(maxGiftId, Number(item.id) || 0); });
     if (list.length === 0) blLastFeedId = 0;
-    feedBox.textContent = '';
-    giftBox.textContent = '';
-    gifts.forEach(function (item) {
+    if (gifts.length === 0) blLastGiftId = 0;
+    var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
+    var shouldStickGift = blGiftStickBottom || giftNearBottom;
+    if (gifts.length > 0) giftBox.textContent = '';
+    gifts.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
-        // 小窗对齐设计稿：礼物托 + 昵称 + 送了 + 礼物名 + ×数量胶囊
-        row.appendChild(dmGiftTile(item.text, 'bilibili'));
+        // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
         bodyBox.appendChild(dmNode('span', 'dmFeedNick', nickText));
         bodyBox.appendChild(dmNode('span', 'dmFeedVerb', '送了'));
+        bodyBox.appendChild(dmGiftTile(item.text, 'bilibili'));
         bodyBox.appendChild(dmNode('span', 'dmFeedGiftName', String(item.text || '礼物')));
         bodyBox.appendChild(dmNode('span', 'dmFeedCount', '×' + Math.max(1, Number(item.count) || 1)));
       } else {
@@ -1989,9 +2181,11 @@ export const consoleScript = `
       row.appendChild(dmNode('span', 'dmFeedTime', blFormatTime(item.at)));
       giftBox.appendChild(row);
     });
-    chats.forEach(function (item) {
+    if (chats.length > 0) feedBox.textContent = '';
+    chats.forEach(function (item, freshIndex) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
+      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
@@ -2003,7 +2197,11 @@ export const consoleScript = `
     if (shouldStick && (list.length === 0 || maxId !== blLastFeedId)) {
       feedBox.scrollTop = feedBox.scrollHeight;
     }
+    if (shouldStickGift && (gifts.length === 0 || maxGiftId !== blLastGiftId)) {
+      giftBox.scrollTop = giftBox.scrollHeight;
+    }
     blLastFeedId = maxId;
+    blLastGiftId = maxGiftId;
     miniSyncLatest(recent);
   }
   function blRenderStatus(data, syncToggles) {
@@ -2395,6 +2593,12 @@ export const consoleScript = `
     if (feedBox) {
       feedBox.addEventListener('scroll', function () {
         blStickBottom = feedBox.scrollHeight - feedBox.scrollTop - feedBox.clientHeight < 48;
+      });
+    }
+    var giftBox = byId('bl-gift');
+    if (giftBox) {
+      giftBox.addEventListener('scroll', function () {
+        blGiftStickBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
       });
     }
     var urlNode = byId('bl-url');
@@ -4272,6 +4476,35 @@ export const consoleScript = `
     }
 
     function wireLiveDialog() {
+      var cookieGuide = byId('cookie-guide-dialog');
+      var cookieGuideClose = byId('cookie-guide-close');
+      var cookieGuideKey = byId('cookie-guide-key');
+      function closeCookieGuide() { if (cookieGuide) cookieGuide.hidden = true; }
+      var cookieGuideImage = cookieGuide ? cookieGuide.querySelector('.cookieGuideImage') : null;
+      if (cookieGuideImage) {
+        cookieGuideImage.addEventListener('error', function () {
+          if (cookieGuideImage.getAttribute('src') !== '/blue-fish/pic/cookie-guide-network.png') {
+            cookieGuideImage.setAttribute('src', '/blue-fish/pic/cookie-guide-network.png');
+          }
+        });
+      }
+      document.querySelectorAll('[data-cookie-guide]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var platform = button.getAttribute('data-cookie-guide') || 'dm';
+          if (cookieGuideKey) {
+            var keyText = {
+              dm: '抖音通常需要完整 Cookie 中的 sessionid；复制整行后粘贴到上方输入框。',
+              ks: '快手 Cookie 至少需要 userId 与 passToken 或对应 web_st/webday7_st。',
+              bl: 'B站登录态建议包含 SESSDATA；不填也可使用访客匿名模式。'
+            };
+            cookieGuideKey.textContent = keyText[platform] || keyText.dm;
+          }
+          if (cookieGuide) cookieGuide.hidden = false;
+        });
+      });
+      if (cookieGuideClose) cookieGuideClose.addEventListener('click', closeCookieGuide);
+      if (cookieGuide) cookieGuide.addEventListener('click', function (event) { if (event.target === cookieGuide) closeCookieGuide(); });
+
       var dialog = liveDialogEl();
       var closeBtn = byId('live-close');
       if (closeBtn) closeBtn.addEventListener('click', function () {
@@ -4313,7 +4546,9 @@ export const consoleScript = `
       // 直播间弹窗只认右上角关闭按钮与 Esc；点遮罩空白处不关闭，避免手滑丢失正在填的配置。
       // 弹幕小窗是常驻浮窗，Esc 只用来收起小浮层（透明度/关闭确认），不关整窗。
       document.addEventListener('keydown', function (event) {
-        if (event.key !== 'Escape' || !liveIsOpen() || LIVE_MINI) return;
+        if (event.key !== 'Escape') return;
+        if (cookieGuide && !cookieGuide.hidden) { closeCookieGuide(); return; }
+        if (!liveIsOpen() || LIVE_MINI) return;
         if (LIVE_STANDALONE) closeLiveWindow();
         else setLiveDialog(false);
       });
@@ -4688,7 +4923,8 @@ body:not(.live-mini) .liveMain{display:none}
 .liveConfigPanel .fieldInput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 14%,transparent)}
 .liveConfigPanel .dmLabel{font-size:14px;font-weight:600;color:var(--label-primary)}
 .liveConfigPanel .dmLabelOpt{margin-left:6px;font-size:13px;font-weight:400;color:var(--label-tertiary)}
-/* 链接输入框独占一行 */
+/* 房间号标题与跳转按钮同一行，输入框仍独占下一行 */
+.liveUrlLabelRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
 .liveUrlRow{display:flex;gap:12px}
 .liveUrlRow .fieldInput{flex:1;min-width:0}
 /* 状态行下方的纯文本「跳转直播间」 */
@@ -4721,8 +4957,8 @@ body.live-mini .liveConfigPane{display:none!important}
 .liveFeedPanel.is-active{display:flex;flex-direction:column}
 .liveFeedPanel .dmFeedCard{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 .liveFeedPanel .dmFeed{flex:1 1 auto;max-height:none;min-height:0}
-.liveFeedPanel .dmGiftCard{flex:none;display:flex;flex-direction:column;min-height:0;margin-bottom:10px}
-.liveFeedPanel .dmGift{flex:none;max-height:26vh;overflow-y:auto;min-height:0}
+.liveFeedPanel .dmGiftCard{flex:0 0 150px;height:150px;display:flex;flex-direction:column;min-height:150px;margin-bottom:10px;overflow:hidden}
+.liveFeedPanel .dmGift{flex:1 1 auto;height:auto;max-height:none;overflow-y:auto;min-height:0}
 /* 抖音弹幕弹窗：左列表单与状态、右列弹幕流；小屏落成一列 */
 .dmDialog{width:min(980px,100%);height:min(90vh,860px)}
 .dmBody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:16px 18px 20px}
@@ -4734,6 +4970,18 @@ body.live-mini .liveConfigPane{display:none!important}
 .liveConfigPanel .dmField:first-child{margin-top:0}
 .dmLabel{font-size:13px;color:var(--label-secondary)}
 .dmCookieNote{margin:6px 0 0;font-size:12.5px;line-height:1.6;color:color-mix(in srgb,var(--danger) 78%,var(--label-secondary))}
+.dmCookieGuideBtn{margin-top:0;text-align:left}
+.dmCookieLabelRow{display:flex;height:26px;align-items:center;justify-content:space-between;gap:10px;line-height:26px}
+.dmCookieLabelRow .dmLabel{display:flex;align-items:center;height:26px;line-height:26px;margin:0}
+.dmCookieLabelRow .dmCookieRow{height:26px}
+.dmCookieLabelRow .liveStatusRefresh{height:26px;display:inline-flex;align-items:center;line-height:26px}
+.cookieGuideDialog{width:min(920px,calc(100% - 32px));max-height:min(90vh,760px)}
+.cookieGuideBody{overflow:auto;padding:0 22px 20px}
+.cookieGuideSteps{margin:0 0 14px;padding-left:22px;color:var(--label-secondary);font-size:13.5px;line-height:1.7}
+.cookieGuideSteps li+li{margin-top:3px}
+.cookieGuideImageWrap{display:flex;justify-content:center;padding:10px;border:1px solid var(--border);border-radius:12px;background:color-mix(in srgb,var(--label-primary) 3%,var(--bg-card));overflow:auto}
+.cookieGuideImage{display:block;max-width:100%;height:auto;border-radius:6px}
+.dmCookieRow{display:flex;align-items:center;justify-content:flex-end;gap:12px}
 .dmSwitches{display:flex;margin-top:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg-card);overflow:hidden}
 .dmSwitch{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1 1 0;padding:12px 14px;font-size:13.5px;color:var(--label-secondary);cursor:pointer;user-select:none;border-left:1px solid var(--border)}
 .dmSwitch:first-child{border-left:0}
@@ -4776,7 +5024,7 @@ box-shadow:inset 0 1px 0 rgba(255,255,255,.55),var(--shadow)}
 .dmFeed:empty::before{content:"开始监听后，弹幕会出现在这里";margin:auto;padding:20px 12px;text-align:center;color:var(--label-tertiary)}
 .dmFeedItem{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px 8px 8px;border:1px solid color-mix(in srgb,var(--border) 60%,transparent);border-radius:12px;background:color-mix(in srgb,var(--bg-card) 84%,transparent);box-shadow:0 1px 2px rgba(16,40,80,.05);transition:border-color .15s ease,background-color .15s ease}
 .dmFeedItem.chat:hover{border-color:color-mix(in srgb,var(--primary) 26%,var(--border))}
-.dmFeedItem.gift{border-color:color-mix(in srgb,#ffb340 52%,var(--border));background:linear-gradient(100deg,color-mix(in srgb,#ffb340 18%,var(--bg-card)),color-mix(in srgb,#ff8a00 6%,var(--bg-card)))}
+.dmFeedItem.gift{border-color:color-mix(in srgb,#ffb340 52%,var(--border));background:linear-gradient(100deg,color-mix(in srgb,#ffb340 18%,var(--bg-card)),color-mix(in srgb,#ff8a00 6%,var(--bg-card)));padding:8px 2px}
 .dmFeedAva{display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700;line-height:1;color:#fff;box-shadow:0 2px 6px rgba(16,40,80,.18);user-select:none}
 .dmFeedAva.va1{background:linear-gradient(155deg,#63b0ff,#007aff)}
 .dmFeedAva.va2{background:linear-gradient(155deg,#5fe0d1,#00998f)}
@@ -4798,7 +5046,7 @@ box-shadow:inset 0 1px 0 rgba(255,255,255,.55),var(--shadow)}
 .dmFeedItem.gift .dmFeedText{color:#a86100}
 .dmFeedTime{align-self:start;margin-top:3px;font-size:11px;color:var(--label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
 @keyframes dmFeedIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
-.dmFeedItem.dmFresh{animation:dmFeedIn .34s cubic-bezier(.22,.85,.25,1) both}
+.dmFeedItem.dmFresh{animation:dmFeedIn .22s cubic-bezier(.22,.85,.25,1) both}
 @media (prefers-reduced-motion:reduce){.dmFeedItem.dmFresh{animation:none}}
 html[data-theme=dark] .dmFeedCard{border-color:rgba(120,170,255,.24);
 background:linear-gradient(158deg,rgba(44,70,118,.52),rgba(18,24,38,.82) 52%,rgba(10,16,28,.9));
@@ -4923,7 +5171,8 @@ body.live-mini .liveFeedPanel .dmFeedCard{margin:0;padding:0;border:0;border-rad
 body.live-mini .dmCardHead{display:none}
 /* 礼物区不再预留固定高度：空态时按内容收缩，有礼物时按条数自然增长（上限 32vh 内滚动），
    否则空态那 132px 会凭空把统计行和弹幕区拉开 */
-body.live-mini .dmGift{gap:6px;padding:0;border:0;background:transparent;border-radius:0;max-height:32vh;min-height:0}
+body.live-mini .dmGiftCard{flex:0 0 118px!important;height:118px!important;min-height:118px!important;overflow:hidden}
+body.live-mini .dmGift{gap:6px;padding:0;border:0;background:transparent;border-radius:0;height:118px;max-height:118px;min-height:118px;overflow-y:auto}
 body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息";margin:0;padding:2px 0 0;align-self:flex-start;font-size:13px;color:#6b7076}
 /* 礼物区与弹幕区之间的发丝分隔线（ specificity 需压过上面 border:0 名单） */
 body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
@@ -4935,7 +5184,7 @@ body.live-mini .dmFeed:empty::before{margin:0;padding:2px 0 0;align-self:flex-st
    容器保持 flex 是为了让礼物行的金色礼物托与文字区并排；文字区内部是文本流。 */
 body.live-mini .dmFeedItem{display:flex;align-items:start;gap:8px;padding:5px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
 body.live-mini .dmFeedItem.chat:hover{border-color:transparent;background:transparent}
-body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.45);background:rgba(255,179,64,.10);border-radius:12px;padding:8px 12px;margin-bottom:6px}
+body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.45);background:rgba(255,179,64,.10);border-radius:12px;padding:8px 2px}
 /* 设计稿弹幕行无左侧头像；礼物行用金色礼物托 */
 body.live-mini .dmFeedAva{display:none}
 body.live-mini .dmGiftTile{flex:none;width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
@@ -4944,6 +5193,7 @@ body.live-mini .dmGiftTile svg{width:13px;height:13px;display:block}
 body.live-mini .dmGiftTile.dmGiftReal{background:none;border-radius:0}
 body.live-mini .dmGiftTile.dmGiftReal img{width:22px;height:22px;object-fit:contain;display:block}
 body.live-mini .dmFeedBody{display:block;min-width:0;font-size:14.5px;line-height:1.5;color:#e8eaed;white-space:normal}
+body.live-mini .dmFeedItem.gift .dmFeedBody{display:flex;align-items:center;flex-wrap:wrap;column-gap:6px;row-gap:3px}
 body.live-mini .dmFeedItem.chat .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
 body.live-mini .dmFeedItem.gift .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
 body.live-mini .dmFeedItem.chat .dmFeedNick::after{color:#4fc3f7}

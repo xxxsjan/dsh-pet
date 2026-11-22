@@ -99,7 +99,7 @@ const danmakuState = {
   lastError: '',
   replyChat: false,
   thankGift: false,
-  mode: 'cdp' as 'cdp' | 'direct' | 'idle',
+  mode: 'cdp' as 'cdp' | 'idle',
   cdpVisible: false,
   cdpLoggedIn: true,
   recent: [] as Array<{ id: number; kind: string; nick: string; text: string; at: number; count?: number }>

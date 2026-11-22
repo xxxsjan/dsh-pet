@@ -8,7 +8,7 @@
 import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
-import { resolveKsWsInfo, type KsWsInfo } from './ks-live-info.ts';
+import { cookieHasKsLogin, resolveKsWsInfo, sanitizeKsCookie, type KsWsInfo } from './ks-live-info.ts';
 import { parseKsWsFrame, type KsParsedItem } from './ks-danmaku.ts';
 import { createKsGiftCatalog, preloadKsGiftCatalog } from './ks-gift-catalog.ts';
 import { encodeEnterRoom, encodeHeartbeat, encodeSocketMessage, makeKsPageId, KS_PAYLOAD } from './proto.ts';
@@ -490,9 +490,15 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   }
 
   async function startMonitor(input: KsMonitorStartInput): Promise<KsMonitorStatus> {
-    wantListen = true;
     currentUrl = String(input.url || '').trim();
-    currentCookie = String(input.cookie || '');
+    currentCookie = sanitizeKsCookie(String(input.cookie || ''));
+    if (!currentCookie) {
+      throw new Error('快手直连监听需要登录 Cookie；请在浏览器登录后复制包含 userId + passToken/web_st/webday7_st 的 Cookie');
+    }
+    if (!cookieHasKsLogin(currentCookie)) {
+      throw new Error('快手 Cookie 缺少登录会话：请复制包含 userId + passToken 或 web_st/webday7_st 的完整登录 Cookie');
+    }
+    wantListen = true;
     applyOptions({ replyChat: input.replyChat === true, thankGift: input.thankGift === true });
     seenIds.clear();
     chatCount = 0;

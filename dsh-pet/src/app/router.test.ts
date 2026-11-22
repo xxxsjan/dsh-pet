@@ -187,6 +187,18 @@ test('设置页对话面板脚本：有产物时由 app 路由提供 → 200 且
   }
 });
 
+test('控制台 Cookie 教程图片经同源路由提供', async () => {
+  const server = await start();
+  try {
+    const response = await fetch(server.base + '/standalone-console/cookie-guide-network.png');
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    assert.ok((await response.arrayBuffer()).byteLength > 1000);
+  } finally {
+    await server.close();
+  }
+});
+
 test('控制台的对话面板脚本：同一份产物经 /standalone-console/chat-panel.js 提供', async () => {
   const script = 'window.__CHAT_PANEL__ = 2;';
   const server = await start(

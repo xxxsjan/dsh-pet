@@ -2,8 +2,7 @@
  * 抖音弹幕监听：start / stop / status / options / check-cookie。
  *
  * 控制面板挂在「桌宠控制台」的头像区入口（抖音弹窗，见 standalone/console-page），
- * 旧设置页 `/standalone-ai/` 已不再保留该分区；这里只留 JSON 接口。契约见 HTTP_API.md；
- * 签名依赖桌面 Helper 的本机签名桥。
+ * 旧设置页 `/standalone-ai/` 已不再保留该分区；这里只留 JSON 接口。契约见 HTTP_API.md。
  * @module dsh-pet/src/host/routes/danmaku
  */
 import type { RouteResult } from '../http.ts';

@@ -52,7 +52,6 @@ const { createWindows } = require('./main/windows.js');
 const { registerIpc } = require('./main/ipc.js');
 const { createDisplaySync } = require('./main/displays.js');
 const { dshHomeDir, resolveUserDataDir } = require('./main/user-data.js');
-const { startDouyinSignBridge } = require('./main/douyin-sign.js');
 const { startDouyinCdpBridge } = require('./main/douyin-cdp.js');
 const { startXhsCdpBridge } = require('./main/xhs-cdp.js');
 const { startGlobalButtonWatch } = require('./main/win32-buttons.js');
@@ -352,20 +351,7 @@ app.whenReady().then(() => {
   registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi, helperDir: __dirname });
   createDisplaySync({ screen, petWindows, dpi });
 
-  // 抖音弹幕签名桥：隐藏窗跑 webmssdk，本机 HTTP 给宿主半侧签 X-Bogus（与进房/WSS 监听配套）。
-  const douyinSign = startDouyinSignBridge({ BrowserWindow, helperDir: __dirname });
-  app.once('before-quit', () => {
-    try {
-      douyinSign.stop();
-    } catch (e) {
-      console.error(
-        '[blue-fish-desktop-helper] douyin sign stop failed:',
-        String(e && e.message ? e.message : e),
-      );
-    }
-  });
-
-  // 抖音弹幕 CDP 旁听桥：隐藏内嵌窗加载直播间，CDP 抓弹幕 WS 帧交宿主解码（与旧签名桥直连并存，CDP 为主）。
+  // 抖音弹幕 CDP 旁听桥：隐藏内嵌窗加载直播间，CDP 抓弹幕 WS 帧交宿主解码。
   const douyinCdp = startDouyinCdpBridge({ BrowserWindow, session, log: console });
   globalThis.__dshPetDouyinCdp = douyinCdp;
   app.once('before-quit', () => {

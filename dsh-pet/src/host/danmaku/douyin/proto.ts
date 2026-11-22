@@ -19,10 +19,8 @@ const root = protobuf.Root.fromJSON({
             cursor: { type: 'string', id: 2 },
             fetchInterval: { type: 'uint64', id: 3 },
             now: { type: 'uint64', id: 4 },
-            internalExt: { type: 'string', id: 5 },
             fetchType: { type: 'uint32', id: 6 },
             heartbeatDuration: { type: 'uint64', id: 8 },
-            needAck: { type: 'bool', id: 9 },
             pushServer: { type: 'string', id: 10 },
             liveCursor: { type: 'string', id: 11 },
             historyNoMore: { type: 'bool', id: 12 },
@@ -54,13 +52,21 @@ const root = protobuf.Root.fromJSON({
         },
         GiftStruct: {
           fields: {
+            image: { type: 'Image', id: 1 },
             describe: { type: 'string', id: 2 },
             id: { type: 'uint64', id: 5 },
             forFansclub: { type: 'bool', id: 9 },
             combo: { type: 'bool', id: 10 },
             type: { type: 'uint32', id: 11 },
             diamondCount: { type: 'uint32', id: 12 },
+            icon: { type: 'Image', id: 21 },
             name: { type: 'string', id: 16 },
+          },
+        },
+        Image: {
+          fields: {
+            urlListList: { rule: 'repeated', type: 'string', id: 1 },
+            uri: { type: 'string', id: 2 },
           },
         },
         User: {
@@ -125,7 +131,6 @@ const root = protobuf.Root.fromJSON({
         PushFrame: {
           fields: {
             seqId: { type: 'uint64', id: 1 },
-            logId: { type: 'uint64', id: 2 },
             payloadEncoding: { type: 'string', id: 6 },
             payloadType: { type: 'string', id: 7 },
             payload: { type: 'bytes', id: 8 },
@@ -152,20 +157,3 @@ export const LightGiftMessage = root.lookupType('douyin.LightGiftMessage');
 export const LikeMessage = root.lookupType('douyin.LikeMessage');
 /** 控制消息类型（`WebcastControlMessage`）：status=3 表示直播结束（主播下播）。 */
 export const ControlMessage = root.lookupType('douyin.ControlMessage');
-
-/** 编码心跳帧。 */
-export function encodeHeartbeat(): Uint8Array {
-  return PushFrame.encode(PushFrame.create({ payloadType: 'hb' })).finish();
-}
-
-/** 编码 ACK 帧（服务端 needAck 时必须回）。 */
-export function encodeAck(logId: unknown, internalExt: string): Uint8Array {
-  const payload = new TextEncoder().encode(internalExt || '');
-  return PushFrame.encode(
-    PushFrame.create({
-      payloadType: 'ack',
-      logId,
-      payload,
-    }),
-  ).finish();
-}

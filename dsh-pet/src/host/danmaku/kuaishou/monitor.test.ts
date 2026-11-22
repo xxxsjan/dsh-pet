@@ -52,6 +52,24 @@ async function waitUntil(predicate: () => boolean, timeoutMs = 8000): Promise<vo
 }
 
 describe('kuaishou monitor 下播自动停听', () => {
+  test('无登录 Cookie 时启动应立即给出明确提示，不发起换票', async () => {
+    let fetchCount = 0;
+    const mon = createKsMonitor({
+      log,
+      resolvePetId: () => 'main',
+      chatWithPet: async () => ({ ok: true }),
+      fetchWsInfo: async () => {
+        fetchCount += 1;
+        return wsInfoOf('wss://ks.example/feed');
+      },
+    });
+    await assert.rejects(
+      () => mon.start({ url: 'https://live.kuaishou.com/abc' }),
+      /快手直连监听需要登录 Cookie/,
+    );
+    assert.equal(fetchCount, 0);
+  });
+
   test('start 直连本地 WSS：监听中、ended=false', async () => {
     const { server, url } = await startServer();
     try {
@@ -61,7 +79,7 @@ describe('kuaishou monitor 下播自动停听', () => {
         chatWithPet: async () => ({ ok: true }),
         fetchWsInfo: async () => wsInfoOf(url),
       });
-      const status = await mon.start({ url: 'https://live.kuaishou.com/abc' });
+      const status = await mon.start({ url: 'https://live.kuaishou.com/abc', cookie: 'userId=123; passToken=test' });
       assert.equal(status.listening, true);
       assert.equal(status.ended, false);
       assert.equal(status.mode, 'ws');
@@ -87,7 +105,7 @@ describe('kuaishou monitor 下播自动停听', () => {
         },
         onEnded: () => endedEvents.push(1),
       });
-      await mon.start({ url: 'https://live.kuaishou.com/abc' });
+      await mon.start({ url: 'https://live.kuaishou.com/abc', cookie: 'userId=123; passToken=test' });
       assert.equal(mon.status().ended, false);
 
       // 主播下播：服务端断开当前连接。
@@ -103,7 +121,7 @@ describe('kuaishou monitor 下播自动停听', () => {
 
       // 重新开始 = 新一场，ended 清零。
       living = true;
-      const restarted = await mon.start({ url: 'https://live.kuaishou.com/abc' });
+      const restarted = await mon.start({ url: 'https://live.kuaishou.com/abc', cookie: 'userId=123; passToken=test' });
       assert.equal(restarted.ended, false);
       assert.equal(restarted.listening, true);
       mon.stop();
@@ -125,7 +143,7 @@ describe('kuaishou monitor 下播自动停听', () => {
           return wsInfoOf(url);
         },
       });
-      await mon.start({ url: 'https://live.kuaishou.com/abc' });
+      await mon.start({ url: 'https://live.kuaishou.com/abc', cookie: 'userId=123; passToken=test' });
 
       // 第一次断线：探活是票据失效（未知），应继续重连而不是 markEnded。
       mode = 'bad';
