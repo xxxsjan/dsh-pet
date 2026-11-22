@@ -157,12 +157,51 @@ describe('PetCard —— 宠物配置卡', () => {
     assert.deepEqual(patches, [{ clickSoundVolume: 0.2 }]);
   });
 
-  test('人设：回显当前值、占位符用条目人设、右下角显示字数', () => {
-    const tree = render(() => {});
-    const area = control(tree, 'textarea', () => true);
-    assert.equal(area.props.value, '你是一只猫');
-    assert.equal(area.props.placeholder, '条目人设');
-    assert.ok(flatten(tree).some((node) => node.props.children === 'personaCount'));
+  test('人设：实例值优先，缺失时直接回显条目默认值、右下角显示字数', () => {
+    const custom = render(() => {});
+    const customArea = control(custom, 'textarea', () => true);
+    assert.equal(customArea.props.value, '你是一只猫');
+    assert.ok(flatten(custom).some((node) => node.props.children === 'personaCount'));
+
+    const fallback = PetCard({
+      pet: { ...pet, whisperPrompt: undefined } as unknown as Pet,
+      busy: false,
+      msg: { kind: '', text: '' },
+      entryPrompt: '条目默认人设',
+      onChange: () => {},
+      onSave: () => {},
+      onRemove: () => {},
+    } as never);
+    assert.equal(control(fallback, 'textarea', () => true).props.value, '条目默认人设');
+  });
+
+  test('人设「重置」：写回条目人设；已是初始值时禁用', () => {
+    const patches: PetPatch[] = [];
+    const tree = render((patch) => patches.push(patch));
+    const reset = control(tree, 'button', (props) => props.children === 'personaReset');
+    assert.equal(reset.props.disabled, false);
+    (reset.props.onClick as () => void)();
+    assert.deepEqual(patches, [{ whisperPrompt: '条目人设' }]);
+
+    const same = PetCard({
+      pet: { ...pet, whisperPrompt: '条目人设' } as Pet,
+      busy: false,
+      msg: { kind: '', text: '' },
+      entryPrompt: '条目人设',
+      onChange: () => {},
+      onSave: () => {},
+      onRemove: () => {},
+    } as never);
+    assert.equal(
+      control(same, 'button', (props) => props.children === 'personaReset').props.disabled,
+      true,
+      '已经是初始人设时不该再点',
+    );
+  });
+
+  test('人设「重置」：条目没有人设时禁用', () => {
+    const tree = render(() => {}, { entryPrompt: '' });
+    assert.equal(control(tree, 'button', (props) => props.children === 'personaReset').props.disabled, true);
   });
 
   test('忙时全部控件禁用；保存结果就近显示', () => {

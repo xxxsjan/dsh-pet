@@ -68,7 +68,11 @@ export const fr: Record<Key, string> = {
     "Affiché au survol du compagnon et ajouté aux personas de l'IA (« votre nom est X »). Les doublons sont permis ; laissé vide, l'identifiant du compagnon est utilisé.",
   personaLabel: 'Persona (facultatif)',
   personaHint:
-    "Ne concerne que ce compagnon. Laissez vide pour suivre le persona de l'entrée — le texte grisé dans le champ est exactement celui-ci. Le system réellement envoyé au modèle = ce texte + la ligne « votre nom est <nom> » ajoutée automatiquement + le contexte temporel courant ; ne répétez donc ni le nom ni la date ici.",
+    "Ne concerne que ce compagnon. À l'ouverture des réglages, la persona de l'entrée est préremplie dans le champ : modifiez-la sur place, ou cliquez sur Réinitialiser pour la restaurer. Le system réellement envoyé au modèle = ce texte + la ligne « votre nom est <nom> » ajoutée automatiquement + le contexte temporel courant ; ne répétez donc ni le nom ni la date ici.",
+  personaReset: 'Réinitialiser',
+  personaResetHint: "Reprendre la persona de l'entrée (le texte prérempli à l'ouverture des réglages).",
+  personaSeeded:
+    "La persona de l'entrée a été recopiée dans le champ : modifiez-la directement, ou cliquez sur Réinitialiser pour la restaurer.",
   personaCount: '{n} caractères',
   balanceEnabled: 'Fonction solde',
   balanceEnabledHint: "Une fois activée, ce compagnon joue l'animation de solde et affiche la bulle de solde.",

@@ -110,6 +110,7 @@ const SETTINGS_CSS = [
   // 人设复用 __inp 的边框与字号，只补高度与纵向缩放；人设没有长度上限，右下角只显示字数、不阻断输入。
   '.blue-fish-cfg__persona{display:flex;flex-direction:column;gap:2px;min-width:0}',
   '.blue-fish-cfg__area{min-height:66px;resize:vertical;line-height:18px}',
+  '.blue-fish-cfg__personaFoot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}',
   '.blue-fish-cfg__count{font-size:11px;color:var(--dsw-alias-label-tertiary);text-align:right}',
 
   '.blue-fish-cfg__toggle{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;color:var(--dsw-alias-label-primary)}',

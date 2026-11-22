@@ -149,28 +149,52 @@ export function makePetCard(rt: SettingsRuntime): FunctionComponent<PetCardProps
 
         // 人设（可选，实例级）：写在这只宠物上的 whisperPrompt，空 = 跟随所属条目的人设。
         // 只存储与回显，不在这里拼 system；拼装（名字声明 + 时间背景）在宿主半侧。
-        // 占位符直接用条目人设正文，让「跟随的是什么」可见；人设没有长度上限，右下角只显示字数。
-        field(
-          t('personaLabel'),
-          h('div', {
-            className: 'blue-fish-cfg__persona',
-            children: [
-              h('textarea', {
-                className: INPUT_CLASS + ' blue-fish-cfg__area',
-                rows: 3,
-                value: String(pet.whisperPrompt ?? ''),
-                disabled: busy,
-                placeholder: props.entryPrompt,
-                onChange: (e: ChangeEvent<HTMLTextAreaElement>) => props.onChange({ whisperPrompt: e.target.value }),
-              }),
-              h('span', {
-                className: 'blue-fish-cfg__count',
-                children: t('personaCount').replace('{n}', String(String(pet.whisperPrompt ?? '').length)),
-              }),
-            ],
-          }),
-          t('personaHint'),
-        ),
+        // 默认人设仍是条目级回落值：输入框必须直接回显它，不能只放 placeholder。
+        // 编辑框属于实例；只有用户真正改了才把 whisperPrompt 写进实例，未改时仍保持条目回落语义。
+        // 人设没有长度上限，右下角只显示字数。
+        (() => {
+          const ownText = typeof pet.whisperPrompt === 'string' ? pet.whisperPrompt : '';
+          const text = ownText.trim() !== '' ? ownText : props.entryPrompt;
+          return field(
+            t('personaLabel'),
+            h('div', {
+              className: 'blue-fish-cfg__persona',
+              children: [
+                h('textarea', {
+                  key: 'ta',
+                  className: INPUT_CLASS + ' blue-fish-cfg__area',
+                  rows: 3,
+                  value: text,
+                  disabled: busy,
+                  placeholder: props.entryPrompt,
+                  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => props.onChange({ whisperPrompt: e.target.value }),
+                }),
+                h('div', {
+                  key: 'pf',
+                  className: 'blue-fish-cfg__personaFoot',
+                  children: [
+                    h('button', {
+                      key: 'rs',
+                      type: 'button',
+                      // 已经是初始人设时不必点：禁用比点了没反应更清楚。
+                      disabled: busy || !props.entryPrompt || text === props.entryPrompt,
+                      className: 'blue-fish-cfg__btn is-sm',
+                      ...tip(t('personaResetHint')),
+                      onClick: () => props.onChange({ whisperPrompt: props.entryPrompt }),
+                      children: t('personaReset'),
+                    }),
+                    h('span', {
+                      key: 'ct',
+                      className: 'blue-fish-cfg__count',
+                      children: t('personaCount').replace('{n}', String(text.length)),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            t('personaHint'),
+          );
+        })(),
       ],
     });
   };

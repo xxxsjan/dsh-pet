@@ -67,7 +67,11 @@ export const pt: Record<Key, string> = {
     'Nome exibido ao passar o mouse e incluído na persona da IA ("seu nome é X"). Pode repetir; vazio usa o id do pet.',
   personaLabel: 'Persona (opcional)',
   personaHint:
-    'Vale só para este pet. Vazio = segue a persona da entrada — o texto cinza na caixa é exatamente isso. O system enviado ao modelo = este texto + uma linha "seu nome é <nome>" anexada automaticamente + o contexto de hora atual, então não repita o nome nem a data aqui.',
+    'Afeta apenas este pet. Ao abrir as configurações, a persona da entrada é preenchida na caixa: edite-a ali mesmo ou clique em Redefinir para restaurá-la. O system realmente enviado = este texto + a linha «seu nome é "<nome>"» + o contexto de tempo atual, então não repita nome nem data aqui.',
+  personaReset: 'Redefinir',
+  personaResetHint: 'Voltar à persona da entrada (o texto preenchido quando a página de configurações abriu).',
+  personaSeeded:
+    'A persona da entrada foi preenchida na caixa: edite-a diretamente ou clique em Redefinir para restaurar.',
   personaCount: '{n} caracteres',
   balanceEnabled: 'Saldo',
   balanceEnabledHint: 'Quando ativado, este pet toca as animações de saldo e mostra o balão de saldo.',

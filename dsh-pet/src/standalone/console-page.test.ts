@@ -107,6 +107,10 @@ test('其余分区全部接真控件：宠物、全局、物理、字体、模�
   ]) {
     assert.match(html, new RegExp(`id="${id}"`), `宠物控件 ${id} 应存在于静态壳`);
   }
+  // 宠物保存与删除统一放在整个宠物卡片的底部，不再挤在基础信息标题旁。
+  assert.match(html, /<div class="petBottomActions">/, '宠物卡片应有独立底部操作区');
+  assert.doesNotMatch(html, /基础信息<\/h3><div class="petPanelActs"/, '保存/删除不应留在基础信息标题旁');
+  assert.ok(html.indexOf('pet-persona-reset') < html.indexOf('pet-save'), '保存按钮应位于人设及其它设置区之后');
   // 用户要求删除「显示位置」下拉：界面不再出现该控件，保存时沿用条目原有 display
   assert.doesNotMatch(html, /id="pet-display"/, '「显示位置」控件不应再出现在界面');
   assert.doesNotMatch(consoleScript, /pet-display/, '脚本不应再绑定已删除的控件');
@@ -441,16 +445,14 @@ test('说明文字与占位符对齐旧页口径：卡片说明、开关解释�
   assert.ok(!html.includes('只影响气泡与悬浮提示，对话窗字号不变'), '字号说明应已移除');
   assert.ok(html.includes('Fish 音色库里的 Voice ID（字母数字与 _-）'), 'Fish 音色占位符应给 ID 格式');
   assert.match(html, /大肥鱼（自定义）/, '显示名占位符应给示例而不是标签重复');
-  // 人设：占位符放条目人设全文 + 字数统计（旧页 personaWrap 口径）
+  // 人设：默认值直接放进输入框，重置恢复条目默认值并取消实例覆盖。
   assert.match(html, /id="pet-persona-hint"/, '人设应有动态说明位');
   assert.match(html, /id="pet-persona-count"/, '人设应有字数统计');
+  assert.match(html, /id="pet-persona-reset"/, '人设应有重置按钮');
   assert.match(html, /发给模型的 system = 这段 \+ 自动追加的名字与时间背景/, '人设缺 system 拼装说明');
-  assert.match(
-    consoleScript,
-    /area\.placeholder = entryPrompt \|\| '留空则没有系统提示词'/,
-    '人设占位符应取条目人设全文',
-  );
-  assert.match(consoleScript, /输入框里的灰色文字就是那份内容/, '人设说明应点明灰色文字即条目人设');
+  assert.match(consoleScript, /area\.value = ownPrompt \|\| entryPrompt/, '实例没有人设时应直接回显条目默认人设');
+  assert.match(consoleScript, /delete pet\.whisperPrompt/, '重置应删除实例人设覆盖，恢复条目默认回落');
+  assert.match(consoleScript, /输入框直接显示默认人设/, '人设说明应点明默认值已直接显示在输入框');
   // 头像那行说明已按用户要求移除，长边上限口径仍留在后端的缩放实现里
   assert.ok(!consoleScript.includes('超过长边 512 会自动缩小'), '头像说明应已移除');
 });

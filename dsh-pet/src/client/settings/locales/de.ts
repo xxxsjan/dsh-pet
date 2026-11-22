@@ -67,7 +67,11 @@ export const de: Record<Key, string> = {
     'Anzeigename: erscheint beim Hovern über dem Pet und fließt in die KI-Persona ein („Dein Name ist X"). Doppelt erlaubt; leer = es gilt die Pet-ID.',
   personaLabel: 'Persona (optional)',
   personaHint:
-    'Gilt nur für dieses Pet. Leer lassen = Persona des Eintrags übernehmen – der graue Text im Feld ist genau diese. Das tatsächlich an das Modell gesendete System = dieser Text + automatisch angehängtem Hinweis „Dein Name ist <Name>" + aktuellem Zeitkontext; Name und Datum hier also nicht wiederholen.',
+    'Gilt nur für dieses Pet. Beim Öffnen der Einstellungen wird die Persona des Eintrags in das Feld übernommen: direkt bearbeiten oder „Zurücksetzen“ wählen, um sie wiederherzustellen. Das tatsächlich gesendete System = dieser Text + die Zeile „du heißt <Name>“ + aktueller Zeitkontext, Name und Datum hier also nicht wiederholen.',
+  personaReset: 'Zurücksetzen',
+  personaResetHint: 'Die Persona des Eintrags wiederherstellen (der beim Öffnen eingetragene Text).',
+  personaSeeded:
+    'Die Persona des Eintrags wurde ins Feld übernommen: direkt bearbeiten oder „Zurücksetzen“ wählen, um sie wiederherzustellen.',
   personaCount: '{n} Zeichen',
   balanceEnabled: 'Guthaben-Funktion',
   balanceEnabledHint: 'Wenn aktiv, spielt dieses Pet Guthaben-Animationen und zeigt die Guthaben-Blase.',

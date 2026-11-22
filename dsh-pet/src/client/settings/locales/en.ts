@@ -67,8 +67,11 @@ export const en: Record<Key, string> = {
     'Shown on hover and added to AI personas ("your name is X"). Duplicates allowed; empty falls back to the pet id.',
   personaLabel: 'Persona (optional)',
   personaHint:
-    'Applies to this pet only. Leave empty to follow the entry persona — the grey text inside the box is exactly that. The system prompt actually sent = this text + an appended 「your name is "<name>"」 line + the current time context, so do not repeat the name or the date here.',
+    'Applies to this pet only. The entry persona is pre-filled into the box when the page opens — edit it in place, or click Reset to restore it. The system prompt actually sent = this text + an appended 「your name is "<name>"」 line + the current time context, so do not repeat the name or the date here.',
   personaCount: '{n} chars',
+  personaReset: 'Reset',
+  personaResetHint: 'Restore the entry persona (the text pre-filled into the box when the settings page opened).',
+  personaSeeded: 'The entry persona was filled into the box; edit it directly, or click Reset to restore it.',
   balanceEnabled: 'Balance',
   balanceEnabledHint: 'When enabled, this pet plays balance animations and shows the balance bubble.',
   whisperEnabled: 'Whisper',

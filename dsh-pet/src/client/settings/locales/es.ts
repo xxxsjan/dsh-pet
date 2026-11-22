@@ -69,7 +69,11 @@ export const es: Record<Key, string> = {
     'Se muestra al pasar el cursor y se añade a las personas de la IA ("tu nombre es X"). Se permiten duplicados; si se deja vacío, se usa el id de la mascota.',
   personaLabel: 'Persona (opcional)',
   personaHint:
-    'Solo afecta a esta mascota. Déjalo vacío para seguir la persona de la entrada: el texto gris del cuadro es exactamente ese contenido. El system que se envía al modelo = este texto + una línea añadida con "tu nombre es <nombre>" + el contexto de la hora actual, así que no repitas aquí el nombre ni la fecha.',
+    'Solo afecta a esta mascota. Al abrir los ajustes, la persona de la entrada se rellena en la caja: edítala ahí mismo o pulsa Restablecer para recuperarla. El system que se envía = este texto + la línea «tu nombre es "<nombre>"» + el contexto temporal actual, así que no repitas aquí el nombre ni la fecha.',
+  personaReset: 'Restablecer',
+  personaResetHint: 'Volver a la persona de la entrada (el texto rellenado al abrir los ajustes).',
+  personaSeeded:
+    'La persona de la entrada se ha copiado en la caja: edítala directamente o pulsa Restablecer para recuperarla.',
   personaCount: '{n} caracteres',
   balanceEnabled: 'Saldo',
   balanceEnabledHint: 'Cuando está activado, esta mascota reproduce animaciones de saldo y muestra el globo de saldo.',

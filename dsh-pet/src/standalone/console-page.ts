@@ -112,14 +112,13 @@ export function consolePage(): string {
 </div>
 <div class="petPanels">
 <section class="petPanel">
-<div class="petPanelHead"><h3 class="petPanelTitle">基础信息</h3><div class="petPanelActs"><button type="button" class="btn primary" id="pet-save">保存</button><button type="button" class="btn ghost danger" id="pet-delete">删除</button></div></div>
+<div class="petPanelHead"><h3 class="petPanelTitle">基础信息</h3></div>
 <div class="fields petFields">
 <div class="fieldRow"><label class="fieldLabel" for="pet-name">名字</label><input class="fieldInput" id="pet-name" type="text" autocomplete="off"></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-id">标识 (id)</label><input class="fieldInput" id="pet-id" type="text" disabled></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-size">大小（宽度 px）</label><input class="fieldInput" id="pet-size" type="number" min="1" step="1"></div>
 <div class="fieldRow"><label class="fieldLabel" for="pet-size-percent">占屏宽度（%）</label><input class="fieldInput" id="pet-size-percent" type="number" min="1" step="1" placeholder="留空 = 按 px 显示"></div>
 </div>
-<span class="voiceStatus" id="pet-status" role="status" aria-live="polite"></span>
 </section>
 <section class="petPanel">
 <div class="petPanelHead"><h3 class="petPanelTitle">行为设置</h3></div>
@@ -139,11 +138,12 @@ export function consolePage(): string {
 <div class="fieldRow wide">
 <label class="fieldLabel" for="pet-persona">这只的人设（可选）</label>
 <textarea class="fieldInput area" id="pet-persona" rows="3" maxlength="4000"></textarea>
-<div class="personaFoot"><span class="fieldHint" id="pet-persona-hint"></span><span class="personaCount" id="pet-persona-count">0 字</span></div>
+<div class="personaFoot"><span class="fieldHint" id="pet-persona-hint"></span><div class="personaActions"><button type="button" class="secondaryBtn compact" id="pet-persona-reset">重置</button><span class="personaCount" id="pet-persona-count">0 字</span></div></div>
 <span class="fieldHint">发给模型的 system = 这段 + 自动追加的名字与时间背景，别在这里重复写。</span>
 </div>
 </div>
 </section>
+<div class="petBottomActions"><span class="voiceStatus" id="pet-status" role="status" aria-live="polite"></span><div class="petPanelActs"><button type="button" class="btn ghost danger" id="pet-delete">删除</button><button type="button" class="btn primary" id="pet-save">保存</button></div></div>
 </div>
 </div>
 </div>
@@ -2888,18 +2888,20 @@ export const consoleScript = `
     var clickVolumeValue = byId('pet-click-volume-value');
     if (clickVolumeValue) clickVolumeValue.textContent = clickVolume.toFixed(2);
     var area = byId('pet-persona');
-    if (area && document.activeElement !== area) {
-      area.value = typeof pet.whisperPrompt === 'string' ? pet.whisperPrompt : '';
-    }
-    // 人设口径对齐旧页：占位符放所属条目的人设全文，旁边给字数与规则说明。
     var entryPrompt = state.main && typeof state.main.whisperPrompt === 'string' ? state.main.whisperPrompt : '';
+    var ownPrompt = typeof pet.whisperPrompt === 'string' && pet.whisperPrompt.trim() !== '' ? pet.whisperPrompt : '';
+    if (area && document.activeElement !== area) {
+      area.value = ownPrompt || entryPrompt;
+    }
     if (area) area.placeholder = entryPrompt || '留空则没有系统提示词';
+    var reset = byId('pet-persona-reset');
+    if (reset) reset.disabled = !entryPrompt;
     updatePersonaCount();
     var personaHint = byId('pet-persona-hint');
     if (personaHint) {
       personaHint.textContent = entryPrompt
-        ? '留空 = 跟随所属条目的人设，输入框里的灰色文字就是那份内容。'
-        : '这个条目还没写人设；留空表示这只宠物没有系统提示词。';
+        ? '输入框直接显示默认人设；可继续编辑。重置会恢复为条目默认人设并取消实例覆盖。'
+        : '这个条目还没写人设；输入框为空表示这只宠物没有系统提示词。';
     }
     // 内置条目（main）：上传入口直接不显示，只留包内 logo 预览，与服务端拒绝口径保持一致。
     var root = petRoot(pet);
@@ -4585,6 +4587,16 @@ export const consoleScript = `
     // 保存与重置
     byId('pet-save').addEventListener('click', savePet);
     byId('pet-delete').addEventListener('click', function () { void deletePet(); });
+    byId('pet-persona-reset').addEventListener('click', function () {
+      var pet = currentPet();
+      var area = byId('pet-persona');
+      var entryPrompt = state.main && typeof state.main.whisperPrompt === 'string' ? state.main.whisperPrompt : '';
+      if (!pet || !area || !entryPrompt) return;
+      delete pet.whisperPrompt;
+      area.value = entryPrompt;
+      updatePersonaCount();
+      markDirty(true);
+    });
     byId('global-save').addEventListener('click', saveGlobal);
     byId('physics-save').addEventListener('click', savePhysics);
     byId('font-save').addEventListener('click', saveFont);
@@ -4741,6 +4753,8 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .petPreviewCard img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px}
 .petPreviewCaption{font-size:12px;color:var(--label-tertiary)}
 .petPanels{display:flex;flex-direction:column;gap:12px;min-width:0}
+.petBottomActions{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding-top:2px}
+.petBottomActions .petPanelActs{margin-left:auto}
 /* 人设不参与左右分栏：它挂在 petGrid 的第二列，跨过预览栏的宽度占满整行 */
 .petPanel--wide{grid-column:1/-1}
 @media (max-width:880px){.petPanel--wide{grid-column:auto}}
@@ -4807,6 +4821,8 @@ select.fieldInput{cursor:pointer}
 .switchHint{font-size:12px;line-height:1.45;color:var(--label-tertiary)}
 .cardHint{margin:-6px 0 14px;font-size:13px;line-height:1.55;color:var(--label-tertiary)}
 .personaFoot{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.personaActions{display:flex;align-items:center;gap:8px;flex:none}
+.secondaryBtn.compact{min-height:26px;padding:3px 9px;font-size:12px}
 .personaCount{flex:none;font-size:12px;color:var(--label-tertiary)}
 .personaFoot .fieldHint{margin:0}
 .switch{margin-top:2px}
