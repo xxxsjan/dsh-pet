@@ -14,7 +14,7 @@
  * @module dsh-pet/scripts/dist
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,12 +45,16 @@ function ask(question) {
     console.error('[dist] 无法读取输入');
     process.exit(result.status || 1);
   }
-  return String(result.stdout || '').replace(/^\uFEFF/, '').trim();
+  return String(result.stdout || '')
+    .replace(/^\uFEFF/, '')
+    .trim();
 }
 
 /** patch 段 +1；末段非数字时按 1 处理。 */
 function bumpPatch(version) {
-  const parts = String(version || '0.0.0').trim().split('.');
+  const parts = String(version || '0.0.0')
+    .trim()
+    .split('.');
   const n = Number(parts[parts.length - 1]);
   parts[parts.length - 1] = String(Number.isFinite(n) ? n + 1 : 1);
   return parts.join('.');
@@ -90,6 +94,33 @@ if (target !== 'dir') {
   console.error(`[dist] 未知目标：${target}（只出解包目录，直接运行 node scripts/dist.mjs）`);
   process.exit(2);
 }
+
+/** 打包前清掉旧产物；Windows 上若 app.asar 被进程占用，重试后给出明确处理提示，不进入版本写入。 */
+function cleanDistOutput() {
+  const distDir = join(root, 'dist-app');
+  if (!existsSync(distDir)) return;
+  let lastError;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      rmSync(distDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 });
+      console.log('[dist] 已清理旧产物：dist-app');
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 7) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+      }
+    }
+  }
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  console.error(
+    '[dist] 旧产物仍被进程占用，已停止打包。请关闭正在运行的桌宠应用，并关闭 VS Code 中对 dist-app/app.asar 的预览或监视后重试。\n' +
+      detail,
+  );
+  process.exit(1);
+}
+
+cleanDistOutput();
 
 const electronDist = resolveElectronDist();
 /** mirror 默认 npmmirror：本机 github.com 不通；CI 上可用环境变量覆盖成官方源 */
