@@ -92,6 +92,27 @@ const CENTER_URL = 'https://redlive.xiaohongshu.com/live_center_control';
 const ENDED_PROBE_TICK_MS = 60_000;
 
 /**
+ * 开始监听前等待中控台渲染出「直播中」证据的上限。
+ * 中控台是单页应用，loadURL 完成后互动面板与 longlink 还会晚一点才挂载；
+ * 超过这个时间仍看不到证据就不放行，避免未开播也计为监听中。
+ */
+const LIVE_READY_WAIT_MS = 8_000;
+/** 重试探测的间隔。 */
+const LIVE_READY_RETRY_MS = 500;
+
+/** 在超时内反复探测开播态，拿到 live 立即返回；返回最后一次结果。 */
+async function waitForLiveState(bridge: XhsCdpBridge, timeoutMs: number): Promise<'live' | 'ended' | 'unknown'> {
+  const probe = bridge.probeLiveState;
+  if (typeof probe !== 'function') return 'live';
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const verdict = await probe.call(bridge);
+    if (verdict !== 'unknown' || Date.now() >= deadline) return verdict;
+    await new Promise((resolve) => setTimeout(resolve, LIVE_READY_RETRY_MS));
+  }
+}
+
+/**
  * 创建小红书中控台弹幕监听器（进程内单例语义由调用方保证）。
  */
 export function createXhsMonitor(deps: XhsMonitorDeps) {
@@ -112,6 +133,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
   let mode: 'cdp' | 'idle' = 'idle';
   let cdp: XhsCdpBridge | null = null;
   let cdpUnsubs: Array<() => void> = [];
+  /** 最近一次从桥同步到的可见态 / 登录态；start 等待开播判定期间也要按它决定是否允许扫码登录。 */
   let cdpVisible = false;
   let cdpLoggedIn = false;
   /** WS 消息去重集合。 */
@@ -335,9 +357,17 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
       }),
     );
     await bridge.start({ cookie: currentCookie });
-    const snap = bridge.status();
-    cdpVisible = snap.visible;
-    cdpLoggedIn = snap.loggedIn;
+    const startSnap = bridge.status();
+    cdpVisible = startSnap.visible;
+    cdpLoggedIn = startSnap.loggedIn;
+    // 已登录时内嵌窗隐藏，这里必须先确认真的在播；未登录时窗口要留着扫码，开播判定交给后续结束探测。
+    const verdict = cdpLoggedIn ? await waitForLiveState(bridge, LIVE_READY_WAIT_MS) : 'live';
+    if (verdict === 'ended') {
+      throw new Error('主播当前未开播（直播已结束）：开播后再点开始监听');
+    }
+    if (verdict !== 'live') {
+      throw new Error('未能确认正在直播：请先在中控台开播后再点开始监听');
+    }
     mode = 'cdp';
     listening = true;
     lastError = '';
@@ -397,7 +427,13 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     if (!bridge) {
       throw new Error('小红书 CDP 旁听桥未就绪：需要桌面 Helper 在跑（应用模式或桌面宠物已启动）');
     }
-    await start(bridge);
+    try {
+      await start(bridge);
+    } catch (e) {
+      // 开播判定失败不能让内嵌窗继续挂着假装在听：回收窗口并把状态退回 idle。
+      stop();
+      throw e;
+    }
     return status();
   }
 

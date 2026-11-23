@@ -332,7 +332,7 @@ export function consolePage(): string {
 </div>
 <div class="chatMask" id="live-dialog" hidden>
 <div class="chatDialog liveDialog" role="dialog" aria-modal="true" aria-labelledby="live-dialog-title">
-<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间<span class="liveTitlePlat" id="live-title-plat"></span></h2><div class="miniLatest" id="mini-latest"><span class="miniLatestNick" id="mini-latest-nick"></span><span class="miniLatestText" id="mini-latest-text">暂无新消息</span></div><div class="liveHeadRight"><button type="button" class="chatClose miniCollapseBtn" id="live-collapse" aria-label="折叠为标题栏" aria-expanded="true" title="折叠"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5 8 10.5l4-4"/></svg></button><button type="button" class="chatClose miniOpacityBtn" id="live-opacity" aria-label="调节窗口透明度" aria-expanded="false" title="调节透明度"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.2"/><path d="M8 2.8a5.2 5.2 0 0 1 0 10.4Z" fill="currentColor" stroke="none"/></svg></button><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="chatHead"><h2 class="chatTitle" id="live-dialog-title"><span class="liveStatusLight" id="live-status-light" aria-hidden="true"></span>直播间<span class="liveTitlePlat" id="live-title-plat"></span><span class="liveRoomMeta" id="live-room-meta"></span></h2><div class="miniLatest" id="mini-latest"><span class="miniLatestNick" id="mini-latest-nick"></span><span class="miniLatestText" id="mini-latest-text">暂无新消息</span></div><div class="liveHeadRight"><button type="button" class="chatClose miniCollapseBtn" id="live-collapse" aria-label="折叠为标题栏" aria-expanded="true" title="折叠"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5 8 10.5l4-4"/></svg></button><button type="button" class="chatClose miniOpacityBtn" id="live-opacity" aria-label="调节窗口透明度" aria-expanded="false" title="调节透明度"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.2"/><path d="M8 2.8a5.2 5.2 0 0 1 0 10.4Z" fill="currentColor" stroke="none"/></svg></button><button type="button" class="chatClose" id="live-close" aria-label="关闭直播间窗口"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
 <div class="miniStats" id="mini-stats"><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><b id="mini-stat-viewer">—</b></span><span class="miniStat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C9.5 3 11 5 12 8c1-3 2.5-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg><b id="mini-stat-gift">0</b></span><span class="miniStat" title="本场累计点赞"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg><b id="mini-stat-like">0</b></span></div>
 <div class="liveBody">
 <div class="liveConfigPane" id="live-config-pane"><div class="liveConfig" role="region" aria-labelledby="live-config-title"><span class="liveConfigTitle" id="live-config-title">抖音</span><div class="liveConfigBody">
@@ -344,7 +344,7 @@ export function consolePage(): string {
 <p class="dmCookieNote">提示：该账号若已在其他直播间观看（如手机端），开始监听会将其从原直播间踢出。</p>
 <p class="status" id="dm-msg" role="status" aria-live="polite"></p>
 </div>
-<div class="liveStatusRow"><p class="liveStatus" id="dm-status">加载中…</p></div>
+<div class="liveStatusRow" hidden><p class="liveStatus" id="dm-status">加载中…</p></div>
 <div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="dm-refresh">刷新状态</button></div>
 </div>
 </div>
@@ -354,7 +354,7 @@ export function consolePage(): string {
 <p class="liveLoginNote">小红书需要扫码登录后使用。</p>
 <p class="status" id="xs-msg" role="status" aria-live="polite"></p>
 </div>
-<div class="liveStatusRow"><p class="liveStatus" id="xs-status">加载中…</p></div>
+<div class="liveStatusRow" hidden><p class="liveStatus" id="xs-status">加载中…</p></div>
 <div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="xs-refresh">刷新状态</button></div>
 </div>
 </div>
@@ -365,7 +365,7 @@ export function consolePage(): string {
 <div class="dmField"><div class="dmCookieLabelRow"><label class="dmLabel" for="ks-cookie">Cookie <span class="dmLabelOpt">必填</span></label><div class="dmCookieRow"><button type="button" class="liveStatusRefresh dmCookieGuideBtn" data-cookie-guide="ks">获取 Cookie</button></div></div><textarea class="fieldInput area" id="ks-cookie" placeholder="请粘贴登录 Cookie（必须包含 userId + passToken/web_st/webday7_st）" spellcheck="false"></textarea></div>
 <p class="status" id="ks-msg" role="status" aria-live="polite"></p>
 </div>
-<div class="liveStatusRow"><p class="liveStatus" id="ks-status">加载中…</p></div>
+<div class="liveStatusRow" hidden><p class="liveStatus" id="ks-status">加载中…</p></div>
 <div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="ks-refresh">刷新状态</button></div>
 </div>
 </div>
@@ -376,7 +376,7 @@ export function consolePage(): string {
 <div class="dmField"><div class="dmCookieLabelRow"><label class="dmLabel" for="bl-cookie">Cookie <span class="dmLabelOpt">可选</span></label><div class="dmCookieRow"><button type="button" class="liveStatusRefresh dmCookieGuideBtn" data-cookie-guide="bl">获取 Cookie</button></div></div><textarea class="fieldInput area" id="bl-cookie" placeholder="不填走访客匿名；登录可粘贴 SESSDATA，失效会自动回落访客" spellcheck="false"></textarea></div>
 <p class="status" id="bl-msg" role="status" aria-live="polite"></p>
 </div>
-<div class="liveStatusRow"><p class="liveStatus" id="bl-status">加载中…</p></div>
+<div class="liveStatusRow" hidden><p class="liveStatus" id="bl-status">加载中…</p></div>
 <div class="liveOpenLiveRow"><button type="button" class="liveStatusRefresh" id="bl-refresh">刷新状态</button></div>
 </div>
 </div>
@@ -1056,6 +1056,16 @@ export const consoleScript = `
       ].join('|');
     }).join(';;');
   }
+  /**
+   * 新行入场后的滚动：贴底时只补上新增高度，已有行停在原位不动；不贴底时完全不碰滚动位置。
+   * 直接 scrollTop = scrollHeight 会把整块列表瞬间上推，看起来像所有旧消息一起抖。
+   */
+  function liveScrollForNewRow(box, stickToBottom) {
+    if (!stickToBottom) return;
+    var before = box.scrollTop;
+    var overflow = Math.max(0, box.scrollHeight - box.clientHeight - before);
+    box.scrollTop = before + overflow;
+  }
   function dmClearFeedQueue() {
     dmFeedQueue.length = 0;
     if (dmFeedQueueTimer) {
@@ -1073,7 +1083,7 @@ export const consoleScript = `
         return;
       }
       if (!next.row.parentNode) next.box.appendChild(next.row);
-      if (next.stickToBottom) next.box.scrollTop = next.box.scrollHeight;
+      liveScrollForNewRow(next.box, next.stickToBottom);
       dmFeedQueueTimer = setTimeout(pump, 180);
     };
     dmFeedQueueTimer = setTimeout(pump, 0);
@@ -1149,7 +1159,9 @@ export const consoleScript = `
         var signature = liveFeedFingerprint([item]);
         var existing = dmGiftNodes.get(key);
         if (existing && existing.getAttribute('data-feed-signature') !== signature) {
+          // 连击数量更新只换内容，不重放入场动画：旧行本来就在屏幕上，抖动会带动整列。
           var replacement = dmCreateGiftRow(item, 0);
+          replacement.classList.remove('dmFresh');
           existing.parentNode.replaceChild(replacement, existing);
           dmGiftNodes.set(key, replacement);
         } else if (!existing) {
@@ -1170,6 +1182,7 @@ export const consoleScript = `
         var existing = dmFeedNodes.get(key);
         if (existing && existing.getAttribute('data-feed-signature') !== signature) {
           var replacement = dmCreateChatRow(item, 0);
+          replacement.classList.remove('dmFresh');
           existing.parentNode.replaceChild(replacement, existing);
           dmFeedNodes.set(key, replacement);
         } else if (!existing) {
@@ -1181,10 +1194,10 @@ export const consoleScript = `
       });
     }
     if (shouldStick && (list.length === 0 || maxId !== dmLastFeedId)) {
-      feedBox.scrollTop = feedBox.scrollHeight;
+      liveScrollForNewRow(feedBox, true);
     }
     if (shouldStickGift && (gifts.length === 0 || maxGiftId !== dmLastGiftId)) {
-      giftBox.scrollTop = giftBox.scrollHeight;
+      liveScrollForNewRow(giftBox, true);
     }
     dmLastFeedId = maxId;
     dmLastGiftId = maxGiftId;
@@ -1214,6 +1227,7 @@ export const consoleScript = `
     dmListening = !!status.listening;
     liveSyncPill('dm', dmListening);
     liveMonitorSnapshots.dm = status;
+    liveSyncRoomMeta();
     miniSyncStats('dm', status);
     renderLiveMonitorCard();
     dmSyncToggle();
@@ -1301,7 +1315,6 @@ export const consoleScript = `
     dmClearFeedQueue();
     var button = byId('dm-toggle');
     hideDmKickDialog();
-    setStatus(byId('dm-msg'), '正在连接…');
     if (button) button.disabled = true;
     dmSaveCache();
     try {
@@ -1440,8 +1453,13 @@ export const consoleScript = `
   var XS_CACHE_KEY = 'blue_fish_xhs_danmaku_form_v1';
   var XS_POLL_MS = 3000;
   var xsListening = false;
+  var xsSessionStartedAt = 0;
   var xsLastFeedId = 0;
   var xsFeedSignature = '';
+  var xsFeedNodes = new Map();
+  var xsGiftNodes = new Map();
+  var xsChatQueue = { rows: [], timer: null };
+  var xsGiftQueue = { rows: [], timer: null };
   var xsStickBottom = true;
   var xsLastGiftId = 0;
   var xsGiftStickBottom = true;
@@ -1489,6 +1507,55 @@ export const consoleScript = `
     if (!button) return;
     button.textContent = xsListening ? '停止监听' : '开始监听';
     button.className = xsListening ? 'btn danger' : 'btn primary';
+  }
+  function xsClearFeedQueue() {
+    [xsChatQueue, xsGiftQueue].forEach(function (queue) {
+      queue.rows.length = 0;
+      if (!queue.timer) return;
+      clearTimeout(queue.timer);
+      queue.timer = null;
+    });
+  }
+  function xsQueueFeedRow(queue, box, row, stickToBottom) {
+    queue.rows.push({ box: box, row: row, stickToBottom: stickToBottom });
+    if (queue.timer) return;
+    var pump = function () {
+      var next = queue.rows.shift();
+      if (!next) {
+        queue.timer = null;
+        return;
+      }
+      if (!next.row.parentNode) next.box.appendChild(next.row);
+      liveScrollForNewRow(next.box, next.stickToBottom);
+      queue.timer = setTimeout(pump, 180);
+    };
+    queue.timer = setTimeout(pump, 0);
+  }
+  function xsReplaceFeedRow(existing, replacement) {
+    replacement.classList.remove('dmFresh');
+    if (existing.parentNode) {
+      existing.parentNode.replaceChild(replacement, existing);
+      return;
+    }
+    [xsChatQueue, xsGiftQueue].forEach(function (queue) {
+      queue.rows.forEach(function (entry) {
+        if (entry.row === existing) entry.row = replacement;
+      });
+    });
+  }
+  function xsResetFeedSession() {
+    xsFeedSignature = '';
+    xsLastFeedId = 0;
+    xsLastGiftId = 0;
+    xsClearFeedQueue();
+    xsFeedNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    xsGiftNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    xsFeedNodes.clear();
+    xsGiftNodes.clear();
+    var feedBox = byId('xs-feed');
+    var giftBox = byId('xs-gift');
+    if (feedBox) feedBox.textContent = '';
+    if (giftBox) giftBox.textContent = '';
   }
   /** 小红书表情查表：去方括号后先按原名查，再去站内 R/H 后缀查一次；未收录返回空串。 */
   function xsEmojiSrc(token) {
@@ -1549,11 +1616,10 @@ export const consoleScript = `
     if (gifts.length === 0) xsLastGiftId = 0;
     var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
     var shouldStickGift = xsGiftStickBottom || giftNearBottom;
-    if (gifts.length > 0) giftBox.textContent = '';
-    gifts.forEach(function (item, freshIndex) {
+    gifts.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
         // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
@@ -1569,26 +1635,41 @@ export const consoleScript = `
       }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
-      giftBox.appendChild(row);
+      var key = String(item.id);
+      var existing = xsGiftNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        xsReplaceFeedRow(existing, row);
+        xsGiftNodes.set(key, row);
+      } else if (!existing) {
+        xsGiftNodes.set(key, row);
+        xsQueueFeedRow(xsGiftQueue, giftBox, row, shouldStickGift);
+      }
     });
-    if (chats.length > 0) feedBox.textContent = '';
-    chats.forEach(function (item, freshIndex) {
+    chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(xsRichText(item.text));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', xsFormatTime(item.at)));
-      feedBox.appendChild(row);
+      var key = String(item.id);
+      var existing = xsFeedNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        xsReplaceFeedRow(existing, row);
+        xsFeedNodes.set(key, row);
+      } else if (!existing) {
+        xsFeedNodes.set(key, row);
+        xsQueueFeedRow(xsChatQueue, feedBox, row, shouldStick);
+      }
     });
     if (shouldStick && (list.length === 0 || maxId !== xsLastFeedId)) {
-      feedBox.scrollTop = feedBox.scrollHeight;
+      liveScrollForNewRow(feedBox, true);
     }
     if (shouldStickGift && (gifts.length === 0 || maxGiftId !== xsLastGiftId)) {
-      giftBox.scrollTop = giftBox.scrollHeight;
+      liveScrollForNewRow(giftBox, true);
     }
     xsLastFeedId = maxId;
     xsLastGiftId = maxGiftId;
@@ -1596,9 +1677,15 @@ export const consoleScript = `
   }
   function xsRenderStatus(data, syncToggles) {
     var status = data || {};
+    var startedAt = Number(status.startedAt) || 0;
+    if (startedAt > 0 && xsSessionStartedAt !== startedAt) {
+      xsSessionStartedAt = startedAt;
+      xsResetFeedSession();
+    }
     xsListening = !!status.listening;
     liveSyncPill('xs', xsListening);
     liveMonitorSnapshots.xs = status;
+    liveSyncRoomMeta();
     miniSyncStats('xs', status);
     renderLiveMonitorCard();
     xsSyncToggle();
@@ -1639,7 +1726,6 @@ export const consoleScript = `
   }
   async function xsStart() {
     var button = byId('xs-toggle');
-    setStatus(byId('xs-msg'), '正在连接…');
     if (button) button.disabled = true;
     xsSaveCache();
     try {
@@ -1741,8 +1827,13 @@ export const consoleScript = `
   var KS_CACHE_KEY = 'blue_fish_ks_danmaku_form_v1';
   var KS_POLL_MS = 3000;
   var ksListening = false;
+  var ksSessionStartedAt = 0;
   var ksLastFeedId = 0;
   var ksFeedSignature = '';
+  var ksFeedNodes = new Map();
+  var ksGiftNodes = new Map();
+  var ksChatQueue = { rows: [], timer: null };
+  var ksGiftQueue = { rows: [], timer: null };
   var ksStickBottom = true;
   var ksLastGiftId = 0;
   var ksGiftStickBottom = true;
@@ -1840,6 +1931,55 @@ export const consoleScript = `
     button.textContent = ksListening ? '停止监听' : '开始监听';
     button.className = ksListening ? 'btn danger' : 'btn primary';
   }
+  function ksClearFeedQueue() {
+    [ksChatQueue, ksGiftQueue].forEach(function (queue) {
+      queue.rows.length = 0;
+      if (!queue.timer) return;
+      clearTimeout(queue.timer);
+      queue.timer = null;
+    });
+  }
+  function ksQueueFeedRow(queue, box, row, stickToBottom) {
+    queue.rows.push({ box: box, row: row, stickToBottom: stickToBottom });
+    if (queue.timer) return;
+    var pump = function () {
+      var next = queue.rows.shift();
+      if (!next) {
+        queue.timer = null;
+        return;
+      }
+      if (!next.row.parentNode) next.box.appendChild(next.row);
+      liveScrollForNewRow(next.box, next.stickToBottom);
+      queue.timer = setTimeout(pump, 180);
+    };
+    queue.timer = setTimeout(pump, 0);
+  }
+  function ksReplaceFeedRow(existing, replacement) {
+    replacement.classList.remove('dmFresh');
+    if (existing.parentNode) {
+      existing.parentNode.replaceChild(replacement, existing);
+      return;
+    }
+    [ksChatQueue, ksGiftQueue].forEach(function (queue) {
+      queue.rows.forEach(function (entry) {
+        if (entry.row === existing) entry.row = replacement;
+      });
+    });
+  }
+  function ksResetFeedSession() {
+    ksFeedSignature = '';
+    ksLastFeedId = 0;
+    ksLastGiftId = 0;
+    ksClearFeedQueue();
+    ksFeedNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    ksGiftNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    ksFeedNodes.clear();
+    ksGiftNodes.clear();
+    var feedBox = byId('ks-feed');
+    var giftBox = byId('ks-gift');
+    if (feedBox) feedBox.textContent = '';
+    if (giftBox) giftBox.textContent = '';
+  }
   function ksRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
     var nextSignature = liveFeedFingerprint(list);
@@ -1863,11 +2003,10 @@ export const consoleScript = `
     if (gifts.length === 0) ksLastGiftId = 0;
     var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
     var shouldStickGift = ksGiftStickBottom || giftNearBottom;
-    if (gifts.length > 0) giftBox.textContent = '';
-    gifts.forEach(function (item, freshIndex) {
+    gifts.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
         // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
@@ -1883,13 +2022,20 @@ export const consoleScript = `
       }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
-      giftBox.appendChild(row);
+      var key = String(item.id);
+      var existing = ksGiftNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        ksReplaceFeedRow(existing, row);
+        ksGiftNodes.set(key, row);
+      } else if (!existing) {
+        ksGiftNodes.set(key, row);
+        ksQueueFeedRow(ksGiftQueue, giftBox, row, shouldStickGift);
+      }
     });
-    if (chats.length > 0) feedBox.textContent = '';
-    chats.forEach(function (item, freshIndex) {
+    chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
@@ -1898,13 +2044,21 @@ export const consoleScript = `
       bodyBox.appendChild(textBox);
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', ksFormatTime(item.at)));
-      feedBox.appendChild(row);
+      var key = String(item.id);
+      var existing = ksFeedNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        ksReplaceFeedRow(existing, row);
+        ksFeedNodes.set(key, row);
+      } else if (!existing) {
+        ksFeedNodes.set(key, row);
+        ksQueueFeedRow(ksChatQueue, feedBox, row, shouldStick);
+      }
     });
     if (shouldStick && (list.length === 0 || maxId !== ksLastFeedId)) {
-      feedBox.scrollTop = feedBox.scrollHeight;
+      liveScrollForNewRow(feedBox, true);
     }
     if (shouldStickGift && (gifts.length === 0 || maxGiftId !== ksLastGiftId)) {
-      giftBox.scrollTop = giftBox.scrollHeight;
+      liveScrollForNewRow(giftBox, true);
     }
     ksLastFeedId = maxId;
     ksLastGiftId = maxGiftId;
@@ -1912,10 +2066,16 @@ export const consoleScript = `
   }
   function ksRenderStatus(data, syncToggles) {
     var status = data || {};
+    var startedAt = Number(status.startedAt) || 0;
+    if (startedAt > 0 && ksSessionStartedAt !== startedAt) {
+      ksSessionStartedAt = startedAt;
+      ksResetFeedSession();
+    }
     if (status.emoji && typeof status.emoji === 'object') KS_EMOJI_URLS = status.emoji;
     ksListening = !!status.listening;
     liveSyncPill('ks', ksListening);
     liveMonitorSnapshots.ks = status;
+    liveSyncRoomMeta();
     miniSyncStats('ks', status);
     renderLiveMonitorCard();
     ksSyncToggle();
@@ -1965,7 +2125,6 @@ export const consoleScript = `
       setStatus(byId('ks-msg'), '快手直连监听需要登录 Cookie，请在浏览器登录后复制完整 Cookie', 'error');
       return;
     }
-    setStatus(byId('ks-msg'), '正在连接…');
     if (button) button.disabled = true;
     ksSaveCache();
     try {
@@ -2080,8 +2239,13 @@ export const consoleScript = `
   var BL_CACHE_KEY = 'blue_fish_bili_danmaku_form_v1';
   var BL_POLL_MS = 3000;
   var blListening = false;
+  var blSessionStartedAt = 0;
   var blLastFeedId = 0;
   var blFeedSignature = '';
+  var blFeedNodes = new Map();
+  var blGiftNodes = new Map();
+  var blChatQueue = { rows: [], timer: null };
+  var blGiftQueue = { rows: [], timer: null };
   var blStickBottom = true;
   var blLastGiftId = 0;
   var blGiftStickBottom = true;
@@ -2136,6 +2300,55 @@ export const consoleScript = `
     button.textContent = blListening ? '停止监听' : '开始监听';
     button.className = blListening ? 'btn danger' : 'btn primary';
   }
+  function blClearFeedQueue() {
+    [blChatQueue, blGiftQueue].forEach(function (queue) {
+      queue.rows.length = 0;
+      if (!queue.timer) return;
+      clearTimeout(queue.timer);
+      queue.timer = null;
+    });
+  }
+  function blQueueFeedRow(queue, box, row, stickToBottom) {
+    queue.rows.push({ box: box, row: row, stickToBottom: stickToBottom });
+    if (queue.timer) return;
+    var pump = function () {
+      var next = queue.rows.shift();
+      if (!next) {
+        queue.timer = null;
+        return;
+      }
+      if (!next.row.parentNode) next.box.appendChild(next.row);
+      liveScrollForNewRow(next.box, next.stickToBottom);
+      queue.timer = setTimeout(pump, 180);
+    };
+    queue.timer = setTimeout(pump, 0);
+  }
+  function blReplaceFeedRow(existing, replacement) {
+    replacement.classList.remove('dmFresh');
+    if (existing.parentNode) {
+      existing.parentNode.replaceChild(replacement, existing);
+      return;
+    }
+    [blChatQueue, blGiftQueue].forEach(function (queue) {
+      queue.rows.forEach(function (entry) {
+        if (entry.row === existing) entry.row = replacement;
+      });
+    });
+  }
+  function blResetFeedSession() {
+    blFeedSignature = '';
+    blLastFeedId = 0;
+    blLastGiftId = 0;
+    blClearFeedQueue();
+    blFeedNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    blGiftNodes.forEach(function (row) { if (row.parentNode) row.parentNode.removeChild(row); });
+    blFeedNodes.clear();
+    blGiftNodes.clear();
+    var feedBox = byId('bl-feed');
+    var giftBox = byId('bl-gift');
+    if (feedBox) feedBox.textContent = '';
+    if (giftBox) giftBox.textContent = '';
+  }
   function blRenderFeed(recent) {
     var list = Array.isArray(recent) ? recent : [];
     var nextSignature = liveFeedFingerprint(list);
@@ -2159,11 +2372,10 @@ export const consoleScript = `
     if (gifts.length === 0) blLastGiftId = 0;
     var giftNearBottom = giftBox.scrollHeight - giftBox.scrollTop - giftBox.clientHeight < 48;
     var shouldStickGift = blGiftStickBottom || giftNearBottom;
-    if (gifts.length > 0) giftBox.textContent = '';
-    gifts.forEach(function (item, freshIndex) {
+    gifts.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem gift' + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       var bodyBox = dmNode('div', 'dmFeedBody');
       if (LIVE_MINI) {
         // 小窗对齐设计稿：昵称 + 送了 + 礼物托 + 礼物名 + ×数量胶囊
@@ -2179,26 +2391,41 @@ export const consoleScript = `
       }
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', blFormatTime(item.at)));
-      giftBox.appendChild(row);
+      var key = String(item.id);
+      var existing = blGiftNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        blReplaceFeedRow(existing, row);
+        blGiftNodes.set(key, row);
+      } else if (!existing) {
+        blGiftNodes.set(key, row);
+        blQueueFeedRow(blGiftQueue, giftBox, row, shouldStickGift);
+      }
     });
-    if (chats.length > 0) feedBox.textContent = '';
-    chats.forEach(function (item, freshIndex) {
+    chats.forEach(function (item) {
       var nickText = String(item.nick || '匿名');
       var row = dmNode('div', 'dmFeedItem chat' + (dmIsEntryText(item.text) ? ' entry' : '') + ((Number(item.id) || 0) > prevId && prevId > 0 ? ' dmFresh' : ''));
-      if ((Number(item.id) || 0) > prevId && prevId > 0) row.style.animationDelay = (Math.min(freshIndex, 8) * 35) + 'ms';
+      row.setAttribute('data-feed-signature', liveFeedFingerprint([item]));
       if (!LIVE_MINI) row.appendChild(dmFeedAvatar(nickText, 'chat'));
       var bodyBox = dmNode('div', 'dmFeedBody');
       bodyBox.appendChild(dmNode('span', LIVE_MINI ? 'dmFeedNick' : 'dmFeedNick nk' + dmFeedTone(nickText), nickText));
       bodyBox.appendChild(dmNode('span', 'dmFeedText', String(item.text || '')));
       row.appendChild(bodyBox);
       row.appendChild(dmNode('span', 'dmFeedTime', blFormatTime(item.at)));
-      feedBox.appendChild(row);
+      var key = String(item.id);
+      var existing = blFeedNodes.get(key);
+      if (existing && existing.getAttribute('data-feed-signature') !== row.getAttribute('data-feed-signature')) {
+        blReplaceFeedRow(existing, row);
+        blFeedNodes.set(key, row);
+      } else if (!existing) {
+        blFeedNodes.set(key, row);
+        blQueueFeedRow(blChatQueue, feedBox, row, shouldStick);
+      }
     });
     if (shouldStick && (list.length === 0 || maxId !== blLastFeedId)) {
-      feedBox.scrollTop = feedBox.scrollHeight;
+      liveScrollForNewRow(feedBox, true);
     }
     if (shouldStickGift && (gifts.length === 0 || maxGiftId !== blLastGiftId)) {
-      giftBox.scrollTop = giftBox.scrollHeight;
+      liveScrollForNewRow(giftBox, true);
     }
     blLastFeedId = maxId;
     blLastGiftId = maxGiftId;
@@ -2206,9 +2433,15 @@ export const consoleScript = `
   }
   function blRenderStatus(data, syncToggles) {
     var status = data || {};
+    var startedAt = Number(status.startedAt) || 0;
+    if (startedAt > 0 && blSessionStartedAt !== startedAt) {
+      blSessionStartedAt = startedAt;
+      blResetFeedSession();
+    }
     blListening = !!status.listening;
     liveSyncPill('bl', blListening);
     liveMonitorSnapshots.bl = status;
+    liveSyncRoomMeta();
     miniSyncStats('bl', status);
     renderLiveMonitorCard();
     blSyncToggle();
@@ -2240,6 +2473,20 @@ export const consoleScript = `
   }
   /** 主页监听状态卡：各平台最近一次状态快照与当前展示平台（顶层作用域，供四个 renderStatus 与 load 共用）。 */
   var liveMonitorSnapshots = { dm: null, xs: null, ks: null, bl: null };
+  function liveSyncRoomMeta() {
+    var node = byId('live-room-meta');
+    if (!node) return;
+    var snapshot = liveMonitorSnapshots[liveCurrent];
+    var metaParts = [];
+    if (snapshot && snapshot.listening) {
+      if (typeof snapshot.anchor === 'string' && snapshot.anchor.trim()) metaParts.push(snapshot.anchor.trim());
+      if (typeof snapshot.title === 'string' && snapshot.title.trim()) metaParts.push(snapshot.title.trim());
+    }
+    var metaText = metaParts.join(' · ');
+    node.textContent = metaText;
+    if (metaText) node.title = metaText;
+    else node.removeAttribute('title');
+  }
   var liveMonitorPlatform = '';
   /** 当前监听快照的地址是不是中控台（小红书主播中控台）；true 时右下角动作改为「打开中控台」，弹回内嵌窗。 */
   var liveMonitorIsCenter = false;
@@ -2311,7 +2558,6 @@ export const consoleScript = `
       setStatus(byId('bl-msg'), '请填写直播间链接或房间号', 'error');
       return;
     }
-    setStatus(byId('bl-msg'), '正在连接…');
     if (button) button.disabled = true;
     blSaveCache();
     try {
@@ -4120,6 +4366,7 @@ export const consoleScript = `
       if (title) title.textContent = liveNames[liveCurrent];
       var titlePlat = byId('live-title-plat');
       if (titlePlat) titlePlat.textContent = ' · ' + liveNames[liveCurrent];
+      liveSyncRoomMeta();
       liveIdHistorySyncActive(liveCurrent);
       liveSyncStartBtn();
       if (liveCurrent !== 'dm') hideDmKickDialog();
@@ -4905,6 +5152,7 @@ html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
 .liveDialog{width:min(900px,100%);height:min(70vh,540px);border-radius:26px;box-shadow:0 28px 80px rgba(20,40,80,.22),0 2px 8px rgba(20,40,80,.06)}
 .liveDialog .chatHead{padding:16px 26px 14px;gap:16px}
 .liveDialog .chatTitle{font-size:19px;font-weight:700;letter-spacing:-.01em;display:inline-flex;align-items:center;gap:10px}
+.liveDialog .chatTitle{flex:1 1 auto;min-width:0}
 .liveStatusLight{flex:none;width:9px;height:9px;border-radius:50%;background:color-mix(in srgb,var(--label-tertiary) 55%,transparent);transition:background .2s ease,box-shadow .2s ease}
 .liveStatusLight.on{background:#34c759;box-shadow:0 0 0 4px color-mix(in srgb,#34c759 18%,transparent)}
 .liveDialog .chatClose{width:38px;height:38px;border-radius:50%;border-color:color-mix(in srgb,var(--label-primary) 12%,var(--border));color:var(--label-tertiary)}
@@ -4920,6 +5168,7 @@ html[data-theme=dark] .dmEntry:hover{background:rgba(255,255,255,.08)}
 body:not(.live-mini) .liveMain{display:none}
 .liveHeadRight{display:flex;align-items:center;gap:12px}
 .liveTitlePlat{font-size:15px;font-weight:600;color:var(--label-tertiary)}
+.liveRoomMeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500;color:var(--label-secondary)}
 .livePill.on{background:#34c759;box-shadow:0 0 0 2px var(--bg-card)}
 .livePill.off{background:color-mix(in srgb,var(--label-tertiary) 45%,transparent)}
 /* 配置在主区里直接摊开，不再是从右侧滑出的抽屉 */
@@ -4950,6 +5199,7 @@ body:not(.live-mini) .liveMain{display:none}
 /* 监听状态只占一行文字：圆点 + 摘要，必要时补第二行提示 */
 .liveStatus{display:flex;flex-wrap:wrap;align-items:center;column-gap:7px;row-gap:3px;margin:0 4px;font-size:14px;line-height:1.6;color:var(--label-tertiary);word-break:break-word}
 .liveStatusRow{display:flex;align-items:flex-start;gap:10px;margin:0 4px}
+.liveStatusRow[hidden]{display:none}
 .liveStatusRow .liveStatus{flex:1 1 auto;min-width:0;margin:0}
 .liveStatusRefresh{flex:none;border:0;background:none;padding:0;font:inherit;font-size:13px;line-height:1.6;color:var(--label-tertiary);cursor:pointer;white-space:nowrap}
 .liveStatusRefresh:hover{color:var(--primary);text-decoration:underline}
@@ -5061,8 +5311,8 @@ box-shadow:inset 0 1px 0 rgba(255,255,255,.55),var(--shadow)}
 .dmEmoji{display:inline-block;width:1.15em;height:1.15em;object-fit:contain;vertical-align:-0.22em;margin:0 1px}
 .dmFeedItem.gift .dmFeedText{color:#a86100}
 .dmFeedTime{align-self:start;margin-top:3px;font-size:11px;color:var(--label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
-@keyframes dmFeedIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
-.dmFeedItem.dmFresh{animation:dmFeedIn .22s cubic-bezier(.22,.85,.25,1) both}
+@keyframes dmFeedIn{from{opacity:.35;background-color:color-mix(in srgb,var(--primary) 14%,transparent)}to{opacity:1;background-color:transparent}}
+.dmFeedItem.dmFresh{animation:dmFeedIn .6s ease-out both}
 @media (prefers-reduced-motion:reduce){.dmFeedItem.dmFresh{animation:none}}
 html[data-theme=dark] .dmFeedCard{border-color:rgba(120,170,255,.24);
 background:linear-gradient(158deg,rgba(44,70,118,.52),rgba(18,24,38,.82) 52%,rgba(10,16,28,.9));
@@ -5188,7 +5438,8 @@ body.live-mini .dmCardHead{display:none}
 /* 礼物区不再预留固定高度：空态时按内容收缩，有礼物时按条数自然增长（上限 32vh 内滚动），
    否则空态那 132px 会凭空把统计行和弹幕区拉开 */
 body.live-mini .dmGiftCard{flex:0 0 118px!important;height:118px!important;min-height:118px!important;overflow:hidden}
-body.live-mini .dmGift{gap:6px;padding:0;border:0;background:transparent;border-radius:0;height:118px;max-height:118px;min-height:118px;overflow-y:auto}
+/* 礼物行紧凑（A₂）：行距 4px，同行高能多放 1~2 条 */
+body.live-mini .dmGift{gap:4px;padding:0;border:0;background:transparent;border-radius:0;height:118px;max-height:118px;min-height:118px;overflow-y:auto}
 body.live-mini .dmGift:empty::before{content:"展示本场直播的礼物消息";margin:0;padding:2px 0 0;align-self:flex-start;font-size:13px;color:#6b7076}
 /* 礼物区与弹幕区之间的发丝分隔线（ specificity 需压过上面 border:0 名单） */
 body.live-mini .liveFeedPanel .dmFeedCard{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
@@ -5200,23 +5451,26 @@ body.live-mini .dmFeed:empty::before{margin:0;padding:2px 0 0;align-self:flex-st
    容器保持 flex 是为了让礼物行的金色礼物托与文字区并排；文字区内部是文本流。 */
 body.live-mini .dmFeedItem{display:flex;align-items:start;gap:8px;padding:5px 0;border-radius:0;border:0;background:transparent;box-shadow:none}
 body.live-mini .dmFeedItem.chat:hover{border-color:transparent;background:transparent}
-body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.45);background:rgba(255,179,64,.10);border-radius:12px;padding:8px 2px}
+/* 礼物行紧凑（A₂）：更矮的行卡、更淡的金色描边 */
+body.live-mini .dmFeedItem.gift{border:1px solid rgba(255,179,64,.2);background:rgba(255,179,64,.05);border-radius:9px;padding:4px 8px}
 /* 设计稿弹幕行无左侧头像；礼物行用金色礼物托 */
 body.live-mini .dmFeedAva{display:none}
-body.live-mini .dmGiftTile{flex:none;width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
-body.live-mini .dmGiftTile svg{width:13px;height:13px;display:block}
-/* 命中官方礼物图时不铺金色底：礼物图自带留白与圆角，按 contain 塞进同一个 22px 方框 */
+body.live-mini .dmGiftTile{flex:none;width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#ffc06a,#ff9a3d);color:#fff;display:flex;align-items:center;justify-content:center}
+body.live-mini .dmGiftTile svg{width:11px;height:11px;display:block}
+/* 命中官方礼物图时不铺金色底：礼物图自带留白与圆角，按 contain 塞进同一个 18px 方框 */
 body.live-mini .dmGiftTile.dmGiftReal{background:none;border-radius:0}
-body.live-mini .dmGiftTile.dmGiftReal img{width:22px;height:22px;object-fit:contain;display:block}
+body.live-mini .dmGiftTile.dmGiftReal img{width:18px;height:18px;object-fit:contain;display:block}
 body.live-mini .dmFeedBody{display:block;min-width:0;font-size:14.5px;line-height:1.5;color:#e8eaed;white-space:normal}
-body.live-mini .dmFeedItem.gift .dmFeedBody{display:flex;align-items:center;flex-wrap:wrap;column-gap:6px;row-gap:3px}
+/* 礼物行保持单行：长昵称/长礼物名在各自位置省略，不把 ×N 胶囊挤到下一行 */
+body.live-mini .dmFeedItem.gift .dmFeedBody{display:flex;align-items:center;flex-wrap:nowrap;column-gap:5px;font-size:13.5px;line-height:1.45}
 body.live-mini .dmFeedItem.chat .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
-body.live-mini .dmFeedItem.gift .dmFeedNick{font-size:14.5px;font-weight:500;color:#4fc3f7}
+body.live-mini .dmFeedItem.gift .dmFeedNick{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:500;color:#4fc3f7}
 body.live-mini .dmFeedItem.chat .dmFeedNick::after{color:#4fc3f7}
 body.live-mini .dmFeedItem.gift .dmFeedNick::after,body.live-mini .dmFeedItem.entry .dmFeedNick::after{content:none}
-body.live-mini .dmFeedVerb{color:#e8eaed}
-body.live-mini .dmFeedGiftName{color:#ffc06a;font-weight:500}
-body.live-mini .dmFeedCount{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:10px;border:1px solid rgba(255,192,106,.45);background:rgba(255,192,106,.12);color:#ffc06a;font-size:12px;line-height:18px;font-weight:700}
+body.live-mini .dmFeedVerb{flex:none;color:#e8eaed}
+/* 礼物名做成小徽章（A₂）：与礼物图紧挨，超长时只在本徽章内省略 */
+body.live-mini .dmFeedGiftName{flex:1 1 auto;min-width:0;display:inline-flex;align-items:center;height:19px;padding:0 5px;border-radius:6px;border:1px solid rgba(255,192,106,.22);background:rgba(255,192,106,.11);color:#ffc06a;font-size:13px;line-height:19px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.live-mini .dmFeedCount{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:9px;border:1px solid rgba(255,192,106,.4);background:rgba(255,192,106,.14);color:#ffc06a;font-size:11px;line-height:18px;font-weight:700}
 body.live-mini .dmFeedText{color:#e8eaed}
 body.live-mini .dmFeedItem.entry .dmFeedNick{color:#4fc3f7}
 body.live-mini .dmFeedItem.entry .dmFeedText{color:#e8eaed}

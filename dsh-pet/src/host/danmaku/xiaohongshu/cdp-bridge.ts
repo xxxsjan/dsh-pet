@@ -37,6 +37,11 @@ export type XhsCdpBridge = {
    * 旧 Helper 可能没有此方法，monitor 需先判断是否为函数。
    */
   probeEnded?: () => Promise<boolean>;
+  /**
+   * 探测中控台这场直播是否已开始：live = 在播，ended = 已结束，unknown = 页面未就绪或判断不了。
+   * 旧 Helper 可能没有此方法，monitor 需先判断是否为函数。
+   */
+  probeLiveState?: () => Promise<'live' | 'ended' | 'unknown'>;
 };
 
 /** globalThis 上挂 CDP 控制器的键（与 Helper 装配一致）。 */

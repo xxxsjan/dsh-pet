@@ -60,6 +60,26 @@ const XHS_ENDED_CHECK_JS = `
 })()
 `;
 
+/**
+ * 开播态探测脚本：返回 'live' 明确在播 / 'ended' 明确已结束 / 'unknown' 页面未就绪或判断不了。
+ * 只有找到直播间长连接地址等「正在播」证据时才判 live，避免把尚未开播误当作可以监听。
+ */
+const XHS_LIVE_STATE_CHECK_JS = `
+(() => {
+  const text = ((document.body && document.body.innerText) || '').slice(0, 4000);
+  if (/直播已结束|本场直播已结束|直播结束|直播已停止|已结束直播/.test(text)) return 'ended';
+  const imgs = Array.from(document.querySelectorAll('img'));
+  const avatars = imgs.filter(
+    (img) => img.alt === '头像' || img.alt === '个人头像' || img.alt === '主播头像'
+  ).length;
+  const live = /直播中|正在直播|观看人数|在线\\s*\\d|直播间|互动消息|实时弹幕/.test(text);
+  const ws = (window.performance && performance.getEntriesByType('resource') || []).some(
+    (e) => /wss?:\\/\\/(live|longlink|long\\-?link|danmu)/i.test(e.name || '')
+  );
+  return live || ws || avatars > 0 ? 'live' : 'unknown';
+})()
+`;
+
 /** 省流初始化脚本：不拉直播画面、静音、藏播放器，只留互动通道。 */
 const XHS_INIT_SCRIPT = `
 (function () {
@@ -469,6 +489,21 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
     }
   }
 
+  /**
+   * 探测中控台这场直播是否已经开始。
+   * 窗口不在 / 页面未就绪 / 执行失败一律返回 unknown（保守：宁可提示未开播，也不空听）。
+   * @returns {Promise<'live' | 'ended' | 'unknown'>}
+   */
+  async function probeLiveState() {
+    if (!win || win.isDestroyed()) return 'unknown';
+    try {
+      const state = await win.webContents.executeJavaScript(XHS_LIVE_STATE_CHECK_JS);
+      return state === 'live' || state === 'ended' ? state : 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
+
   return {
     start,
     stop,
@@ -476,6 +511,7 @@ function startXhsCdpBridge({ BrowserWindow, electronSession, log }) {
     hide,
     status,
     probeEnded,
+    probeLiveState,
     /** 订阅入站弹幕帧（Buffer）。返回取消订阅函数。 */
     onFrame(fn) {
       frameListeners.add(fn);

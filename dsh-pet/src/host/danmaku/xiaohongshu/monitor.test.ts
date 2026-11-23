@@ -25,6 +25,9 @@ function makeBridge() {
     showCalls: number;
     endedHit: boolean;
     probeCalls: number;
+    /** 开播态探测返回值；默认 live，测试可改成 ended / unknown 模拟未开播。 */
+    liveState: 'live' | 'ended' | 'unknown';
+    liveStateCalls: number;
     subs: typeof subs;
   } = {
     starts: [],
@@ -34,6 +37,8 @@ function makeBridge() {
     showCalls: 0,
     endedHit: false,
     probeCalls: 0,
+    liveState: 'live',
+    liveStateCalls: 0,
     subs,
     async start(input: { cookie?: string }) {
       this.starts.push({ cookie: input.cookie });
@@ -72,6 +77,10 @@ function makeBridge() {
     async probeEnded() {
       this.probeCalls += 1;
       return this.endedHit;
+    },
+    async probeLiveState() {
+      this.liveStateCalls += 1;
+      return this.liveState;
     },
   };
   const origLogin = bridge.onLogin.bind(bridge);
@@ -114,6 +123,36 @@ describe('xiaohongshu monitor CDP 链路', () => {
     assert.equal(status.mode, 'cdp');
     assert.equal(status.listening, true);
     assert.equal(bridge.starts[0]?.cookie, 'web_session=abc');
+  });
+
+  test('已登录但明确未开播时拒绝开始监听，并回收内嵌窗', async () => {
+    const bridge = makeBridge();
+    bridge.loggedIn = true;
+    bridge.liveState = 'ended';
+    const mon = createXhsMonitor(makeDeps(bridge));
+    await assert.rejects(() => mon.start({}), /未开播/);
+    assert.equal(mon.status().listening, false, '未开播不应进入监听状态');
+    assert.equal(bridge.stopped, true, '拒绝后应关掉内嵌窗，不留假监听');
+  });
+
+  test('已登录但确认不了在播时拒绝开始监听', async () => {
+    const bridge = makeBridge();
+    bridge.loggedIn = true;
+    bridge.liveState = 'unknown';
+    const mon = createXhsMonitor(makeDeps(bridge));
+    await assert.rejects(() => mon.start({}), /未能确认正在直播/);
+    assert.equal(mon.status().listening, false);
+    assert.equal(bridge.stopped, true);
+  });
+
+  test('未登录时先让窗口留着扫码，不做开播判定', async () => {
+    const bridge = makeBridge();
+    bridge.loggedIn = false;
+    bridge.liveState = 'ended';
+    const mon = createXhsMonitor(makeDeps(bridge));
+    const status = await mon.start({});
+    assert.equal(status.listening, true, '扫码登录流程不能被开播判定打断');
+    assert.equal(bridge.liveStateCalls, 0, '未登录时不该判定开播');
   });
 
   test('stop 时停止 CDP 桥，状态回到 idle', async () => {

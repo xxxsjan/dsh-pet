@@ -571,6 +571,7 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   assert.match(html, /id="live-dialog"/, '缺少直播间弹窗遮罩');
   assert.match(html, /id="live-dialog-title"[^>]*>[\s\S]*?直播间/, '弹窗标题应是「直播间」');
   assert.match(html, /id="live-title-plat"/, '标题应带当前平台名占位');
+  assert.match(html, /class="liveRoomMeta" id="live-room-meta"/, '标题栏应有直播间主播与标题信息位');
   assert.match(html, /id="live-close"/, '弹窗应有关闭按钮');
   assert.doesNotMatch(html, /id="live-logos"|liveLogoRow|data-select=/, '弹窗头部不应再有平台 logo Tab 行');
   assert.match(html, /id="live-config-pane"/, '配置区应内联在弹窗主区');
@@ -679,15 +680,28 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
   // 「打开弹幕小窗」底栏按钮按用户要求移除：入口改为主页监听状态卡的「弹幕小窗」文字链接
   assert.doesNotMatch(html, /id="live-open-mini"/, '底栏不应再有打开弹幕小窗按钮');
   assert.doesNotMatch(script, /live-open-mini/, '脚本不应再绑定底栏弹幕小窗按钮');
-  // 「刷新状态」不再是底栏按钮，也不再占用状态行右侧：与「跳转直播间」同一行，排在其左侧（小红书只有它自己）
+  // 状态文案整行隐藏；刷新状态仍保留在动作行
   assert.doesNotMatch(html, /id="live-refresh"/, '底栏不应再有刷新状态按钮');
-  for (const p of ['dm', 'xs', 'ks', 'bl']) {
+  for (const [p, startFn] of [
+    ['dm', 'dmStart'],
+    ['xs', 'xsStart'],
+    ['ks', 'ksStart'],
+    ['bl', 'blStart'],
+  ] as const) {
     assert.match(
       html,
-      new RegExp(`class="liveStatusRow"><p class="liveStatus" id="${p}-status">[^<]*</p></div>`),
-      `状态行只保留状态文案：${p}`,
+      new RegExp(`class="liveStatusRow" hidden><p class="liveStatus" id="${p}-status">[^<]*</p></div>`),
+      `状态行应隐藏：${p}`,
+    );
+    const startBody = script.match(new RegExp(`async function ${startFn}\\(\\) \\{([\\s\\S]*?)\\n  \\}`));
+    assert.ok(startBody, `应能取到 ${startFn} 函数体`);
+    assert.doesNotMatch(
+      startBody![1],
+      new RegExp(`setStatus\\(byId\\('${p}-msg'\\), '正在连接…'\\)`),
+      `${startFn} 不应显示重复的连接中提示`,
     );
   }
+  assert.match(styles, /\.liveStatusRow\[hidden\]\{display:none\}/, '隐藏状态行不应被 flex 样式覆盖');
   assert.match(
     html,
     /class="liveOpenLiveRow"><button[^>]*class="liveStatusRefresh" id="xs-refresh">刷新状态<\/button><\/div>/,
@@ -811,6 +825,24 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
 
   // 统一调度层：单一接线入口、平台 Tab 切换、底部一键开始监听并在成功后开小窗、轮询只在弹窗打开且选中该平台时发请求
   assert.match(script, /function wireLiveDialog\(\)/, '直播间窗口应有单一接线入口');
+  assert.match(
+    script,
+    /function liveSyncRoomMeta\(\)[\s\S]*?snapshot\.anchor[\s\S]*?snapshot\.title[\s\S]*?node\.textContent = metaText/,
+    '标题栏应安全展示当前监听状态中的主播名与直播标题',
+  );
+  for (const p of ['dm', 'xs', 'ks', 'bl']) {
+    assert.match(
+      script,
+      new RegExp(`liveMonitorSnapshots\\.${p} = status;\\s*liveSyncRoomMeta\\(\\);`),
+      `状态刷新后应更新标题栏信息：${p}`,
+    );
+  }
+  assert.match(
+    script,
+    /function liveApplySelection\(\)[\s\S]*?liveSyncRoomMeta\(\)/,
+    '切换平台时应同步标题栏信息',
+  );
+  assert.match(styles, /\.liveRoomMeta\{[^}]*text-overflow:ellipsis/, '标题栏信息过长时应省略');
   // 配置卡顶部提示条按用户要求移除（四个平台都不再出现）
   assert.doesNotMatch(html, /关闭本窗口不影响监听/, '直播间配置卡不应再有「关闭本窗口不影响监听」提示条');
   assert.doesNotMatch(html, /直连 WSS 拉取弹幕/, '快手/B站配置卡不应再有直连说明提示条');
@@ -1048,13 +1080,33 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   );
   assert.match(
     styles,
-    /body\.live-mini \.dmFeedItem\.gift\{[^}]*border:1px solid rgba\(255,179,64,\.45\)/,
-    '小窗礼物行为金色描边暖底卡片',
+    /body\.live-mini \.dmFeedItem\.gift\{[^}]*border:1px solid rgba\(255,179,64,\.2\)[^}]*padding:4px 8px/,
+    '小窗礼物行为紧凑版 A₂：淡金描边 + 4/8px 行内边距',
   );
   assert.match(
     styles,
-    /body\.live-mini \.dmFeedItem\.gift \.dmFeedBody\{[^}]*column-gap:6px/,
-    '礼物文案中的昵称、送了、礼物名和数量胶囊应使用清晰的 6px 间距',
+    /body\.live-mini \.dmGiftTile\{flex:none;width:18px;height:18px;border-radius:5px/,
+    'A₂ 礼物图标收小到 18px',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.dmFeedItem\.gift \.dmFeedBody\{[^}]*flex-wrap:nowrap[^}]*column-gap:5px/,
+    'A₂ 礼物行保持单行，间距 5px',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.dmFeedGiftName\{[^}]*text-overflow:ellipsis/,
+    'A₂ 礼物名徽章超长时在自身省略，不挤掉数量胶囊',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.dmFeedCount\{[^}]*height:18px[^}]*font-size:11px/,
+    'A₂ 数量胶囊同步收矮到 18px',
+  );
+  assert.match(
+    styles,
+    /body\.live-mini \.dmGift\{gap:4px/,
+    'A₂ 礼物行距收紧到 4px，同高多放 1~2 条',
   );
   assert.match(
     styles,
@@ -1485,12 +1537,79 @@ test('礼物区固定高度，礼物增长只在内部滚动不挤弹幕区', ()
 
 test('直播消息轮询只增量更新，不再整屏清空重建', () => {
   const script = consoleScript;
+  const styles = consoleStyles();
   assert.match(script, /if \(nextSignature === dmFeedSignature\) return;/, '抖音数据指纹相同时不重绘');
   assert.match(script, /dmFeedNodes\.clear\(\)/, '列表清空时同步清理增量节点');
   assert.match(script, /dmGiftNodes\.get\(key\)/, '礼物行按 ID 增量更新');
   assert.match(script, /dmFeedNodes\.get\(key\)/, '弹幕行按 ID 增量更新');
   assert.match(script, /dmQueueFeedRow\(/, '抖音新消息应进入逐条渲染队列');
+  assert.doesNotMatch(styles, /@keyframes dmFeedIn\{[^}]*transform:/, '入场动画不得位移，否则相邻消息会跟着抖动');
+  assert.match(
+    script,
+    /function liveScrollForNewRow\(box, stickToBottom\)[\s\S]*?if \(!stickToBottom\) return;[\s\S]*?box\.scrollTop = before \+ overflow;/,
+    '新行入场只补新增高度，不贴底时不动原有位置',
+  );
+  for (const [fn, keys] of [
+    ['dmRenderFeed', ['dmLastFeedId', 'dmLastGiftId']],
+    ['xsRenderFeed', ['xsLastFeedId', 'xsLastGiftId']],
+    ['ksRenderFeed', ['ksLastFeedId', 'ksLastGiftId']],
+    ['blRenderFeed', ['blLastFeedId', 'blLastGiftId']],
+  ] as const) {
+    const body = script.match(new RegExp(`function ${fn}\\(recent\\) \\{([\\s\\S]*?)\\n {2}\\}`));
+    assert.ok(body, `应能取到 ${fn}`);
+    for (const key of keys) {
+      assert.doesNotMatch(
+        body![1],
+        new RegExp(`max[A-Za-z]*Id !== ${key}\\) \\{\\s*\\w+\\.scrollTop = \\w+\\.scrollHeight`),
+        `${fn} 的 ${key} 分支不得整块滚到底`,
+      );
+    }
+  }
+  assert.match(script, /replacement\.classList\.remove\('dmFresh'\)/, '替换已有消息节点时不应再次触发入场动画');
   assert.match(script, /180/, '逐条入场间隔应为连续节奏而非整批同时出现');
+  assert.match(script, /ksFeedNodes\.get\(key\)/, '快手弹幕行应按 ID 增量更新');
+  assert.match(script, /ksGiftNodes\.get\(key\)/, '快手礼物行应按 ID 增量更新');
+  assert.match(script, /ksQueueFeedRow\(/, '快手新消息和礼物应进入逐条渲染队列');
+  assert.match(script, /ksChatQueue = \{ rows: \[\], timer: null \}/, '快手弹幕应有独立队列');
+  assert.match(script, /ksGiftQueue = \{ rows: \[\], timer: null \}/, '快手礼物应有独立队列');
+  assert.match(script, /ksQueueFeedRow\(ksGiftQueue, giftBox, row, shouldStickGift\)/, '礼物应独立逐条刷新');
+  assert.match(script, /ksQueueFeedRow\(ksChatQueue, feedBox, row, shouldStick\)/, '弹幕应独立逐条刷新');
+  assert.match(script, /ksSessionStartedAt[\s\S]*?ksResetFeedSession\(\)/, '快手新场次应清理上一场的渲染状态');
+  const ksRender = script.match(/function ksRenderFeed\(recent\) \{([\s\S]*?)\n {2}\}/);
+  assert.ok(ksRender, '应能取到 ksRenderFeed');
+  assert.doesNotMatch(ksRender![1], /giftBox\.textContent = ''|feedBox\.textContent = ''/, '快手轮询不应清空列表后重建');
+  for (const [platform, renderName] of [
+    ['xs', 'xsRenderFeed'],
+    ['bl', 'blRenderFeed'],
+  ] as const) {
+    assert.match(script, new RegExp(`${platform}FeedNodes\\.get\\(key\\)`), `${platform} 弹幕应按 ID 增量更新`);
+    assert.match(script, new RegExp(`${platform}GiftNodes\\.get\\(key\\)`), `${platform} 礼物应按 ID 增量更新`);
+    assert.match(script, new RegExp(`${platform}QueueFeedRow\\(`), `${platform} 新消息和礼物应进入逐条队列`);
+    assert.match(script, new RegExp(`${platform}ChatQueue = \\{ rows: \\[\\], timer: null \\}`), `${platform} 弹幕应有独立队列`);
+    assert.match(script, new RegExp(`${platform}GiftQueue = \\{ rows: \\[\\], timer: null \\}`), `${platform} 礼物应有独立队列`);
+    assert.match(
+      script,
+      new RegExp(`${platform}QueueFeedRow\\(${platform}GiftQueue, giftBox, row, shouldStickGift\\)`),
+      `${platform} 礼物应独立逐条刷新`,
+    );
+    assert.match(
+      script,
+      new RegExp(`${platform}QueueFeedRow\\(${platform}ChatQueue, feedBox, row, shouldStick\\)`),
+      `${platform} 弹幕应独立逐条刷新`,
+    );
+    assert.match(
+      script,
+      new RegExp(`${platform}SessionStartedAt[\\s\\S]*?${platform}ResetFeedSession\\(\\)`),
+      `${platform} 新场次应清理上一场的渲染状态`,
+    );
+    const render = script.match(new RegExp(`function ${renderName}\\(recent\\) \\{([\\s\\S]*?)\\n {2}\\}`));
+    assert.ok(render, `应能取到 ${renderName}`);
+    assert.doesNotMatch(
+      render![1],
+      /giftBox\.textContent = ''|feedBox\.textContent = ''/,
+      `${platform} 轮询不应清空列表后重建`,
+    );
+  }
 });
 
 test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分别接重连/停听', () => {
