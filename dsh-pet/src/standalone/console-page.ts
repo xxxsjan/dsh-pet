@@ -384,7 +384,7 @@ export function consolePage(): string {
 </div>
 </div>
 </div>
-<div class="liveFoot"><div class="liveFootLeft"><div class="liveFootSwitches is-active" data-foot-switches="dm"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="xs"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="ks"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="bl"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div></div><div class="liveFootRight"><button type="button" class="btn primary" id="live-start">开始监听</button></div></div>
+<div class="liveFoot"><div class="liveFootLeft"><div class="liveFootSwitches is-active" data-foot-switches="dm"><label class="dmSwitch"><span>回复弹幕</span><input id="dm-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="dm-thank-gift" type="checkbox"></label><button type="button" class="liveStatusRefresh" id="dm-dev-open" hidden>显示直播窗口</button></div><div class="liveFootSwitches" data-foot-switches="xs"><label class="dmSwitch"><span>回复弹幕</span><input id="xs-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="xs-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="ks"><label class="dmSwitch"><span>回复弹幕</span><input id="ks-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="ks-thank-gift" type="checkbox"></label></div><div class="liveFootSwitches" data-foot-switches="bl"><label class="dmSwitch"><span>回复弹幕</span><input id="bl-reply-chat" type="checkbox"></label><label class="dmSwitch"><span>感谢礼物</span><input id="bl-thank-gift" type="checkbox"></label></div></div><div class="liveFootRight"><button type="button" class="btn primary" id="live-start">开始监听</button></div></div>
 <section class="liveMain">
 <div class="liveFeedPanel is-active" data-feed="dm">
 <div class="dmCard dmGiftCard">
@@ -439,7 +439,7 @@ export function consolePage(): string {
 <div class="chatMask" id="dm-kick-dialog" hidden>
 <div class="chatDialog kickDialog" role="alertdialog" aria-modal="true" aria-labelledby="dm-kick-title">
 <div class="chatHead"><h2 class="chatTitle" id="dm-kick-title">弹幕连接已中断</h2></div>
-<div class="kickBody"><p class="kickText" id="dm-kick-text">该账号疑似已在其他设备进入别的直播间，本地弹幕监听被挤下线。要立即重连吗？</p></div>
+<div class="kickBody"><p class="kickText" id="dm-kick-text">弹幕连接已中断，自动重连未成功。可能是该账号在其他设备进入了别的直播间。要重新开始监听吗？</p></div>
 <div class="kickFoot"><button type="button" class="btn ghost" id="dm-kick-later">暂不重连</button><button type="button" class="btn primary" id="dm-kick-retry">重连</button></div>
 </div>
 </div>
@@ -465,6 +465,9 @@ export const consoleScript = `
   // p 是控制台「开始监听」时选中的平台，小窗按它显示对应平台的弹幕，窗口内不再提供切平台。
   var LIVE_MINI = new URLSearchParams(location.search).get('mini') === '1';
   var LIVE_MINI_PLATFORM = new URLSearchParams(location.search).get('p') || '';
+  // 开发环境：主进程只在开发环境给控制台地址追加 ?dev=1，页面据此露出调试开关
+  //（保持抖音内嵌窗可见，观察弹幕连接断开后页面能否自己重连）。必须在下面的 replaceState 之前读。
+  var DEV_MODE = new URLSearchParams(location.search).get('dev') === '1';
   // 礼物名 → 同源取图地址：表在 src/standalone/live-gift-icon.ts，页面 CSP 只有 img-src 'self'，
   // 所以走本机 /standalone-console/gift-icon 代取，未收录的礼物继续用金色礼物托。
   var GIFT_ICON_URLS = ${giftIconUrlMapJson()};
@@ -783,6 +786,8 @@ export const consoleScript = `
   }
   /** 抖音弹幕弹窗：整套搬自旧设置页「抖音弹幕」分区，缓存 key 与旧页一致，升级后已填内容不丢。 */
   var DM_CACHE_KEY = 'blue_fish_douyin_danmaku_form_v1';
+  /** 调试按钮对应的内嵌窗当前可见态；由状态轮询同步，点击时翻转。 */
+  var dmDevWindowVisible = false;
   var DM_POLL_MS = 1000;
   var dmListening = false;
   /** 下播提示只弹一次：状态里 ended 由 false→true 时提示，回到非 ended 时重置。 */
@@ -893,7 +898,7 @@ export const consoleScript = `
         ? '主播已下播，已自动停止监听'
         : '主播已下播（直播结束），等开播后再点开始监听';
     }
-    if (status.interrupted) return '疑似被其他设备挤下线（可能在别的直播间），弹幕已中断';
+    if (status.interrupted) return '弹幕连接已中断（自动重连未成功）';
     var note = '';
     if (status.mode === 'cdp') {
       if (status.cdpVisible && !status.cdpLoggedIn) note = '等待扫码：在弹出的窗口完成登录';
@@ -1021,6 +1026,8 @@ export const consoleScript = `
       cookie: dmInputValue('dm-cookie').trim(),
       replyChat: dmChecked('dm-reply-chat'),
       thankGift: dmChecked('dm-thank-gift'),
+      // 调试按钮是即点即用；启动时按“当前是否开着直播页”决定要不要保持可见。
+      debugVisible: DEV_MODE && dmDevWindowVisible,
     };
   }
   function dmLoadCache() {
@@ -1270,6 +1277,9 @@ export const consoleScript = `
       if (typeof status.replyChat === 'boolean') dmSetChecked('dm-reply-chat', status.replyChat);
       if (typeof status.thankGift === 'boolean') dmSetChecked('dm-thank-gift', status.thankGift);
     }
+    if (DEV_MODE && typeof status.cdpVisible === 'boolean') {
+      dmDevWindowVisible = status.cdpVisible;
+    }
   }
   async function dmRefresh() {
     var data = await api('GET', '/danmaku/douyin/status');
@@ -1402,6 +1412,31 @@ export const consoleScript = `
         });
       });
     });
+    // 调试按钮只在开发环境露出：点按显示内嵌直播窗口（不重连）；窗口由用户自己关掉即视为隐藏。
+    // 下次「开始监听」按当前是否开着页面决定是否保持可见。
+    if (DEV_MODE) {
+      var devBtn = byId('dm-dev-open');
+      if (devBtn) {
+        devBtn.hidden = false;
+        devBtn.addEventListener('click', function () {
+          if (!dmListening) {
+            showToast('请先开始监听，再显示直播窗口', 'error');
+            return;
+          }
+          devBtn.disabled = true;
+          void api('POST', '/danmaku/douyin/window', { visible: true })
+            .then(function (data) {
+              if (data && data.ok !== false && typeof data.cdpVisible === 'boolean') {
+                dmDevWindowVisible = data.cdpVisible;
+              }
+            })
+            .catch(function (error) {
+              setStatus(byId('dm-msg'), (error && error.message) || String(error), 'error');
+            })
+            .then(function () { devBtn.disabled = false; });
+        });
+      }
+    }
     var toggleBtn = byId('dm-toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', function () {

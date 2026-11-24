@@ -235,8 +235,16 @@ const META_RETRY_MS = 3000;
  * @param {typeof import('electron').BrowserWindow} deps.BrowserWindow - Electron BrowserWindow。
  * @param {typeof import('electron').session} [deps.electronSession] - 可注入 session（测试用），缺省取 electron 内置。
  * @param {{ info?: (m:string)=>void, warn?: (m:string)=>void, debug?: (m:string)=>void }} [deps.log]
+ * @param {number} [deps.pushReconnectDelayMs] - 推送 WS 断开后等页面自建的宽限期，超时重载页面；缺省 6s。
  */
-function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
+function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconnectDelayMs }) {
+  const PUSH_RECONNECT_DELAY_MS = Number(pushReconnectDelayMs) > 0 ? Number(pushReconnectDelayMs) : 6000;
+  /** 连续自动重载上限：超过就交给监听层提示，避免被挤时无限刷新。 */
+  const PUSH_RECONNECT_MAX = 3;
+  /** 推送连接活过这么久才算“稳定”，充许清零连续失败计数。 */
+  const PUSH_STABLE_MS = 60_000;
+  let pushReconnectTimer = null;
+  let pushReconnectAttempts = 0;
   const sessionRef =
     electronSession || (() => {
       try {
@@ -250,6 +258,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   let win = null;
   /** @type {Map<string,string>} requestId → WS url */
   const wsUrls = new Map();
+  /** @type {Map<string,number>} requestId → 建连时间：用来判断连接是否稳定，决定要不要清零重载计数。 */
+  const wsCreatedAt = new Map();
   /** @type {Set<string>} 页面 enter 请求的 requestId，等 loadingFinished 取 body */
   const enterRequests = new Set();
   /** @type {Set<(frame: Buffer)=>void>} */
@@ -266,6 +276,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   let loginPoll = null;
   /** @type {NodeJS.Timeout|null} */
   let metaRetry = null;
+  /** @type {NodeJS.Timeout|null} */
+  let pauseKeeper = null;
   let attached = false;
 
   const state = {
@@ -276,7 +288,21 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     lastError: '',
     title: '',
     anchor: '',
+    /** 开发调试：保持窗口可见，仅周期暂停视频省流（不拦流、不删播放器），用于观察页面自身重连。 */
+    debugVisible: false,
   };
+  /** 主动销毁窗口（stop / 换页）时不再把 close 拦成隐藏。 */
+  let destroying = false;
+  /** 应用退出：close 事件不能再 preventDefault，否则退不掉。 */
+  let appQuitting = false;
+  try {
+    const appRef = require('electron').app;
+    appRef?.once?.('before-quit', () => {
+      appQuitting = true;
+    });
+  } catch {
+    /* 非 Electron / 测试环境没有 app，忽略 */
+  }
 
   function sess() {
     if (!sessionRef) throw new Error('当前环境没有 Electron session，无法开内嵌窗口');
@@ -321,6 +347,45 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         log?.warn?.(`[blue-fish][douyin-cdp] ws closed listener failed: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
+  }
+
+  /** 当前是否还有开着的弹幕推送 WS。 */
+  function hasOpenPushSocket() {
+    for (const url of wsUrls.values()) {
+      if (String(url).includes(DY_WS_URL_NEEDLE)) return true;
+    }
+    return false;
+  }
+
+  function clearPushReconnect() {
+    if (pushReconnectTimer) clearTimeout(pushReconnectTimer);
+    pushReconnectTimer = null;
+  }
+
+  /**
+   * 推送 WS 被服务端轮换关闭后，页面不一定自己重建（隐藏 / 暂停播放时实测不会）。
+   * 宽限期内没有新的推送连接就重载直播页重建，最多连续重载 3 次；仍失败交给监听层提示。
+   */
+  function schedulePushReconnect() {
+    clearPushReconnect();
+    if (pushReconnectAttempts >= PUSH_RECONNECT_MAX) return;
+    pushReconnectTimer = setTimeout(() => {
+      pushReconnectTimer = null;
+      if (!state.running || destroying || !win || win.isDestroyed()) return;
+      if (hasOpenPushSocket()) return;
+      pushReconnectAttempts += 1;
+      log?.warn?.(
+        `[blue-fish][douyin-cdp] push ws gone, reload room page (${pushReconnectAttempts}/${PUSH_RECONNECT_MAX})`,
+      );
+      try {
+        win.webContents.reload();
+      } catch (e) {
+        log?.warn?.(`[blue-fish][douyin-cdp] reload failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      // 重载后如果页面连推送 WS 都没建出来，也要在下一拍继续尝试（有连接会撤销这里）。
+      schedulePushReconnect();
+    }, PUSH_RECONNECT_DELAY_MS);
+    pushReconnectTimer.unref?.();
   }
 
   function clearMetaRetry() {
@@ -434,6 +499,11 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
   function handleFrame(params) {
     const requestId = params?.requestId;
     const url = requestId ? wsUrls.get(requestId) : undefined;
+    // 推送连接稳定出帧（≥60s）才算真恢复：每次断开都重载的循环靠这里清零，避免被挤时无限刷新。
+    if (url && url.includes(DY_WS_URL_NEEDLE) && requestId) {
+      const born = wsCreatedAt.get(String(requestId)) || 0;
+      if (born && Date.now() - born >= PUSH_STABLE_MS) pushReconnectAttempts = 0;
+    }
     // 移除 URL 过滤：抖音可能把礼物 / 点赞 / 在线人数分流到不同 WS URL，
     // 以前只放行 /webcast/im/push/ 会导致这些高频业务帧被丢弃。
     // 保留 info 日志帮我们确认实际抓到了哪些 WS。
@@ -468,7 +538,10 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         const url = params?.url;
         if (rid && url) {
           wsUrls.set(String(rid), String(url));
+          wsCreatedAt.set(String(rid), Date.now());
           log?.info?.(`[blue-fish][douyin-cdp] ws created rid=${rid} url=${url}`);
+          // 页面自己重建了推送连接：撤销待重载；计数是否清零看这条连接能不能稳定活下来。
+          if (String(url).includes(DY_WS_URL_NEEDLE)) clearPushReconnect();
         }
       } else if (method === 'Network.webSocketFrameReceived') {
         handleFrame(params);
@@ -477,9 +550,11 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         const rid = String(params?.requestId || '');
         const url = wsUrls.get(rid);
         wsUrls.delete(rid);
+        wsCreatedAt.delete(rid);
         if (url && url.includes(DY_WS_URL_NEEDLE)) {
           log?.info?.(`[blue-fish][douyin-cdp] ws closed rid=${rid} url=${url}`);
           emitWsClosed(url);
+          schedulePushReconnect();
         }
       } else if (method === 'Network.responseReceived') {
         // 页面自己带 Cookie 发的 enter 请求：标题/主播最稳的来源，记下来等 body 就绪。
@@ -500,9 +575,12 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     send(contents.debugger, 'Runtime.enable');
     send(contents.debugger, 'Network.enable');
     send(contents.debugger, 'Page.setWebLifecycleState', { state: 'active' });
-    send(contents.debugger, 'Network.setBlockedURLs', {
-      urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*', '*pull-flv*', '*pull-hls*'],
-    });
+    // 正常模式整段拦流；调试可见模式不拦流，只靠暂停播放省流量（保留播放器和页面原状）。
+    if (!state.debugVisible) {
+      send(contents.debugger, 'Network.setBlockedURLs', {
+        urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*', '*pull-flv*', '*pull-hls*'],
+      });
+    }
   }
 
   function clearLoginPoll() {
@@ -519,10 +597,15 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         .then((ok) => {
           if (!ok) return;
           state.loggedIn = true;
-          hide();
+          if (state.debugVisible) {
+            // 调试可见模式保持窗口：登录前 dom-ready 没跑省流脚本，这里等首帧后再暂停，避免黑屏。
+            pauseVideo({ onlyStarted: true });
+          } else {
+            hide();
+          }
           clearLoginPoll();
           emitLogin();
-          log?.info?.('[blue-fish][douyin-cdp] 检测到登录态，隐藏内嵌窗口');
+          log?.info?.(`[blue-fish][douyin-cdp] 检测到登录态，${state.debugVisible ? '保持窗口可见并暂停播放' : '隐藏内嵌窗口'}`);
         })
         .catch(() => undefined);
     }, LOGIN_POLL_MS);
@@ -533,32 +616,59 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     if (!win || win.isDestroyed()) return;
     // 未登录的扫码窗口必须保留直播页和播放器，不能在 dom-ready 阶段就删视频/隐藏播放器；
     // 否则抖音会只剩黑色壳页，用户既看不到二维码也无法完成登录。
-    if (state.loggedIn) {
+    // 调试可见模式也不删播放器：省流只靠周期暂停（见 pauseKeeper），页面结构保持原状。
+    if (state.loggedIn && !state.debugVisible) {
       win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
     }
     // DOM 探测脚本只读结构，不修改页面。
     win.webContents.executeJavaScript(DY_DOM_PROBE_SCRIPT).catch(() => undefined);
   }
 
-  /** 暂停页面内播放（隐藏窗口时再兜底一次省流）。 */
-  function pauseVideo() {
+  /** 调试可见模式的省流节奏：只暂停/静音视频，不删播放器、不拦流。 */
+  const PAUSE_KEEP_MS = 3000;
+
+  /**
+   * 暂停页面内播放。
+   * @param {{ onlyStarted?: boolean }} [opts] onlyStarted：只暂停已出首帧的媒体。
+   *   调试可见模式必须等首帧再暂停，否则播放器停在加载态，整页显示为黑屏。
+   */
+  function pauseVideo(opts) {
     if (!win || win.isDestroyed()) return;
+    const onlyStarted = opts?.onlyStarted === true;
     win.webContents
       .executeJavaScript(
-        `(function(){var v=document.querySelectorAll("video,audio");for(var i=0;i<v.length;i++){try{v[i].pause();v[i].muted=true;}catch(_){}}})();`,
+        `(function(){var only=${onlyStarted};var v=document.querySelectorAll("video,audio");for(var i=0;i<v.length;i++){var el=v[i];try{if(only&&el.readyState<2&&el.currentTime<=0)continue;el.pause();el.muted=true;}catch(_){}}})();`,
       )
       .catch(() => undefined);
   }
 
+  function stopPauseKeeper() {
+    if (pauseKeeper) clearInterval(pauseKeeper);
+    pauseKeeper = null;
+  }
+
+  /** 调试可见模式：首帧出来后再周期暂停（暂停即停止拉流，页面仍保留最后一帧和 UI）。 */
+  function startPauseKeeper() {
+    stopPauseKeeper();
+    if (!state.debugVisible || typeof setInterval !== 'function') return;
+    // 立即试一次（未出首帧会被跳过），之后周期补暂停。
+    pauseVideo({ onlyStarted: true });
+    pauseKeeper = setInterval(() => pauseVideo({ onlyStarted: true }), PAUSE_KEEP_MS);
+    pauseKeeper.unref?.();
+  }
+
   /**
    * 开窗加载直播间并开始旁听。
-   * @param {{url:string, cookie?:string}} input
+   * @param {{url:string, cookie?:string, debugVisible?:boolean}} input
    */
   async function start(input) {
     stop();
+    destroying = false;
     const url = normalizeLiveUrl(input?.url);
+    state.debugVisible = input?.debugVisible === true;
     state.url = url;
     state.lastError = '';
+    if (state.debugVisible) log?.info?.('[blue-fish][douyin-cdp] debug visible mode: 保持窗口可见，仅暂停视频省流');
 
     await writeCookies(input?.cookie || '', url);
     let loggedIn = false;
@@ -609,9 +719,19 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
         }
       }
     });
+    // 用户点窗口的 X 一律当作隐藏：页面和弹幕连接都留着，监听不中断。
+    // 只有 stop() 主动销毁和应用退出才真正关窗。
+    win.on('close', (event) => {
+      if (destroying || appQuitting) return;
+      event.preventDefault();
+      win.hide();
+      state.visible = false;
+      log?.info?.('[blue-fish][douyin-cdp] window closed by user → hidden, keeping danmaku');
+    });
 
     await win.loadURL(url);
     state.running = true;
+    startPauseKeeper();
 
     // 房间标题 / 主播：页面 SSR 的 RENDER_DATA 里就有，加载完读一次，空则补读一次。
     void readRoomMeta();
@@ -623,11 +743,12 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     metaRetry.unref?.();
 
     // 已有登录态：全程隐藏；未登录：先显示供扫码，轮询到登录态后自动隐藏停播。
-    if (loggedIn) {
+    // 开发调试模式保持可见（含已登录），用来观察断开后页面是否自己重连。
+    if (loggedIn && !state.debugVisible) {
       hide();
     } else {
       show();
-      startLoginPoll();
+      if (!loggedIn) startLoginPoll();
     }
   }
 
@@ -640,6 +761,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
 
   function hide() {
     if (!win || win.isDestroyed()) return;
+    if (state.debugVisible) return;
     // 登录后再启用省流脚本：先暂停并移除播放器，再隐藏窗口。
     win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
     pauseVideo();
@@ -647,13 +769,29 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     state.visible = false;
   }
 
+  /** 仅切换窗口可见性（调试开关即时生效用）：不删播放器、不改播放状态。 */
+  function setVisible(visible) {
+    if (!win || win.isDestroyed()) return;
+    if (visible === true) {
+      show();
+      return;
+    }
+    win.hide();
+    state.visible = false;
+  }
+
   function stop() {
     clearLoginPoll();
     clearMetaRetry();
+    stopPauseKeeper();
+    clearPushReconnect();
+    pushReconnectAttempts = 0;
     wsUrls.clear();
+    wsCreatedAt.clear();
     enterRequests.clear();
     attached = false;
     if (win && !win.isDestroyed()) {
+      destroying = true;
       try {
         if (win.webContents.debugger.isAttached()) win.webContents.debugger.detach();
       } catch {
@@ -672,6 +810,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     state.loggedIn = false;
     state.title = '';
     state.anchor = '';
+    state.debugVisible = false;
   }
 
   function status() {
@@ -683,6 +822,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log }) {
     stop,
     show,
     hide,
+    setVisible,
     status,
     /** 订阅入站弹幕帧（Buffer）。返回取消订阅函数。 */
     onFrame(fn) {

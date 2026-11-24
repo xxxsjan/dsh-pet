@@ -30,6 +30,11 @@ export type DouyinMonitorStartInput = {
   replyChat?: boolean;
   /** 是否把礼物感谢交给宠物 /chat。 */
   thankGift?: boolean;
+  /**
+   * 开发调试：保持内嵌窗可见，仅周期暂停视频播放省流（不拦直播流、不删播放器），
+   * 用于观察窗口可见时弹幕连接断开后页面能否自己重连。只由开发环境控制台露出。
+   */
+  debugVisible?: boolean;
 };
 
 /** 运行中可热更新的开关。 */
@@ -121,8 +126,8 @@ const COOKIE_VERIFY_TIMEOUT_MS = 10_000;
 const OFFLINE_RETRY_DELAY_MS = 700;
 /** 弹幕 WS 断开后的恢复窗口；期间恢复出帧就撤销「疑似被挤下线」判定。 */
 const INTERRUPT_GRACE_MS = 30_000;
-/** 疑似被挤下线的提示文案；收到新帧后自动清空。 */
-const INTERRUPT_MESSAGE = '弹幕连接已中断：可能该账号已在其他设备进入别的直播间（被挤下线）';
+/** 弹幕连接中断的提示文案；收到新帧后自动清空。 */
+const INTERRUPT_MESSAGE = '弹幕连接已中断：自动重连未成功，可能该账号已在其他设备进入别的直播间';
 
 /**
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
@@ -159,6 +164,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let cdpUnsubs: Array<() => void> = [];
   let cdpVisible = false;
   let cdpLoggedIn = false;
+  /** 开发调试：内嵌窗保持可见且不拦播放（见 start 入参）。 */
+  let debugVisible = false;
   /** 标题/主播优先由内嵌页 RENDER_DATA 补，接口探活结果作为兜底。 */
   let cdpMeta = { title: '', anchor: '' };
   const recentKeys = new Map<string, number>();
@@ -384,7 +391,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       }),
       bridge.onWsClosed(() => scheduleInterruptProbe()),
     );
-    await bridge.start({ url: currentUrl, cookie: currentCookie });
+    await bridge.start({ url: currentUrl, cookie: currentCookie, debugVisible });
     const snap = bridge.status();
     cdpVisible = snap.visible;
     cdpLoggedIn = snap.loggedIn;
@@ -907,6 +914,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     wantListen = true;
     currentUrl = url;
     currentCookie = cookie;
+    debugVisible = input.debugVisible === true;
     applyOptions({
       replyChat: input.replyChat === true,
       thankGift: input.thankGift === true,
@@ -959,10 +967,39 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     return status();
   }
 
+  /**
+   * 开发调试：立即显隐内嵌窗。只动可见性，不重连、不改播放/省流状态；
+   * 未在 CDP 旁听时无动作（勾选状态留给下次 start 作为 debugVisible）。
+   */
+  function setWindowVisible(visible: boolean): DouyinMonitorStatus {
+    if (mode === 'cdp' && cdp) {
+      try {
+        cdp.setVisible(visible === true);
+        cdpVisible = visible === true;
+        log.info?.(`[blue-fish][douyin] debug window visible=${cdpVisible}`);
+      } catch (e) {
+        noteError(e);
+      }
+    }
+    return status();
+  }
+
   function setOptions(input: Partial<DouyinMonitorOptions>): DouyinMonitorStatus {
     applyOptions(input);
     log.info?.(`[blue-fish][douyin] options replyChat=${replyChat} thankGift=${thankGift}`);
     return status();
+  }
+
+  /** 内嵌窗当前可见性：以桥的实时状态为准，用户手动关窗（转隐藏）也能立刻反映到轮询里。 */
+  function liveCdpVisible(): boolean {
+    if (mode === 'cdp' && cdp) {
+      try {
+        return cdp.status().visible === true;
+      } catch {
+        /* 读不到就回落到最近一次快照 */
+      }
+    }
+    return cdpVisible;
   }
 
   function status(): DouyinMonitorStatus {
@@ -981,7 +1018,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       replyChat,
       thankGift,
       mode,
-      cdpVisible,
+      cdpVisible: liveCdpVisible(),
       cdpLoggedIn,
       ended,
       interrupted,
@@ -989,7 +1026,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     };
   }
 
-  return { start, stop, status, setOptions };
+  return { start, stop, status, setOptions, setWindowVisible };
 }
 
 /** 抖音弹幕监听器实例。 */

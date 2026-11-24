@@ -22,6 +22,12 @@ type Meta = { title: string; anchor: string };
 /** 假内嵌窗：debugger message 可手动触发，getResponseBody 返回预置 body。 */
 function makeFakeWin() {
   const handlers: Array<(e: unknown, method: string, params: Record<string, unknown>) => void> = [];
+  const domReady: Array<() => void> = [];
+  const closeHandlers: Array<(event: { preventDefault: () => void }) => void> = [];
+  const sendCommands: string[] = [];
+  const scripts: string[] = [];
+  let hideCalls = 0;
+  let reloads = 0;
   let body: { body: string; base64Encoded: boolean } | null = null;
   const contents = {
     debugger: {
@@ -32,22 +38,35 @@ function makeFakeWin() {
       detach: noop,
       isAttached: () => true,
       sendCommand: async (method: string) => {
+        sendCommands.push(method);
         if (method === 'Network.getResponseBody') return body;
         return {};
       },
     },
     // SSR 状态读不到（对齐实测壳页）：页面提取回空
-    executeJavaScript: async () => ({ title: '', anchor: '' }),
-    on: noop,
+    executeJavaScript: async (script: string) => {
+      scripts.push(String(script));
+      return { title: '', anchor: '' };
+    },
+    reload: () => {
+      reloads += 1;
+    },
+    on: (ev: string, fn: () => void) => {
+      if (ev === 'dom-ready') domReady.push(fn);
+    },
   };
   const win = {
     webContents: contents,
     isDestroyed: () => false,
     destroy: noop,
     show: noop,
-    hide: noop,
+    hide: () => {
+      hideCalls += 1;
+    },
     focus: noop,
-    on: noop,
+    on: (ev: string, fn: (event: { preventDefault: () => void }) => void) => {
+      if (ev === 'close') closeHandlers.push(fn);
+    },
     loadURL: async () => undefined,
   };
   return {
@@ -55,25 +74,49 @@ function makeFakeWin() {
     emit: (method: string, params: Record<string, unknown>) => {
       for (const fn of handlers) fn(null, method, params);
     },
+    fireDomReady: () => {
+      for (const fn of domReady) fn();
+    },
+    fireClose: () => {
+      let prevented = false;
+      const event = {
+        preventDefault: () => {
+          prevented = true;
+        },
+      };
+      for (const fn of closeHandlers) fn(event);
+      return prevented;
+    },
+    sendCommands,
+    scripts,
+    hideCalls: () => hideCalls,
+    reloads: () => reloads,
     setBody: (b: { body: string; base64Encoded: boolean }) => {
       body = b;
     },
   };
 }
 
-function makeBridge(fake: ReturnType<typeof makeFakeWin>) {
+function makeBridge(fake: ReturnType<typeof makeFakeWin>, cookieNames: string[] = []) {
   class FakeBrowserWindow {
     constructor() {
       return fake.win as unknown as FakeBrowserWindow;
     }
   }
   const electronSession = {
-    fromPartition: () => ({ cookies: { get: async () => [], set: async () => undefined } }),
+    fromPartition: () => ({
+      cookies: {
+        get: async () => cookieNames.map((name) => ({ name, value: 'v' })),
+        set: async () => undefined,
+      },
+    }),
   };
   return startDouyinCdpBridge({
     BrowserWindow: FakeBrowserWindow,
     electronSession,
     log: { info: noop, warn: noop, debug: noop },
+    // 测试用很短的宽限期，避免等 6 秒。
+    pushReconnectDelayMs: 5,
   });
 }
 
@@ -141,6 +184,75 @@ describe('douyin CDP 桥：enter 响应截取的元数据链路', () => {
     bridge.stop();
   });
 });
+describe('douyin CDP 桥：开发调试可见模式', () => {
+  const INIT_MARK = 'HTMLMediaElement.prototype.play';
+
+  test('debugVisible：窗口保持可见，只暂停视频省流、不拦流也不删播放器', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake, ['sessionid']);
+    await bridge.start({ url: 'https://live.douyin.com/123456789', debugVisible: true });
+    fake.fireDomReady();
+    await tick();
+
+    assert.ok(!fake.sendCommands.includes('Network.setBlockedURLs'), '调试模式不拦直播流');
+    assert.ok(!fake.scripts.some((s) => s.includes(INIT_MARK)), '调试模式不删播放器、不改 play/src');
+    assert.ok(fake.scripts.some((s) => s.includes('el.pause()')), '调试模式应暂停视频');
+    assert.ok(fake.scripts.some((s) => s.includes('el.readyState<2')), '暂停要等首帧，避免黑屏');
+    assert.equal(fake.hideCalls(), 0, '已登录也不得隐藏窗口');
+    assert.equal(bridge.status().visible, true, '状态应保持可见');
+    bridge.stop();
+  });
+
+  test('默认省流模式：拦直播流、注入省流脚本并隐藏窗口', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake, ['sessionid']);
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    fake.fireDomReady();
+    await tick();
+
+    assert.ok(fake.sendCommands.includes('Network.setBlockedURLs'), '默认模式应拦直播流');
+    assert.ok(fake.scripts.some((s) => s.includes(INIT_MARK)), '默认模式应注入省流脚本');
+    assert.equal(fake.hideCalls(), 1, '登录态下应隐藏窗口');
+    bridge.stop();
+  });
+
+  test('用户关窗只转隐藏，不销毁、不上报旁听中断（普通模式也一样）', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake, ['sessionid']);
+    let closedEvents = 0;
+    bridge.onClosed(() => {
+      closedEvents += 1;
+    });
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    // 普通启动是隐藏态，先显示再模拟用户点 X
+    bridge.setVisible(true);
+    assert.equal(bridge.status().visible, true);
+
+    const prevented = fake.fireClose();
+    assert.equal(prevented, true, '关窗应被拦下');
+    assert.equal(bridge.status().visible, false, '关窗后按隐藏处理');
+    assert.equal(bridge.status().running, true, '页面与旁听保持');
+    assert.equal(closedEvents, 0, '不应上报窗口关闭中断');
+    bridge.stop();
+  });
+
+  test('setVisible 只切窗口显隐，不注入省流脚本', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake, ['sessionid']);
+    await bridge.start({ url: 'https://live.douyin.com/123456789', debugVisible: true });
+    await tick();
+    const scriptsBefore = fake.scripts.length;
+
+    bridge.setVisible(false);
+    assert.equal(fake.hideCalls(), 1);
+    assert.equal(bridge.status().visible, false);
+    bridge.setVisible(true);
+    assert.equal(bridge.status().visible, true);
+    assert.equal(fake.scripts.length, scriptsBefore, '显隐窗口不得执行任何注入脚本');
+    bridge.stop();
+  });
+});
+
 describe('douyin CDP 桥：弹幕 WS 关闭上报', () => {
   test('只上报 /webcast/im/push/ 的关闭，其它 WS 与重复关闭都忽略', async () => {
     const fake = makeFakeWin();
@@ -164,6 +276,45 @@ describe('douyin CDP 桥：弹幕 WS 关闭上报', () => {
     // 同一 rid 的重复关闭不再上报（映射已删除），避免重复触发恢复窗口。
     fake.emit('Network.webSocketClosed', { requestId: 'w1' });
     assert.equal(closed.length, 1);
+    bridge.stop();
+  });
+
+  test('推送 WS 断开且页面没重建 → 宽限期后自动重载直播页', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake);
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    fake.emit('Network.webSocketCreated', {
+      requestId: 'w1',
+      url: 'wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/?room_id=1',
+    });
+    fake.emit('Network.webSocketClosed', { requestId: 'w1' });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.ok(fake.reloads() >= 1, '没有新推送连接应重载页面');
+    bridge.stop();
+  });
+
+  test('断开后页面自己重建推送连接 → 撤销自动重载', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake);
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    fake.emit('Network.webSocketCreated', { requestId: 'w1', url: 'wss://x/webcast/im/push/v2/' });
+    fake.emit('Network.webSocketClosed', { requestId: 'w1' });
+    fake.emit('Network.webSocketCreated', { requestId: 'w2', url: 'wss://y/webcast/im/push/v2/' });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(fake.reloads(), 0, '页面自己重建后不应重载');
+    bridge.stop();
+  });
+
+  test('连续断开最多自动重载 3 次，避免被挤时无限刷新', async () => {
+    const fake = makeFakeWin();
+    const bridge = makeBridge(fake);
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    for (let i = 0; i < 4; i += 1) {
+      fake.emit('Network.webSocketCreated', { requestId: `w${i}`, url: 'wss://x/webcast/im/push/v2/' });
+      fake.emit('Network.webSocketClosed', { requestId: `w${i}` });
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    assert.equal(fake.reloads(), 3);
     bridge.stop();
   });
 });

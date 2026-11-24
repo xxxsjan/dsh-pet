@@ -12,13 +12,15 @@ export type DouyinCdpFrame = Uint8Array;
 /** Helper 侧 CDP 桥控制器形状（与 douyin-cdp.js 返回值对齐）。 */
 export type DouyinCdpBridge = {
   /** 开窗加载直播间并开始旁听；有 Cookie 则先注入分区。 */
-  start(input: { url: string; cookie?: string }): Promise<void>;
+  start(input: { url: string; cookie?: string; debugVisible?: boolean }): Promise<void>;
   /** 摘 debugger、销毁内嵌窗、清轮询。 */
   stop(): void;
   /** 显示内嵌窗（扫码登录用）。 */
   show(): void;
   /** 隐藏内嵌窗并暂停页面播放。 */
   hide(): void;
+  /** 仅切换窗口可见性：不注入省流脚本、不改播放状态（调试开关即时生效用）。 */
+  setVisible(visible: boolean): void;
   /** 旁听状态快照。 */
   status(): {
     running: boolean;

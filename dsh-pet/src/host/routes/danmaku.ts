@@ -206,6 +206,25 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
     return okResult({ ok: true, ...status });
   }
 
+  if (rest === 'danmaku/douyin/window') {
+    if (method !== 'POST') return methodNotAllowed();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body ?? 'null');
+    } catch {
+      return invalidJson();
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      return failResult('bad-request', '请求体须为 JSON 对象');
+    }
+    const visible = (parsed as { visible?: unknown }).visible;
+    if (typeof visible !== 'boolean') return failResult('bad-request', 'visible 须为 boolean');
+    // 开发调试：只切换内嵌窗可见性，不重连、不改播放/省流状态。
+    const status = deps.douyinDanmaku.setWindowVisible(visible);
+    deps.state.writeSection('danmaku', status);
+    return okResult({ ok: true, ...status });
+  }
+
   if (rest === 'danmaku/douyin/start') {
     if (method !== 'POST') return methodNotAllowed();
     let parsed: unknown;
@@ -221,12 +240,16 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
     const cookie = String((parsed as { cookie?: unknown }).cookie ?? '');
     const replyChat = (parsed as { replyChat?: unknown }).replyChat;
     const thankGift = (parsed as { thankGift?: unknown }).thankGift;
+    const debugVisible = (parsed as { debugVisible?: unknown }).debugVisible;
     if (!url) return failResult('bad-request', '缺少 url（直播间链接或房间号）');
     if (replyChat !== undefined && typeof replyChat !== 'boolean') {
       return failResult('bad-request', 'replyChat 须为 boolean');
     }
     if (thankGift !== undefined && typeof thankGift !== 'boolean') {
       return failResult('bad-request', 'thankGift 须为 boolean');
+    }
+    if (debugVisible !== undefined && typeof debugVisible !== 'boolean') {
+      return failResult('bad-request', 'debugVisible 须为 boolean');
     }
     try {
       stopExcept(deps, 'douyin');
@@ -235,6 +258,7 @@ export async function handleDanmakuRoutes(deps: PetRouteDeps, input: RouteInput)
         cookie,
         replyChat: replyChat === true,
         thankGift: thankGift === true,
+        debugVisible: debugVisible === true,
       });
       // 状态变化写入 state，供右键菜单读取
       console.log('[blue-fish][danmaku] start success, writing status to state:', status);

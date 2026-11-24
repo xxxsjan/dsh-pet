@@ -22,7 +22,18 @@ const SETTINGS_PARTITION = 'persist:blue-fish-settings';
  * @param deps.petRoute - 宠物路由前缀。
  * @param deps.dpi - DPI 能力（forcedScale / primaryScale）：设置窗口按真实主屏缩放还原。
  */
-function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, helperDir }) {
+function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, helperDir, devMode }) {
+  /** 控制台地址：开发环境追加 ?dev=1，页面据此只露出调试开关；正式环境原样返回。 */
+  const consoleUrlWithDev = (raw) => {
+    if (!devMode || !raw) return raw;
+    try {
+      const u = new URL(raw);
+      u.searchParams.set('dev', '1');
+      return u.toString();
+    } catch {
+      return raw;
+    }
+  };
   // 宠物窗口跟随：renderer 逐帧上报窗口内容区位置/尺寸
   ipcMain.on('pet:set-bounds', (event, bounds) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -267,7 +278,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       consoleWindow.focus();
       return;
     }
-    const target = process.env.BLUE_FISH_CONSOLE_URL || '';
+    const target = consoleUrlWithDev(process.env.BLUE_FISH_CONSOLE_URL || '');
     if (!/^https?:[/][/]/.test(target)) {
       console.warn('[blue-fish-desktop-helper] console url missing, skip opening console');
       return;
@@ -320,7 +331,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     const base = process.env.BLUE_FISH_CONSOLE_URL || '';
     if (!/^https?:[/][/]/.test(base)) return '';
     try {
-      const u = new URL(base);
+      const u = new URL(consoleUrlWithDev(base));
       u.searchParams.set('live', '1');
       return u.toString();
     } catch {
@@ -389,7 +400,7 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
     const base = process.env.BLUE_FISH_CONSOLE_URL || '';
     if (!/^https?:[/][/]/.test(base)) return '';
     try {
-      const u = new URL(base);
+      const u = new URL(consoleUrlWithDev(base));
       u.searchParams.set('live', '1');
       u.searchParams.set('mini', '1');
       if (LIVE_MINI_PLATFORMS.includes(platform)) u.searchParams.set('p', platform);

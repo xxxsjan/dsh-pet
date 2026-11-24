@@ -1624,7 +1624,7 @@ test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分�
   const note = script.match(/function dmStatusNote\(status\) \{([\s\S]*?)\n {2}\}/);
   assert.ok(note, '应能取到 dmStatusNote');
   assert.match(note![1], /status\.interrupted/, '状态行应读取 interrupted');
-  assert.match(note![1], /疑似被其他设备挤下线/, '状态行提示文案');
+  assert.match(note![1], /自动重连未成功/, '状态行提示文案');
 
   const dmRender = script.match(/function dmRenderStatus\(data, syncToggles\) \{([\s\S]*?)\n {2}\}/);
   assert.ok(dmRender, '应能取到 dmRenderStatus');
@@ -1669,4 +1669,24 @@ test('小红书弹幕：正文里的 [表情R] 走表情图渲染，表情表按
   assert.match(script, /var XHS_EMOJI_URLS = \{/, '页面应内嵌小红书表情表');
   assert.ok(script.includes(xhsEmojiUrlMapJson()), '页面表情表必须与后端同一份');
   assert.match(script, /img\.dataset\.retried/, '表情图取图失败应先重试一次再退回文字');
+});
+
+test('抖音调试按钮：仅开发环境露出、点按显隐直播页，并随开始监听透传', () => {
+  const html = consolePage();
+  const script = consoleScript;
+
+  assert.match(html, /id="dm-dev-open"[^>]*hidden/, '调试按钮默认隐藏');
+  assert.match(html, /id="dm-dev-open"[^>]*>显示直播窗口</, '调试按钮文案为「显示直播窗口」');
+  assert.match(script, /get\('dev'\) === '1'/, '开发标记从 query 读取');
+  assert.match(script, /if \(DEV_MODE\) \{[\s\S]*?dm-dev-open[\s\S]*?hidden = false/, '只在开发环境露出');
+  assert.match(
+    script,
+    /api\('POST', '\/danmaku\/douyin\/window', \{ visible: true \}\)/,
+    '点按应显示内嵌窗；隐藏由用户关窗完成',
+  );
+  assert.match(
+    script,
+    /debugVisible: DEV_MODE && dmDevWindowVisible/,
+    '启动参数按当前是否开着直播页决定',
+  );
 });

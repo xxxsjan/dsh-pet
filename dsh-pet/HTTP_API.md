@@ -492,6 +492,7 @@ X-Blue-Fish-Token: <token>
 | `cookie` | string | 否 | 登录 Cookie（匿名可省略） |
 | `replyChat` | boolean | 否 | 把弹幕交给宠物对话（缺省 `false`） |
 | `thankGift` | boolean | 否 | 把礼物答谢交给宠物对话（缺省 `false`） |
+| `debugVisible` | boolean | 否 | 开发调试：保持抖音内嵌窗可见，等首帧后周期暂停视频播放省流量（不拦流、不删播放器）；仅开发环境控制台露出（缺省 `false`） |
 
 成功 `200` 回 `{ ok: true, ...status }`（字段同 `/status`）；失败 `200` + `ok:false`，`reason` 为 `bad-request`（缺 `url`）或 `internal-error`（连接失败 / 无可用 CDP 桥）。`start` 返回后以 `GET /status` 的 `listening` / `lastError` 为准。
 
@@ -501,6 +502,16 @@ X-Blue-Fish-Token: <token>
 
 ```json
 { "replyChat": true, "thankGift": false }
+```
+
+成功 `{ ok: true, ...status }`（同 `/status`）；非布尔 → `bad-request`。
+
+### POST `/danmaku/douyin/window`
+
+需令牌。开发调试用：立即显隐抖音内嵌旁听窗。只切可见性，不重连、不改播放与省流状态（窗口里仍是省流后的页面）；未在监听时无动作。
+
+```json
+{ "visible": true }
 ```
 
 成功 `{ ok: true, ...status }`（同 `/status`）；非布尔 → `bad-request`。
@@ -587,6 +598,7 @@ console.log(body.text); // 回复
 | `/danmaku/douyin/status`   | GET  | 监听状态与最近消息                  |
 | `/danmaku/douyin/start`    | POST | 开始监听                            |
 | `/danmaku/douyin/options`  | POST | 热更新 `replyChat` / `thankGift`    |
+| `/danmaku/douyin/window`   | POST | 开发调试：立即显隐内嵌窗            |
 | `/danmaku/douyin/stop`     | POST | 停止监听                            |
 
 细节见上方「抖音弹幕监听」。

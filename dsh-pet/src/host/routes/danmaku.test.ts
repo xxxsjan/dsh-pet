@@ -12,30 +12,43 @@ import type { PetRouteDeps, RouteInput } from './types.ts';
 import type { RouteResult } from '../http.ts';
 
 type Monitor = {
-  calls: { stop: number; start: number; setOptions: number; showCenter: number };
+  calls: { stop: number; start: number; setOptions: number; showCenter: number; setWindowVisible: number };
+  lastStart: Array<Record<string, unknown> | undefined>;
+  lastWindow: boolean[];
   status: () => Record<string, unknown>;
   stop: () => Record<string, unknown>;
-  start: () => Promise<Record<string, unknown>>;
+  start: (input?: Record<string, unknown>) => Promise<Record<string, unknown>>;
   setOptions: () => Record<string, unknown>;
+  setWindowVisible: (visible: boolean) => Record<string, unknown>;
   showCenter: () => Record<string, unknown>;
 };
 
 function makeMonitor(source: string): Monitor {
-  const calls = { stop: 0, start: 0, setOptions: 0, showCenter: 0 };
+  const calls = { stop: 0, start: 0, setOptions: 0, showCenter: 0, setWindowVisible: 0 };
+  const lastStart: Array<Record<string, unknown> | undefined> = [];
+  const lastWindow: boolean[] = [];
   return {
     calls,
+    lastStart,
+    lastWindow,
     status: () => ({ listening: false, source }),
     stop: () => {
       calls.stop += 1;
       return { listening: false, source };
     },
-    start: async () => {
+    start: async (input) => {
       calls.start += 1;
+      lastStart.push(input);
       return { listening: true, source };
     },
     setOptions: () => {
       calls.setOptions += 1;
       return { listening: false, source };
+    },
+    setWindowVisible: (visible: boolean) => {
+      calls.setWindowVisible += 1;
+      lastWindow.push(visible);
+      return { listening: true, source };
     },
     showCenter: () => {
       calls.showCenter += 1;
@@ -95,6 +108,35 @@ test('启动抖音：停止小红书 / 快手 / B 站，抖音自身不被 stop'
   assert.equal(monitors.xiaohongshu.calls.stop, 1, '其余平台应先被停止');
   assert.equal(monitors.kuaishou.calls.stop, 1, '其余平台应先被停止');
   assert.equal(monitors.bilibili.calls.stop, 1, '其余平台应先被停止');
+});
+
+test('抖音调试可见开关：布尔值透传，非布尔按 bad-request 拒绝', async () => {
+  const { deps, monitors } = makeHarness();
+  const okRes = jsonOf(
+    await handleDanmakuRoutes(deps, input('danmaku/douyin/start', { url: '123', debugVisible: true })),
+  );
+  assert.equal(okRes.status, 200);
+  assert.equal(monitors.douyin.lastStart.at(-1)?.debugVisible, true, '布尔值应透传给监听器');
+
+  const badRes = jsonOf(
+    await handleDanmakuRoutes(deps, input('danmaku/douyin/start', { url: '123', debugVisible: 'yes' })),
+  );
+  assert.equal(badRes.obj.ok, false);
+  assert.equal(badRes.obj.reason, 'bad-request');
+  assert.equal(monitors.douyin.calls.start, 1, '非法参数不应再次启动');
+});
+
+test('抖音窗口显隐：布尔值透传，非布尔按 bad-request 拒绝', async () => {
+  const { deps, monitors, sections } = makeHarness();
+  const okRes = jsonOf(await handleDanmakuRoutes(deps, input('danmaku/douyin/window', { visible: false })));
+  assert.equal(okRes.status, 200);
+  assert.deepEqual(monitors.douyin.lastWindow, [false], '布尔值应透传给监听器');
+  assert.ok(sections.some(([name]) => name === 'danmaku'), '应回写弹幕状态段');
+
+  const badRes = jsonOf(await handleDanmakuRoutes(deps, input('danmaku/douyin/window', { visible: 'yes' })));
+  assert.equal(badRes.obj.ok, false);
+  assert.equal(badRes.obj.reason, 'bad-request');
+  assert.equal(monitors.douyin.calls.setWindowVisible, 1, '非法参数不应再触窗');
 });
 
 test('启动 B 站：停止抖音 / 小红书 / 快手，B 站自身不被 stop', async () => {

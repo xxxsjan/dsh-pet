@@ -34,29 +34,41 @@ function makeBridge() {
     wsClosed: null | ((url: string) => void);
   } = { frame: null, login: null, closed: null, meta: null, wsClosed: null };
   const bridge: DouyinCdpBridge & {
-    starts: Array<{ url: string; cookie?: string }>;
+    starts: Array<{ url: string; cookie?: string; debugVisible?: boolean }>;
+    visibleCalls: boolean[];
+    visible: boolean;
     stopped: boolean;
     loggedIn: boolean;
     meta: { title: string; anchor: string };
     subs: typeof subs;
   } = {
     starts: [],
+    visibleCalls: [],
+    visible: false,
     stopped: false,
     loggedIn: false,
     meta: { title: '', anchor: '' },
     subs,
-    async start(input: { url: string; cookie?: string }) {
-      this.starts.push({ url: input.url, cookie: input.cookie });
+    async start(input: { url: string; cookie?: string; debugVisible?: boolean }) {
+      this.starts.push({ url: input.url, cookie: input.cookie, debugVisible: input.debugVisible });
     },
     stop() {
       this.stopped = true;
     },
-    show() {},
-    hide() {},
+    show() {
+      this.visible = true;
+    },
+    hide() {
+      this.visible = false;
+    },
+    setVisible(visible: boolean) {
+      this.visibleCalls.push(visible);
+      this.visible = visible;
+    },
     status() {
       return {
         running: true,
-        visible: false,
+        visible: this.visible,
         url: this.starts[0]?.url ?? '',
         loggedIn: this.loggedIn,
         lastError: '',
@@ -161,6 +173,30 @@ describe('douyin monitor CDP 链路', () => {
     const status = mon.status();
     assert.equal(status.mode, 'idle');
     assert.equal(status.listening, false);
+  });
+
+  test('调试可见模式透传给 CDP 桥', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await mon.start({ url: 'https://live.douyin.com/123456789', debugVisible: true });
+    assert.equal(bridge.starts[0]?.debugVisible, true);
+    mon.stop();
+  });
+
+  test('调试显隐：只切内嵌窗可见性并同步 cdpVisible', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+    const hidden = mon.setWindowVisible(false);
+    assert.deepEqual(bridge.visibleCalls, [false]);
+    assert.equal(hidden.cdpVisible, false);
+    const shown = mon.setWindowVisible(true);
+    assert.deepEqual(bridge.visibleCalls, [false, true]);
+    assert.equal(shown.cdpVisible, true);
+    // 用户自己关窗（桥里转隐藏）后，状态轮询应按桥的实时可见性回落。
+    bridge.hide();
+    assert.equal(mon.status().cdpVisible, false);
+    mon.stop();
   });
 
   test('桥 onLogin 回调把登录态置真', async () => {
@@ -889,12 +925,12 @@ describe('douyin monitor 疑似被挤下线', () => {
 
     const status = mon.status();
     assert.equal(status.interrupted, true, '断线超窗且房间在播应判定疑似被挤下线');
-    assert.match(status.lastError, /挤下线/);
+    assert.match(status.lastError, /自动重连未成功/);
 
     // 暂不重连：停听清掉 interrupted，但 lastError 保留给状态行展示。
     mon.stop();
     assert.equal(mon.status().interrupted, false);
-    assert.match(mon.status().lastError, /挤下线/);
+    assert.match(mon.status().lastError, /自动重连未成功/);
   });
 
   test('恢复窗口内恢复出帧 → 不判定被挤，提示与报错一起撤销', async () => {

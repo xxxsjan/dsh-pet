@@ -2703,6 +2703,9 @@ paths:
                 thankGift:
                   type: boolean
                   description: 是否把礼物感谢交给活跃宠物 /chat。
+                debugVisible:
+                  type: boolean
+                  description: 开发调试：保持抖音内嵌窗可见，等首帧后周期暂停视频播放省流量（不拦流、不删播放器；仅开发环境控制台露出），用于观察窗口可见时弹幕连接断开后页面能否自行重连。
       responses:
         "200":
           description: 启动结论（业务失败也是 200 + FailureResponse）。
@@ -2737,6 +2740,37 @@ paths:
       responses:
         "200":
           description: 更新后的状态快照。
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/DouyinDanmakuStatusResponse"
+                  - $ref: "#/components/schemas/FailureResponse"
+        "400":
+          description: 请求体不是合法 JSON。
+        "405":
+          description: 方法不是 POST。
+
+  /blue-fish/danmaku/douyin/window:
+    post:
+      tags: [Danmaku]
+      operationId: setDouyinDanmakuWindowVisible
+      summary: 开发调试：立即显隐抖音内嵌旁听窗
+      description: 只切可见性，不重连、不改播放与省流状态；未在监听时无动作。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visible]
+              properties:
+                visible:
+                  type: boolean
+                  description: true 显示内嵌窗，false 隐藏。
+      responses:
+        "200":
+          description: 显隐后的状态快照（业务失败也是 200 + FailureResponse）。
           content:
             application/json:
               schema:

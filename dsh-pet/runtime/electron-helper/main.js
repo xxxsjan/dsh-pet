@@ -348,7 +348,7 @@ app.whenReady().then(() => {
   powerMonitor.on('resume', reassertTaskbar);
   powerMonitor.on('unlock-screen', reassertTaskbar);
 
-  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi, helperDir: __dirname });
+  registerIpc({ ipcMain, petWindows, shell, openTarget: OPEN_TARGET, petRoute: PET_ROUTE, dpi, helperDir: __dirname, devMode: DEV_MODE });
   createDisplaySync({ screen, petWindows, dpi });
 
   // 抖音弹幕 CDP 旁听桥：隐藏内嵌窗加载直播间，CDP 抓弹幕 WS 帧交宿主解码。
