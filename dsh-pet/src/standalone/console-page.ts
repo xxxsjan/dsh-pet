@@ -645,11 +645,11 @@ export const consoleScript = `
       viewerNode.title = viewers >= 0 ? String(viewers) : '';
     }
     if (giftNode) {
-      // 支持价值的平台显示「本场累计价值 + 货币」；快手等拿不到单价的平台回落条数。
+      // 支持价值的平台只显示本场累计价值数字（单位收进悬停提示）；快手等拿不到单价的平台回落条数。
       var valueUnit = String((status && status.giftValueUnit) || '');
       var giftValue = Number(status && status.giftValue) || 0;
       if (valueUnit) {
-        giftNode.textContent = miniFormatCount(giftValue) + valueUnit;
+        giftNode.textContent = miniFormatCount(giftValue);
         giftNode.title = '本场礼物价值 ' + giftValue + ' ' + valueUnit;
       } else {
         var gifts = Number(status && status.giftCount) || 0;

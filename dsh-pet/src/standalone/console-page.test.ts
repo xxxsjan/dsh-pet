@@ -1673,7 +1673,8 @@ test('小红书弹幕：正文里的 [表情R] 走表情图渲染，表情表按
 test('小窗顶部礼物统计：有单价平台显示价值，无单价平台回落条数', () => {
   const script = consoleScript;
   assert.match(script, /status\.giftValueUnit/, '读取平台货币单位');
-  assert.match(script, /miniFormatCount\(giftValue\) \+ valueUnit/, '有价值时显示「价值+货币」');
+  assert.match(script, /giftNode\.textContent = miniFormatCount\(giftValue\)/, '有价值时只显示数字，不显示货币单位');
+  assert.doesNotMatch(script, /miniFormatCount\(giftValue\) \+ valueUnit/, '统计数字不拼接货币单位');
   assert.match(script, /本场礼物价值/, '悬停提示写清口径');
   assert.match(script, /String\(gifts\)/, '拿不到单价的平台仍显示条数');
 });
