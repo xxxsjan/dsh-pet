@@ -644,7 +644,19 @@ export const consoleScript = `
       viewerNode.textContent = viewers >= 0 ? miniFormatCount(viewers) : '—';
       viewerNode.title = viewers >= 0 ? String(viewers) : '';
     }
-    if (giftNode) giftNode.textContent = String(Number(status && status.giftCount) || 0);
+    if (giftNode) {
+      // 支持价值的平台显示「本场累计价值 + 货币」；快手等拿不到单价的平台回落条数。
+      var valueUnit = String((status && status.giftValueUnit) || '');
+      var giftValue = Number(status && status.giftValue) || 0;
+      if (valueUnit) {
+        giftNode.textContent = miniFormatCount(giftValue) + valueUnit;
+        giftNode.title = '本场礼物价值 ' + giftValue + ' ' + valueUnit;
+      } else {
+        var gifts = Number(status && status.giftCount) || 0;
+        giftNode.textContent = String(gifts);
+        giftNode.title = '本场礼物条数 ' + gifts;
+      }
+    }
     // 抖音 / 快手回 likeCount（本场累计点赞）；其余平台缺字段时显示 0，不冒装有点赞。
     if (likeNode) {
       var likes = Number(status && status.likeCount) || 0;

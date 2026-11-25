@@ -201,7 +201,7 @@ describe('xiaohongshu monitor CDP 链路', () => {
           customData: {
             type: 'gift_comment',
             send_user_info: { nick_name: '小红' },
-            base_gift_info: { name: '小心心' },
+            base_gift_info: { name: '小心心', coins: 10 },
             gift_action_info: { comb_count: 3 },
             commentId: 'g1',
           },
@@ -223,6 +223,8 @@ describe('xiaohongshu monitor CDP 链路', () => {
     assert.equal(status.recent[1]?.kind, 'gift');
     assert.equal(status.recent[1]?.text, '小心心');
     assert.equal(status.recent[1]?.count, 3);
+    assert.equal(status.giftValue, 30, '礼物价值 = 薯币单价 × 件数');
+    assert.equal(status.giftValueUnit, '薯币');
   });
 
   test('桥未就绪时 start 报错', async () => {

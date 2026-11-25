@@ -166,6 +166,25 @@ describe('B 站礼物解析', () => {
     const item = parseBiliGift({ data: { uname: 'x', giftName: '小电视' } });
     assert.equal(item?.count, 1);
   });
+
+  test('金瓜子折算电池：优先 total_coin，缺失按 price×num', () => {
+    const byTotal = parseBiliGift({
+      data: { uname: 'x', giftName: '辣条', num: 3, coin_type: 'gold', total_coin: 300 },
+    });
+    assert.equal(byTotal?.value, 3, '300 金瓜子 = 3 电池');
+
+    const byPrice = parseBiliGift({
+      data: { uname: 'x', giftName: '辣条', num: 3, coin_type: 'gold', price: 100 },
+    });
+    assert.equal(byPrice?.value, 3, '单价 100 金瓜子 × 3 = 3 电池');
+  });
+
+  test('银瓜子免费礼物与缺字段不产生价值', () => {
+    const silver = parseBiliGift({ data: { uname: 'x', giftName: '免费礼物', num: 1, coin_type: 'silver' } });
+    assert.equal(silver?.value, 0);
+    const none = parseBiliGift({ data: { uname: 'x', giftName: '小电视' } });
+    assert.equal(none?.value, 0);
+  });
 });
 
 describe('B 站帧归一与去重', () => {

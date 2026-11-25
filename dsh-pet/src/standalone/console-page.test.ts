@@ -1051,8 +1051,7 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   // 对齐设计稿：真实统计行 + 礼物行解剖 + 空态文案 + 发丝分隔 + 细灰滚动条
   assert.match(
     html,
-    /id="mini-stats"[\s\S]*?id="mini-stat-viewer"[\s\S]*?id="mini-stat-gift"[\s\S]*?id="mini-stat-like"/,
-    '小窗统计行只放真实口径：在线观众人数 / 礼物数 / 本场累计点赞',
+    /id="mini-stats"[\s\S]*?id="mini-stat-viewer"[\s\S]*?id="mini-stat-gift"[\s\S]*?id="mini-stat-like"/,    '小窗统计行只放真实口径：在线观众人数 / 礼物数 / 本场累计点赞',
   );
   assert.doesNotMatch(html, /id="mini-stat-chat"/, '小窗统计行不再放弹幕数');
   assert.match(styles, /\.miniStats\{display:none\}/, '统计行在大窗默认隐藏');
@@ -1669,6 +1668,14 @@ test('小红书弹幕：正文里的 [表情R] 走表情图渲染，表情表按
   assert.match(script, /var XHS_EMOJI_URLS = \{/, '页面应内嵌小红书表情表');
   assert.ok(script.includes(xhsEmojiUrlMapJson()), '页面表情表必须与后端同一份');
   assert.match(script, /img\.dataset\.retried/, '表情图取图失败应先重试一次再退回文字');
+});
+
+test('小窗顶部礼物统计：有单价平台显示价值，无单价平台回落条数', () => {
+  const script = consoleScript;
+  assert.match(script, /status\.giftValueUnit/, '读取平台货币单位');
+  assert.match(script, /miniFormatCount\(giftValue\) \+ valueUnit/, '有价值时显示「价值+货币」');
+  assert.match(script, /本场礼物价值/, '悬停提示写清口径');
+  assert.match(script, /String\(gifts\)/, '拿不到单价的平台仍显示条数');
 });
 
 test('抖音调试按钮：仅开发环境露出、点按显隐直播页，并随开始监听透传', () => {

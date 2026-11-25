@@ -45,6 +45,10 @@ export type XhsMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /** 本场累计礼物价值（平台货币）；免费 / 未回传单价的不计。 */
+  giftValue: number;
+  /** 礼物价值单位（小红书固定「薯币」）。 */
+  giftValueUnit: string;
   /** 在线观看人数（中控台在线统计帧）；-1 = 本场还没收到统计帧。 */
   viewerCount: number;
   lastError: string;
@@ -122,6 +126,8 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
   let wantListen = false;
   let chatCount = 0;
   let giftCount = 0;
+  /** 本场累计礼物价值（薯币）。 */
+  let giftValue = 0;
   /** 在线观看人数；-1 表示本场还没收到统计帧。 */
   let viewerCount = -1;
   let feedSeq = 0;
@@ -238,6 +244,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
       return;
     }
     giftCount += 1;
+    giftValue += (item.unitValue || 0) * item.count;
     pushFeed('gift', item.nick, item.giftName, item.count);
     log.info?.(`[blue-fish][xiaohongshu] gift nick=${item.nick} gift=${item.giftName} x${item.count}`);
     if (thankGift) {
@@ -415,6 +422,7 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
     seenIds.clear();
     chatCount = 0;
     giftCount = 0;
+    giftValue = 0;
     viewerCount = -1;
     feedSeq = 0;
     recentFeed.length = 0;
@@ -483,6 +491,8 @@ export function createXhsMonitor(deps: XhsMonitorDeps) {
       anchor: '',
       chatCount,
       giftCount,
+      giftValue,
+      giftValueUnit: '薯币',
       viewerCount,
       lastError,
       startedAt,

@@ -85,6 +85,8 @@ export type XhsParsedItem = {
   /** 礼物件数；聊天为 0；online 为在线观看人数。 */
   count: number;
   giftName: string;
+  /** 单个礼物的薯币价值；0 = 未回传 / 免费。 */
+  unitValue: number;
 };
 
 function base64DecodeUtf8(input: string): string {
@@ -140,8 +142,8 @@ function pickNick(cd: XhsCustomData): string {
   return '匿名';
 }
 
-/** 礼物名 / 件数：优先动作里的连击数，再回落到礼物基础信息与消息顶层。 */
-function pickGift(cd: XhsCustomData): { name: string; count: number } {
+/** 礼物名 / 件数 / 单价：优先动作里的连击数，再回落到礼物基础信息与消息顶层。 */
+function pickGift(cd: XhsCustomData): { name: string; count: number; unitValue: number } {
   const gift = cd.base_gift_info || cd.gift_info || {};
   const action = cd.gift_action_info || {};
   const nameRaw =
@@ -164,7 +166,14 @@ function pickGift(cd: XhsCustomData): { name: string; count: number } {
     cd.count ??
     1;
   const count = Number(countRaw);
-  return { name, count: Number.isFinite(count) && count > 0 ? Math.max(1, Math.floor(count)) : 1 };
+  // 单价（薯币）：礼物基础信息优先，其次动作信息；解析不出按 0（未知）处理。
+  const unitRaw = gift.coins ?? gift.price ?? action.coins;
+  const unitValue = Number(unitRaw);
+  return {
+    name,
+    count: Number.isFinite(count) && count > 0 ? Math.max(1, Math.floor(count)) : 1,
+    unitValue: Number.isFinite(unitValue) && unitValue > 0 && unitValue <= 1_000_000 ? Math.floor(unitValue) : 0,
+  };
 }
 
 function itemId(cd: XhsCustomData): string {
@@ -380,14 +389,21 @@ export function classifyXhsItem(cd: XhsCustomData): XhsParsedItem | null {
   if (XHS_CHAT_TYPES.has(type)) {
     const text = pickText(cd);
     if (!text) return null;
-    return { kind: 'chat', nick: pickNick(cd), text, count: 0, giftName: '' };
+    return { kind: 'chat', nick: pickNick(cd), text, count: 0, giftName: '', unitValue: 0 };
   }
   if (XHS_GIFT_TYPES.has(type)) {
     const gift = pickGift(cd);
-    return { kind: 'gift', nick: pickNick(cd), text: gift.name, count: gift.count, giftName: gift.name };
+    return {
+      kind: 'gift',
+      nick: pickNick(cd),
+      text: gift.name,
+      count: gift.count,
+      giftName: gift.name,
+      unitValue: gift.unitValue,
+    };
   }
   // 在线统计：type 语义命中且取到数值才入库；进场 / 关注 / 礼物托与结算继续留样本。
   const online = parseXhsOnlineCount(cd);
-  if (online >= 0) return { kind: 'online', nick: '', text: '', count: online, giftName: '' };
+  if (online >= 0) return { kind: 'online', nick: '', text: '', count: online, giftName: '', unitValue: 0 };
   return null;
 }

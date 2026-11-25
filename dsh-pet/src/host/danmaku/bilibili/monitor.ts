@@ -55,6 +55,10 @@ export type BiliMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /** 本场累计礼物价值（平台货币）；免费 / 未回传单价的不计。 */
+  giftValue: number;
+  /** 礼物价值单位（B 站固定「电池」）。 */
+  giftValueUnit: string;
   /** 在线观众人数（ONLINE_RANK_COUNT 高能用户数）；-1 = 本场还没收到统计帧。 */
   viewerCount: number;
   lastError: string;
@@ -114,6 +118,8 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
   let connecting = false;
   let chatCount = 0;
   let giftCount = 0;
+  /** 本场累计礼物价值（电池）。 */
+  let giftValue = 0;
   /** 在线观众人数；-1 表示本场还没收到统计帧。 */
   let viewerCount = -1;
   let feedSeq = 0;
@@ -232,6 +238,7 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
       return;
     }
     giftCount += 1;
+    giftValue += item.value || 0;
     pushFeed('gift', item.nick, item.giftName, item.count);
     log.info?.(`[blue-fish][bilibili] gift nick=${item.nick} gift=${item.giftName} x${item.count}`);
     if (thankGift) {
@@ -491,6 +498,7 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
     seenIds.clear();
     chatCount = 0;
     giftCount = 0;
+    giftValue = 0;
     viewerCount = -1;
     feedSeq = 0;
     recentFeed.length = 0;
@@ -538,6 +546,8 @@ export function createBiliMonitor(deps: BiliMonitorDeps) {
       anchor: info?.anchor || '',
       chatCount,
       giftCount,
+      giftValue,
+      giftValueUnit: '电池',
       viewerCount,
       lastError,
       startedAt,

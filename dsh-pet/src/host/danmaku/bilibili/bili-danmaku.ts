@@ -33,6 +33,8 @@ export type BiliParsedItem = {
   /** 礼物原始 id；聊天为空。 */
   giftId: string;
   principalId: string;
+  /** 这条礼物折算的电池价值（1 电池 = 100 金瓜子）；聊天 / 银瓜子免费礼物为 0。 */
+  value: number;
 };
 
 /** 解码出的一条原始业务包（未入库的 cmd 由 monitor 留样本）。 */
@@ -200,10 +202,30 @@ export function parseBiliDanmaku(raw: Record<string, unknown>): BiliParsedItem |
     giftName: '',
     giftId: '',
     principalId: uid,
+    value: 0,
   };
 }
 
-/** SEND_GIFT / GUARD_BUY → 礼物字段。单价 / 图标最小链路不解析。 */
+/**
+ * 金瓜子 → 电池：1 电池 = 0.1 元 = 100 金瓜子（iOS 定价差异不影响这里）。
+ * 批次总金瓜子优先取 total_coin，缺失时按单价 × 件数推算。
+ */
+function giftBatteryValue(data: Record<string, unknown>, num: number): number {
+  const coinType = String(data.coin_type ?? data.coinType ?? 'gold');
+  if (coinType && coinType !== 'gold') return 0;
+  const totalCoin = Number(data.total_coin ?? data.totalCoin);
+  const price = Number(data.price ?? data.unit_price ?? data.unitPrice);
+  const gold =
+    Number.isFinite(totalCoin) && totalCoin > 0
+      ? totalCoin
+      : Number.isFinite(price) && price > 0
+        ? price * num
+        : 0;
+  if (!Number.isFinite(gold) || gold <= 0 || gold > 1_000_000_000) return 0;
+  return Math.round((gold / 100) * 10) / 10;
+}
+
+/** SEND_GIFT / GUARD_BUY → 礼物字段。 */
 export function parseBiliGift(raw: Record<string, unknown>): BiliParsedItem | null {
   const data = asRecord(raw.data) ?? {};
   const nickname = String(data.uname || data.username || '匿名').trim() || '匿名';
@@ -220,6 +242,7 @@ export function parseBiliGift(raw: Record<string, unknown>): BiliParsedItem | nu
     giftName,
     giftId,
     principalId: uid,
+    value: giftBatteryValue(data, count),
   };
 }
 
@@ -268,6 +291,7 @@ export function parseBiliWsFrame(raw: Uint8Array, seen: Set<string>): BiliParsed
           giftName: '',
           giftId: '',
           principalId: '',
+          value: 0,
         });
       }
     }

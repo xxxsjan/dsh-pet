@@ -51,6 +51,13 @@ export type KsMonitorStatus = {
   anchor: string;
   chatCount: number;
   giftCount: number;
+  /**
+   * 本场累计礼物价值（平台货币）。快手 WS 帧只有 giftId，单价需登录态 gift-list 接口，
+   * 当前未接入，恒为 0；页面据 giftValueUnit 为空回落到条数展示。
+   */
+  giftValue: number;
+  /** 礼物价值单位；快手未接入单价时为空串。 */
+  giftValueUnit: string;
   /** 在线观看数（displayWatchingCount）；-1 = 本场还没收到统计帧。 */
   viewerCount: number;
   /** 本场累计点赞数（displayLikeCount）；0 = 本场还没收到点赞统计帧，只增不减。 */
@@ -554,6 +561,8 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       anchor: '',
       chatCount,
       giftCount,
+      giftValue: 0,
+      giftValueUnit: '',
       viewerCount,
       likeCount,
       lastError,

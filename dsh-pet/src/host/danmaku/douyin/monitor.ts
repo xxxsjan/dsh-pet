@@ -66,6 +66,10 @@ export type DouyinMonitorStatus = {
   chatCount: number;
   /** 礼物条数：同一连击组只算一条，收到首帧即计，不等 repeat_end=1 定稿。 */
   giftCount: number;
+  /** 本场累计礼物价值（平台货币）：按单价×件数累加；免费礼物不计。 */
+  giftValue: number;
+  /** 礼物价值单位（抖音固定「钻石」；快手未接单价时为空串，页面回落到条数）。 */
+  giftValueUnit: string;
   /** 本场累计点赞总数（WebcastLikeMessage.total）；0 = 本场还没收到点赞帧。 */
   likeCount: number;
   /** 在线观众人数（WebcastRoomUserSeqMessage.total）；-1 = 本场还没收到统计帧。 */
@@ -140,6 +144,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let wantListen = false;
   let chatCount = 0;
   let giftCount = 0;
+  /** 本场累计礼物价值（钻石）。 */
+  let giftValue = 0;
   /**
    * 本场累计点赞总数：取 `WebcastLikeMessage.total`，只增不减。
    * 点赞帧高频（每秒多帧、每帧批量）且取 max 天然幂等，所以只维护这一个内存变量：
@@ -173,7 +179,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
    * 礼物连击：key → 已落地的 feed 条目。同组后续帧只抬高这里的件数（只增不减），
    * 不再等 `repeat_end=1` 定稿——定稿帧不保证会到，等它会把整场礼物等丢。
    */
-  const giftSessions = new Map<string, { item: DouyinFeedItem; at: number }>();
+  const giftSessions = new Map<string, { item: DouyinFeedItem; at: number; unitValue: number }>();
   /** 每个 method 首次出现 / 首次解码失败各提醒一次：默认日志级别下也能看出礼物卡在哪一步。 */
   const seenMethods = new Set<string>();
   const decodeFailures = new Set<string>();
@@ -531,8 +537,9 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     // 等定稿会把整场礼物等丢，线上表现就是「一条礼物都没有」。
     if (!session) {
       giftCount += 1;
+      giftValue += item.unitValue * item.count;
       const feedItem = pushFeed('gift', item.nick, giftName, item.count, item.giftImageUrl);
-      giftSessions.set(key, { item: feedItem, at: Date.now() });
+      giftSessions.set(key, { item: feedItem, at: Date.now(), unitValue: item.unitValue });
       pruneGiftSessions();
       log.info?.(`[blue-fish][douyin] gift nick=${item.nick} gift=${giftName} x${feedItem.count}`);
       if (thankGift) {
@@ -546,6 +553,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
 
     // 同组后续帧（连击升高 / 定稿）：只把这一条的件数往上抬，不重复计数、不重复答谢。
     const finalCount = Math.max(item.count, session.item.count);
+    const delta = finalCount - session.item.count;
+    if (delta > 0) giftValue += session.unitValue * delta;
     session.at = Date.now();
     if (!session.item.giftImageUrl && item.giftImageUrl) session.item.giftImageUrl = item.giftImageUrl;
     if (finalCount > session.item.count) {
@@ -571,6 +580,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       : `light-gift:fallback:${++giftFallbackSeq}|${item.giftId}`;
     if (hasValidMsgId && isDup(key)) return;
     giftCount += 1;
+    giftValue += item.unitValue * item.count;
     pushFeed('gift', item.nick, item.giftName, item.count, item.giftImageUrl);
     log.info?.(`[blue-fish][douyin] light gift gift=${item.giftName} x${item.count}`);
   }
@@ -924,6 +934,7 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     info = null;
     chatCount = 0;
     giftCount = 0;
+    giftValue = 0;
     // 本场累计点赞只在 start() 清零，静默探活不影响累计值。
     likeTotal = 0;
     viewerCount = -1;
@@ -1011,6 +1022,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
       anchor: info?.anchor || cdpMeta.anchor || '',
       chatCount,
       giftCount,
+      giftValue,
+      giftValueUnit: '钻石',
       likeCount: likeTotal,
       viewerCount,
       lastError,

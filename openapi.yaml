@@ -3561,6 +3561,8 @@ components:
           anchor,
           chatCount,
           giftCount,
+          giftValue,
+          giftValueUnit,
           likeCount,
           lastError,
           startedAt,
@@ -3594,6 +3596,13 @@ components:
           type: integer
           minimum: 0
           description: 本次监听累计定稿的礼物条数。
+        giftValue:
+          type: number
+          minimum: 0
+          description: 本场累计礼物价值（单价×件数，免费礼物不计）。
+        giftValueUnit:
+          type: string
+          description: 礼物价值单位；抖音为「钻石」，小红书「薯币」，B 站「电池」；快手未接入单价时为空串，页面回落到条数。
         likeCount:
           type: integer
           minimum: 0

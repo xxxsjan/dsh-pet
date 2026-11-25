@@ -43,6 +43,7 @@ describe('抖音轻礼物解码', () => {
     assert.equal(item.count, 1, '件数应来自 count（字段 10），而不是 to_user_id');
     assert.equal(item.nick, LIGHT_GIFT_NICK, '轻礼物没有送礼人，用占位昵称');
     assert.equal(item.combo, false);
+    assert.equal(item.unitValue, 0, '轻礼物 diamondCount=0 按免费处理');
   });
 
   test('轻礼物取不到礼物名时按 gift_info 的 id 兜底', () => {
@@ -83,6 +84,14 @@ describe('抖音正常礼物解码', () => {
     assert.equal(item.combo, true);
     assert.equal(item.repeatEnd, 1);
     assert.equal(item.groupId, '99');
+    assert.equal(item.unitValue, 0, '未回传 diamondCount 时按未知处理');
+  });
+
+  test('GiftStruct.diamondCount 作为单价解出', () => {
+    const item = parseGiftMessage(
+      encodeGift({ giftId: 762, repeatCount: 2, gift: { name: '大啤酒', diamondCount: 10 } }),
+    );
+    assert.equal(item.unitValue, 10);
   });
 
   test('combo_count 与 repeat_count 不一致时取较大可靠件数', () => {

@@ -321,7 +321,7 @@ describe('douyin monitor CDP 链路', () => {
       giftId: 762,
       groupId: 88,
       user: { nickName: '阿财' },
-      gift: { name: '大啤酒', combo: true, type: 1 },
+      gift: { name: '大啤酒', combo: true, type: 1, diamondCount: 10 },
     };
     const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -332,6 +332,8 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(status.giftCount, 1, '中间帧也要落地，不能等 repeatEnd=1');
     assert.equal(lastItem(status.recent)?.kind, 'gift');
     assert.equal(lastItem(status.recent)?.count, 1);
+    assert.equal(status.giftValue, 10, '首帧按单价×件数计价值');
+    assert.equal(status.giftValueUnit, '钻石');
 
     // 同组后续帧：只把同一条的件数抬高，不重复计数、不重复答谢。
     bridge.subs.frame?.(giftFrame({ ...combo, repeatCount: 5, comboCount: 5, repeatEnd: 0 }, 2));
@@ -340,11 +342,13 @@ describe('douyin monitor CDP 链路', () => {
     assert.equal(status.giftCount, 1, '同一连击组只算一条');
     assert.equal(status.recent.filter((item) => item.kind === 'gift').length, 1, '只保留一条礼物行');
     assert.equal(lastItem(status.recent)?.count, 5, '件数原地抬高');
+    assert.equal(status.giftValue, 50, '连击升高只补差价，不重复累加');
 
     // 定稿帧到达：件数不再变化，也不重复答谢。
     bridge.subs.frame?.(giftFrame({ ...combo, repeatCount: 5, comboCount: 5, repeatEnd: 1 }, 3));
     await tick();
     assert.equal(mon.status().giftCount, 1);
+    assert.equal(mon.status().giftValue, 50, '定稿帧不重复计价值');
     assert.equal(thanks.length, 1, '答谢只发一次');
     assert.equal(thanks[0]?.kind, 'gift');
     mon.stop();

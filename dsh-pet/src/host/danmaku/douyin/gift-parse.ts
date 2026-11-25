@@ -23,6 +23,8 @@ export type DyGiftItem = {
   /** 是否可连击。 */
   combo: boolean;
   groupId: string;
+  /** 单个礼物的钻石单价；0 = 免费 / 未回传（轻礼物常见）。 */
+  unitValue: number;
 };
 
 type GiftImage = { urlListList?: string[]; uri?: string };
@@ -69,6 +71,16 @@ function safeCount(v: unknown): number {
   return Math.floor(n);
 }
 
+/** 礼物单价上限：再贵也不至于百万钻石，超出按未回传处理。 */
+const MAX_UNIT_VALUE = 1_000_000;
+
+/** 单价兜底：0/负数/超大一律按 0（未知）处理，避免把错位字段算成天价。 */
+function safeUnitValue(v: unknown): number {
+  const n = numish(v, 0);
+  if (!Number.isFinite(n) || n <= 0 || n > MAX_UNIT_VALUE) return 0;
+  return Math.floor(n);
+}
+
 /** `送出xxx` 这种 describe 兜底名去掉前缀。 */
 function nameFromDescribe(describe: unknown): string {
   return String(describe || '')
@@ -103,6 +115,7 @@ export function parseGiftMessage(payload: Uint8Array): DyGiftItem {
       combo?: boolean;
       type?: number;
       id?: unknown;
+      diamondCount?: unknown;
       image?: GiftImage;
       icon?: GiftImage;
     };
@@ -130,6 +143,7 @@ export function parseGiftMessage(payload: Uint8Array): DyGiftItem {
     repeatEnd,
     combo,
     groupId: parseGroupId(giftMsg.groupId),
+    unitValue: safeUnitValue(giftObj.diamondCount),
   };
 }
 
@@ -143,7 +157,7 @@ export function parseLightGiftMessage(payload: Uint8Array): DyGiftItem {
     repeatCount?: unknown;
     comboCount?: unknown;
     count?: unknown;
-    giftInfo?: { giftId?: unknown };
+    giftInfo?: { giftId?: unknown; diamondCount?: unknown };
     giftStruct?: {
       name?: string;
       describe?: string;
@@ -169,5 +183,6 @@ export function parseLightGiftMessage(payload: Uint8Array): DyGiftItem {
     repeatEnd: 1,
     combo: false,
     groupId: '',
+    unitValue: safeUnitValue(m.giftInfo?.diamondCount),
   };
 }
