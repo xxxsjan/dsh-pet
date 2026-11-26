@@ -352,7 +352,8 @@ app.whenReady().then(() => {
   createDisplaySync({ screen, petWindows, dpi });
 
   // 抖音弹幕 CDP 旁听桥：隐藏内嵌窗加载直播间，CDP 抓弹幕 WS 帧交宿主解码。
-  const douyinCdp = startDouyinCdpBridge({ BrowserWindow, session, log: console });
+  // 暂时关闭自动 reload 重连：避免反复重新进房影响同账号的其他设备，断线后由用户手动重连。
+  const douyinCdp = startDouyinCdpBridge({ BrowserWindow, session, log: console, pushReconnect: false });
   globalThis.__dshPetDouyinCdp = douyinCdp;
   app.once('before-quit', () => {
     try {

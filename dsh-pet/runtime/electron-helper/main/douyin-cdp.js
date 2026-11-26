@@ -19,8 +19,6 @@ const DY_PARTITION = 'persist:blue-fish-douyin';
 const DY_WS_URL_NEEDLE = '/webcast/im/push/';
 /** 登录态判定键：任一非空即视为已登录。 */
 const SESSION_KEYS = ['sessionid', 'sessionid_ss', 'sid_tt', 'uid_tt'];
-/** 省流：直播流地址后缀 / 关键字。 */
-const STREAM_RE = /\.(flv|m3u8|ts|m4s|mp4)(\?|$)|pull-flv|pull-hls|live-play/i;
 /** 轮询登录态间隔。 */
 const LOGIN_POLL_MS = 2000;
 /** 浏览器窗口使用正常桌面 Chrome UA，避免抖音把 Electron 壳识别成异常环境并渲染空白页。 */
@@ -89,81 +87,6 @@ const DY_DOM_PROBE_SCRIPT = `
   }, 15000);
 })();
 `;
-const DY_INIT_SCRIPT = `
-(function () {
-  try {
-    if (!/douyin\\.com$/.test(location.hostname)) return;
-    var STREAM_RE = /\\.(flv|m3u8|ts|m4s|mp4)(\\?|$)|pull-flv|pull-hls|live-play/i;
-    var isStreamUrl = function (url) {
-      try { return STREAM_RE.test(String(url || "")); } catch (_) { return false; }
-    };
-    var kill = function () {
-      var els = document.querySelectorAll("video, audio");
-      for (var i = 0; i < els.length; i++) {
-        var el = els[i];
-        try {
-          el.pause();
-          el.removeAttribute("src");
-          el.srcObject = null;
-          el.muted = true;
-          el.volume = 0;
-          el.style.cssText = "display:none!important;width:0!important;height:0!important";
-        } catch (_) {}
-      }
-    };
-    kill();
-    if (window.__dyKillObserver) return;
-    var obs = new MutationObserver(kill);
-    obs.observe(document.documentElement, { childList: true, subtree: true });
-    window.__dyKillObserver = obs;
-
-    HTMLMediaElement.prototype.play = function () { kill(); return Promise.resolve(); };
-
-    var srcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
-    if (srcDesc && srcDesc.set) {
-      Object.defineProperty(HTMLMediaElement.prototype, "src", {
-        configurable: true,
-        get: srcDesc.get,
-        set: function (v) { if (isStreamUrl(v)) return; return srcDesc.set.call(this, v); }
-      });
-    }
-
-    if (typeof window.fetch === "function" && !window.fetch.__dyBlock) {
-      var origFetch = window.fetch;
-      window.fetch = function (input, init) {
-        var url = typeof input === "string" ? input : (input && input.url) || "";
-        if (isStreamUrl(url)) return Promise.reject(new Error("dy-stream-blocked"));
-        return origFetch.apply(this, arguments);
-      };
-      window.fetch.__dyBlock = true;
-    }
-
-    var xhrProto = window.XMLHttpRequest && XMLHttpRequest.prototype;
-    if (xhrProto && !xhrProto.open.__dyBlock) {
-      var origOpen = xhrProto.open;
-      var origSend = xhrProto.send;
-      xhrProto.open = function (method, url) {
-        this.__dyBlockStream = isStreamUrl(url);
-        return origOpen.apply(this, arguments);
-      };
-      xhrProto.send = function () {
-        if (this.__dyBlockStream) return;
-        return origSend.apply(this, arguments);
-      };
-      xhrProto.open.__dyBlock = true;
-    }
-
-    var hidePlayers = function () {
-      var nodes = document.querySelectorAll("[class*='xgplayer'], [class*='video-container']");
-      for (var j = 0; j < nodes.length; j++) {
-        try { nodes[j].style.cssText = "display:none!important"; } catch (_) {}
-      }
-    };
-    hidePlayers();
-    setInterval(hidePlayers, 2000);
-  } catch (_) {}
-})();
-`;
 
 /** 把 Cookie 头拆成 name→value 表。 */
 function parseCookieHeader(cookieHeader) {
@@ -227,6 +150,24 @@ const DY_META_SCRIPT = `(function(){
 
 /** 加载后首读为空时的补读间隔。 */
 const META_RETRY_MS = 3000;
+/** 页面状态（被挤下线浮层）轮询间隔。 */
+const PAGE_STATE_POLL_MS = 3000;
+
+/**
+ * 页面状态探测：只读已渲染文字。
+ * 「账号已在其他地方进入直播间」/「已退出直播间，无法评论」是抖音被挤下线浮层的固定文案，
+ * innerText 不含 display:none 内容，浮层没显示时不会误命中。
+ */
+const DY_PAGE_STATE_SCRIPT = `
+(function () {
+  var body = document.body;
+  if (!body) return '';
+  var text = body.innerText || '';
+  if (text.indexOf('账号已在其他地方进入直播间') >= 0) return 'kicked';
+  if (text.indexOf('已退出直播间，无法评论') >= 0) return 'kicked';
+  return '';
+})();
+`;
 
 /**
  * 创建抖音 CDP 旁听桥控制器（进程内单例语义由调用方保证）。
@@ -236,9 +177,11 @@ const META_RETRY_MS = 3000;
  * @param {typeof import('electron').session} [deps.electronSession] - 可注入 session（测试用），缺省取 electron 内置。
  * @param {{ info?: (m:string)=>void, warn?: (m:string)=>void, debug?: (m:string)=>void }} [deps.log]
  * @param {number} [deps.pushReconnectDelayMs] - 推送 WS 断开后等页面自建的宽限期，超时重载页面；缺省 6s。
+ * @param {boolean} [deps.pushReconnect] - 推送 WS 断开后是否自动重载页面重建连接；缺省 true。
  */
-function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconnectDelayMs }) {
+function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconnectDelayMs, pushReconnect }) {
   const PUSH_RECONNECT_DELAY_MS = Number(pushReconnectDelayMs) > 0 ? Number(pushReconnectDelayMs) : 6000;
+  const PUSH_RECONNECT_ENABLED = pushReconnect !== false;
   /** 连续自动重载上限：超过就交给监听层提示，避免被挤时无限刷新。 */
   const PUSH_RECONNECT_MAX = 3;
   /** 推送连接活过这么久才算“稳定”，充许清零连续失败计数。 */
@@ -272,12 +215,16 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
   const metaListeners = new Set();
   /** @type {Set<(url:string)=>void>} */
   const wsClosedListeners = new Set();
+  /** @type {Set<(state:''|'kicked')=>void>} */
+  const pageStateListeners = new Set();
   /** @type {NodeJS.Timeout|null} */
   let loginPoll = null;
   /** @type {NodeJS.Timeout|null} */
   let metaRetry = null;
   /** @type {NodeJS.Timeout|null} */
   let pauseKeeper = null;
+  /** @type {NodeJS.Timeout|null} */
+  let pageStatePoll = null;
   let attached = false;
 
   const state = {
@@ -288,7 +235,9 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     lastError: '',
     title: '',
     anchor: '',
-    /** 开发调试：保持窗口可见，仅周期暂停视频省流（不拦流、不删播放器），用于观察页面自身重连。 */
+    /** 页面渲染态：'' 正常；'kicked' 表示抖音显示「账号已在其他地方进入直播间」。 */
+    pageState: '',
+    /** 开发调试：保持窗口可见，视频仍拦流 + 周期暂停，页面 / 弹幕保持可用。 */
     debugVisible: false,
   };
   /** 主动销毁窗口（stop / 换页）时不再把 close 拦成隐藏。 */
@@ -367,6 +316,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
    * 宽限期内没有新的推送连接就重载直播页重建，最多连续重载 3 次；仍失败交给监听层提示。
    */
   function schedulePushReconnect() {
+    if (!PUSH_RECONNECT_ENABLED) return;
     clearPushReconnect();
     if (pushReconnectAttempts >= PUSH_RECONNECT_MAX) return;
     pushReconnectTimer = setTimeout(() => {
@@ -575,12 +525,10 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     send(contents.debugger, 'Runtime.enable');
     send(contents.debugger, 'Network.enable');
     send(contents.debugger, 'Page.setWebLifecycleState', { state: 'active' });
-    // 正常模式整段拦流；调试可见模式不拦流，只靠暂停播放省流量（保留播放器和页面原状）。
-    if (!state.debugVisible) {
-      send(contents.debugger, 'Network.setBlockedURLs', {
-        urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*', '*pull-flv*', '*pull-hls*'],
-      });
-    }
+    // 省流只拦视频流：页面结构、弹幕 WS 都保持原状，窗口显隐不影响弹幕旁听。
+    send(contents.debugger, 'Network.setBlockedURLs', {
+      urls: ['*.flv*', '*.m3u8*', '*.mp4*', '*.ts*', '*.m4s*', '*pull-flv*', '*pull-hls*'],
+    });
   }
 
   function clearLoginPoll() {
@@ -598,7 +546,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
           if (!ok) return;
           state.loggedIn = true;
           if (state.debugVisible) {
-            // 调试可见模式保持窗口：登录前 dom-ready 没跑省流脚本，这里等首帧后再暂停，避免黑屏。
+            // 保持窗口可见：等首帧后再暂停，避免播放器停在加载态。
             pauseVideo({ onlyStarted: true });
           } else {
             hide();
@@ -614,23 +562,18 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
 
   function injectScript() {
     if (!win || win.isDestroyed()) return;
-    // 未登录的扫码窗口必须保留直播页和播放器，不能在 dom-ready 阶段就删视频/隐藏播放器；
-    // 否则抖音会只剩黑色壳页，用户既看不到二维码也无法完成登录。
-    // 调试可见模式也不删播放器：省流只靠周期暂停（见 pauseKeeper），页面结构保持原状。
-    if (state.loggedIn && !state.debugVisible) {
-      win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
-    }
+    // 不删播放器、不改页面结构：视频靠拦流 + 周期暂停省流量，弹幕 / 聊天保持可用。
     // DOM 探测脚本只读结构，不修改页面。
     win.webContents.executeJavaScript(DY_DOM_PROBE_SCRIPT).catch(() => undefined);
   }
 
-  /** 调试可见模式的省流节奏：只暂停/静音视频，不删播放器、不拦流。 */
+  /** 省流节奏：只暂停/静音已出首帧的媒体，不删播放器、不拦弹幕。 */
   const PAUSE_KEEP_MS = 3000;
 
   /**
    * 暂停页面内播放。
    * @param {{ onlyStarted?: boolean }} [opts] onlyStarted：只暂停已出首帧的媒体。
-   *   调试可见模式必须等首帧再暂停，否则播放器停在加载态，整页显示为黑屏。
+   *   窗口可见时必须等首帧再暂停，否则播放器停在加载态，整页显示为黑屏。
    */
   function pauseVideo(opts) {
     if (!win || win.isDestroyed()) return;
@@ -647,14 +590,56 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     pauseKeeper = null;
   }
 
-  /** 调试可见模式：首帧出来后再周期暂停（暂停即停止拉流，页面仍保留最后一帧和 UI）。 */
+  /** 首帧出来后再周期暂停（暂停即停止拉流，页面仍保留最后一帧和 UI）。 */
   function startPauseKeeper() {
     stopPauseKeeper();
-    if (!state.debugVisible || typeof setInterval !== 'function') return;
+    if (typeof setInterval !== 'function') return;
     // 立即试一次（未出首帧会被跳过），之后周期补暂停。
     pauseVideo({ onlyStarted: true });
     pauseKeeper = setInterval(() => pauseVideo({ onlyStarted: true }), PAUSE_KEEP_MS);
     pauseKeeper.unref?.();
+  }
+
+  function stopPageStatePoll() {
+    if (pageStatePoll) clearInterval(pageStatePoll);
+    pageStatePoll = null;
+  }
+
+  /** 读取页面当前渲染态；只上报，不参与中断判定。 */
+  async function probePageState() {
+    if (!win || win.isDestroyed()) return;
+    let next = '';
+    try {
+      const value = await win.webContents.executeJavaScript(DY_PAGE_STATE_SCRIPT);
+      next = typeof value === 'string' ? value : '';
+    } catch {
+      // 页面导航中执行会抛：保留上一次状态，等下一拍
+      return;
+    }
+    if (next === state.pageState) return;
+    state.pageState = next;
+    if (next === 'kicked') {
+      log?.info?.('[blue-fish][douyin-cdp] page state=kicked（账号已在其他地方进入直播间）');
+    } else {
+      log?.info?.('[blue-fish][douyin-cdp] page state 恢复正常');
+    }
+    for (const fn of pageStateListeners) {
+      try {
+        fn(next);
+      } catch (e) {
+        log?.warn?.(`[blue-fish][douyin-cdp] page state listener failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  function startPageStatePoll() {
+    stopPageStatePoll();
+    if (typeof setInterval !== 'function') return;
+    void probePageState();
+    pageStatePoll = setInterval(() => {
+      void probePageState();
+    }, PAGE_STATE_POLL_MS);
+    pageStatePoll.unref?.();
   }
 
   /**
@@ -668,7 +653,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     state.debugVisible = input?.debugVisible === true;
     state.url = url;
     state.lastError = '';
-    if (state.debugVisible) log?.info?.('[blue-fish][douyin-cdp] debug visible mode: 保持窗口可见，仅暂停视频省流');
+    if (state.debugVisible) log?.info?.('[blue-fish][douyin-cdp] debug visible mode: 窗口保持可见，仅拦视频流');
 
     await writeCookies(input?.cookie || '', url);
     let loggedIn = false;
@@ -732,6 +717,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     await win.loadURL(url);
     state.running = true;
     startPauseKeeper();
+    startPageStatePoll();
 
     // 房间标题 / 主播：页面 SSR 的 RENDER_DATA 里就有，加载完读一次，空则补读一次。
     void readRoomMeta();
@@ -762,8 +748,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
   function hide() {
     if (!win || win.isDestroyed()) return;
     if (state.debugVisible) return;
-    // 登录后再启用省流脚本：先暂停并移除播放器，再隐藏窗口。
-    win.webContents.executeJavaScript(DY_INIT_SCRIPT).catch(() => undefined);
+    // 登录后隐藏窗口；播放器保留在页面里，视频已拦流并会被周期暂停。
     pauseVideo();
     win.hide();
     state.visible = false;
@@ -784,6 +769,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     clearLoginPoll();
     clearMetaRetry();
     stopPauseKeeper();
+    stopPageStatePoll();
     clearPushReconnect();
     pushReconnectAttempts = 0;
     wsUrls.clear();
@@ -810,6 +796,7 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     state.loggedIn = false;
     state.title = '';
     state.anchor = '';
+    state.pageState = '';
     state.debugVisible = false;
   }
 
@@ -848,6 +835,11 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
     onWsClosed(fn) {
       wsClosedListeners.add(fn);
       return () => wsClosedListeners.delete(fn);
+    },
+    /** 订阅页面渲染态变化（'' 正常 / 'kicked' 被挤下线浮层）。返回取消订阅函数。 */
+    onPageState(fn) {
+      pageStateListeners.add(fn);
+      return () => pageStateListeners.delete(fn);
     },
   };
 }

@@ -469,7 +469,7 @@ GET http://127.0.0.1:3080/blue-fish/danmaku/douyin/status
 }
 ```
 
-`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。`giftValue` 是本场累计礼物价值（单价×件数，免费礼物不计），`giftValueUnit` 是平台货币名（抖音「钻石」、小红书「薯币」、B 站「电池」；快手拿不到单价时为空串，页面回落到条数）。`interrupted` 为 `true` 表示弹幕连接中断且自动重载页面未能恢复（推送 WS 断开、恢复窗口内没有新帧且房间仍在播）；控制页据此弹窗询问是否重新开始，收到新帧或重新 `start` 后恢复 `false`。
+`recent` 按 `at` 升序（最后一条最新）；`kind` 为 `chat` / `gift`，礼物消息的 `count` 是件数，聊天为 `0`；`startedAt` 未连上时为 `null`。`mode` 为 `cdp`（内嵌窗旁听）/ `idle`（未启动）；`cdpVisible` 表示内嵌窗当前是否可见（扫码登录时为 `true`）；`cdpLoggedIn` 表示分区内是否已检测到登录态。`giftValue` 是本场累计礼物价值（单价×件数，免费礼物不计），`giftValueUnit` 是平台货币名（抖音「钻石」、小红书「薯币」、B 站「电池」；快手拿不到单价时为空串，页面回落到条数）。`interrupted` 为 `true` 表示抖音页面显示「账号已在其他地方进入直播间」浮层（被其他设备挤下线），由桥层 DOM 探针上报；控制页据此弹窗询问是否重新开始，页面恢复正常或重新 `start` 后回到 `false`。
 
 ### POST `/danmaku/douyin/start`
 
@@ -494,7 +494,7 @@ X-Blue-Fish-Token: <token>
 | `cookie` | string | 否 | 登录 Cookie（匿名可省略） |
 | `replyChat` | boolean | 否 | 把弹幕交给宠物对话（缺省 `false`） |
 | `thankGift` | boolean | 否 | 把礼物答谢交给宠物对话（缺省 `false`） |
-| `debugVisible` | boolean | 否 | 开发调试：保持抖音内嵌窗可见，等首帧后周期暂停视频播放省流量（不拦流、不删播放器）；仅开发环境控制台露出（缺省 `false`） |
+| `debugVisible` | boolean | 否 | 开发调试：保持抖音内嵌窗可见；视频仍拦流 + 等首帧后周期暂停（不删播放器），页面 / 弹幕保持可用；仅开发环境控制台露出（缺省 `false`） |
 
 成功 `200` 回 `{ ok: true, ...status }`（字段同 `/status`）；失败 `200` + `ok:false`，`reason` 为 `bad-request`（缺 `url`）或 `internal-error`（连接失败 / 无可用 CDP 桥）。`start` 返回后以 `GET /status` 的 `listening` / `lastError` 为准。
 

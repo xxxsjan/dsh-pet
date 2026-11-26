@@ -837,11 +837,7 @@ test('统一直播间弹窗：控制台平台入口按平台打开、窗内不�
       `状态刷新后应更新标题栏信息：${p}`,
     );
   }
-  assert.match(
-    script,
-    /function liveApplySelection\(\)[\s\S]*?liveSyncRoomMeta\(\)/,
-    '切换平台时应同步标题栏信息',
-  );
+  assert.match(script, /function liveApplySelection\(\)[\s\S]*?liveSyncRoomMeta\(\)/, '切换平台时应同步标题栏信息');
   assert.match(styles, /\.liveRoomMeta\{[^}]*text-overflow:ellipsis/, '标题栏信息过长时应省略');
   // 配置卡顶部提示条按用户要求移除（四个平台都不再出现）
   assert.doesNotMatch(html, /关闭本窗口不影响监听/, '直播间配置卡不应再有「关闭本窗口不影响监听」提示条');
@@ -1051,7 +1047,8 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   // 对齐设计稿：真实统计行 + 礼物行解剖 + 空态文案 + 发丝分隔 + 细灰滚动条
   assert.match(
     html,
-    /id="mini-stats"[\s\S]*?id="mini-stat-viewer"[\s\S]*?id="mini-stat-gift"[\s\S]*?id="mini-stat-like"/,    '小窗统计行只放真实口径：在线观众人数 / 礼物数 / 本场累计点赞',
+    /id="mini-stats"[\s\S]*?id="mini-stat-viewer"[\s\S]*?id="mini-stat-gift"[\s\S]*?id="mini-stat-like"/,
+    '小窗统计行只放真实口径：在线观众人数 / 礼物数 / 本场累计点赞',
   );
   assert.doesNotMatch(html, /id="mini-stat-chat"/, '小窗统计行不再放弹幕数');
   assert.match(styles, /\.miniStats\{display:none\}/, '统计行在大窗默认隐藏');
@@ -1102,11 +1099,7 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
     /body\.live-mini \.dmFeedCount\{[^}]*height:18px[^}]*font-size:11px/,
     'A₂ 数量胶囊同步收矮到 18px',
   );
-  assert.match(
-    styles,
-    /body\.live-mini \.dmGift\{gap:4px/,
-    'A₂ 礼物行距收紧到 4px，同高多放 1~2 条',
-  );
+  assert.match(styles, /body\.live-mini \.dmGift\{gap:4px/, 'A₂ 礼物行距收紧到 4px，同高多放 1~2 条');
   assert.match(
     styles,
     /body\.live-mini \.dmGift:empty::before\{content:"展示本场直播的礼物消息"/,
@@ -1576,7 +1569,11 @@ test('直播消息轮询只增量更新，不再整屏清空重建', () => {
   assert.match(script, /ksSessionStartedAt[\s\S]*?ksResetFeedSession\(\)/, '快手新场次应清理上一场的渲染状态');
   const ksRender = script.match(/function ksRenderFeed\(recent\) \{([\s\S]*?)\n {2}\}/);
   assert.ok(ksRender, '应能取到 ksRenderFeed');
-  assert.doesNotMatch(ksRender![1], /giftBox\.textContent = ''|feedBox\.textContent = ''/, '快手轮询不应清空列表后重建');
+  assert.doesNotMatch(
+    ksRender![1],
+    /giftBox\.textContent = ''|feedBox\.textContent = ''/,
+    '快手轮询不应清空列表后重建',
+  );
   for (const [platform, renderName] of [
     ['xs', 'xsRenderFeed'],
     ['bl', 'blRenderFeed'],
@@ -1584,8 +1581,16 @@ test('直播消息轮询只增量更新，不再整屏清空重建', () => {
     assert.match(script, new RegExp(`${platform}FeedNodes\\.get\\(key\\)`), `${platform} 弹幕应按 ID 增量更新`);
     assert.match(script, new RegExp(`${platform}GiftNodes\\.get\\(key\\)`), `${platform} 礼物应按 ID 增量更新`);
     assert.match(script, new RegExp(`${platform}QueueFeedRow\\(`), `${platform} 新消息和礼物应进入逐条队列`);
-    assert.match(script, new RegExp(`${platform}ChatQueue = \\{ rows: \\[\\], timer: null \\}`), `${platform} 弹幕应有独立队列`);
-    assert.match(script, new RegExp(`${platform}GiftQueue = \\{ rows: \\[\\], timer: null \\}`), `${platform} 礼物应有独立队列`);
+    assert.match(
+      script,
+      new RegExp(`${platform}ChatQueue = \\{ rows: \\[\\], timer: null \\}`),
+      `${platform} 弹幕应有独立队列`,
+    );
+    assert.match(
+      script,
+      new RegExp(`${platform}GiftQueue = \\{ rows: \\[\\], timer: null \\}`),
+      `${platform} 礼物应有独立队列`,
+    );
     assert.match(
       script,
       new RegExp(`${platform}QueueFeedRow\\(${platform}GiftQueue, giftBox, row, shouldStickGift\\)`),
@@ -1611,11 +1616,12 @@ test('直播消息轮询只增量更新，不再整屏清空重建', () => {
   }
 });
 
-test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分别接重连/停听', () => {
+test('被挤下线：状态行提示 + 确认框只弹一次，按钮分别接重连/停听', () => {
   const html = consolePage();
   const script = consoleScript;
 
   assert.match(html, /id="dm-kick-dialog"[^>]*hidden/, '确认框默认隐藏');
+  assert.match(html, /id="dm-kick-text">该账号已在其他设备进入直播间/, '确认框文案应明确被挤下线');
   assert.match(html, /id="dm-kick-retry">重连</, '应有重连按钮');
   assert.match(html, /id="dm-kick-later">暂不重连</, '应有暂不重连按钮');
   assert.match(consoleStyles(), /\.kickDialog\{[^}]*width:min/, '确认框样式应存在');
@@ -1623,13 +1629,13 @@ test('疑似被挤下线：状态行提示 + 确认框只弹一次，按钮分�
   const note = script.match(/function dmStatusNote\(status\) \{([\s\S]*?)\n {2}\}/);
   assert.ok(note, '应能取到 dmStatusNote');
   assert.match(note![1], /status\.interrupted/, '状态行应读取 interrupted');
-  assert.match(note![1], /自动重连未成功/, '状态行提示文案');
+  assert.match(note![1], /该账号已在其他设备进入直播间/, '状态行提示文案');
 
   const dmRender = script.match(/function dmRenderStatus\(data, syncToggles\) \{([\s\S]*?)\n {2}\}/);
   assert.ok(dmRender, '应能取到 dmRenderStatus');
   assert.match(dmRender![1], /if \(!status\.interrupted\) dmKickPrompted = false;/, '恢复后应重置弹窗闸门');
   assert.match(dmRender![1], /!dmKickPrompted && LIVE_MINI/, '确认框应只在弹幕小窗里弹');
-  assert.match(dmRender![1], /showDmKickDialog\(\)/, '小窗疑似被挤时应弹确认框');
+  assert.match(dmRender![1], /showDmKickDialog\(\)/, '小窗被挤下线时应弹确认框');
   assert.match(script, /var dmKickPrompted = false;/, '弹窗闸门应为模块级变量，避免轮询重复弹');
 
   assert.match(script, /kickRetryBtn[\s\S]*?void dmStart\(\)/, '重连按钮应重新开始监听');
@@ -1692,9 +1698,5 @@ test('抖音调试按钮：仅开发环境露出、点按显隐直播页，并�
     /api\('POST', '\/danmaku\/douyin\/window', \{ visible: true \}\)/,
     '点按应显示内嵌窗；隐藏由用户关窗完成',
   );
-  assert.match(
-    script,
-    /debugVisible: DEV_MODE && dmDevWindowVisible/,
-    '启动参数按当前是否开着直播页决定',
-  );
+  assert.match(script, /debugVisible: DEV_MODE && dmDevWindowVisible/, '启动参数按当前是否开着直播页决定');
 });

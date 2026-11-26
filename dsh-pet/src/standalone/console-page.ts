@@ -439,12 +439,13 @@ export function consolePage(): string {
 <div class="chatMask" id="dm-kick-dialog" hidden>
 <div class="chatDialog kickDialog" role="alertdialog" aria-modal="true" aria-labelledby="dm-kick-title">
 <div class="chatHead"><h2 class="chatTitle" id="dm-kick-title">弹幕连接已中断</h2></div>
-<div class="kickBody"><p class="kickText" id="dm-kick-text">弹幕连接已中断，自动重连未成功。可能是该账号在其他设备进入了别的直播间。要重新开始监听吗？</p></div>
+<div class="kickBody"><p class="kickText" id="dm-kick-text">该账号已在其他设备进入直播间，弹幕连接已中断。要重新开始监听吗？</p></div>
 <div class="kickFoot"><button type="button" class="btn ghost" id="dm-kick-later">暂不重连</button><button type="button" class="btn primary" id="dm-kick-retry">重连</button></div>
 </div>
 </div>
 <div class="miniOpacityPop" id="mini-opacity-pop" role="group" aria-label="窗口透明度" hidden><span class="miniOpacityLabel">透明度</span><input class="miniOpacityRange" id="mini-opacity-range" type="range" min="20" max="100" step="5" value="100" aria-label="窗口透明度"><span class="miniOpacityValue" id="mini-opacity-value">100%</span></div>
 <div class="miniClosePop" id="mini-close-pop" role="dialog" aria-labelledby="mini-close-title" hidden><p class="miniCloseTitle" id="mini-close-title">关闭小窗时，是否停止监听？</p><div class="miniCloseActions"><button type="button" class="miniCloseBtn is-stop" id="mini-close-stop">停止监听并关闭</button><button type="button" class="miniCloseBtn" id="mini-close-only">只关闭小窗</button></div></div>
+<div class="miniSizeBadge" id="mini-size-badge" hidden aria-hidden="true"></div>
 <noscript>需要启用 JavaScript 才能使用控制台。请从桌宠右键菜单打开本页。</noscript>
 <div id="toast-root" class="toastRoot" aria-live="polite"></div>
 </body></html>`;
@@ -571,6 +572,30 @@ export const consoleScript = `
   if (!LIVE_MINI) wireTheme();
 
   function byId(id) { return document.getElementById(id); }
+
+  /**
+   * 小窗调整尺寸时在底部浮出「宽 × 高」（CSS px，与窗口设计尺寸同单位），松手约 0.7s 后淡出。
+   * 只在弹幕小窗模式接线，普通控制台不受影响。
+   */
+  function wireMiniSizeBadge() {
+    if (!LIVE_MINI) return;
+    var badge = byId('mini-size-badge');
+    if (!badge) return;
+    var hideTimer = null;
+    window.addEventListener('resize', function () {
+      badge.textContent = window.innerWidth + ' × ' + window.innerHeight;
+      badge.removeAttribute('hidden');
+      badge.classList.add('is-on');
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(function () {
+        badge.classList.remove('is-on');
+        hideTimer = setTimeout(function () {
+          badge.setAttribute('hidden', '');
+          hideTimer = null;
+        }, 200);
+      }, 700);
+    });
+  }
 
   // ---------- 桌面设置面板（居中浮层，互斥开合） ----------
   function panelMasks() { return Array.prototype.slice.call(document.querySelectorAll('.panelMask')); }
@@ -910,7 +935,7 @@ export const consoleScript = `
         ? '主播已下播，已自动停止监听'
         : '主播已下播（直播结束），等开播后再点开始监听';
     }
-    if (status.interrupted) return '弹幕连接已中断（自动重连未成功）';
+    if (status.interrupted) return '该账号已在其他设备进入直播间';
     var note = '';
     if (status.mode === 'cdp') {
       if (status.cdpVisible && !status.cdpLoggedIn) note = '等待扫码：在弹出的窗口完成登录';
@@ -1261,8 +1286,8 @@ export const consoleScript = `
         'error',
       );
     }
-    // 疑似被挤下线：确认框只在「互动消息区」弹幕小窗里弹，每次中断只弹一次；
-    // 恢复出帧后 status.interrupted 归 false，下次中断还能再弹。普通控制台/独立直播间窗口只留状态行旁注。
+    // 页面显示「账号已在其他地方进入直播间」：确认框只在「互动消息区」弹幕小窗里弹，每次中断只弹一次；
+    // 页面恢复正常后 status.interrupted 归 false，下次中断还能再弹。普通控制台/独立直播间窗口只留状态行旁注。
     if (!status.interrupted) dmKickPrompted = false;
     else if (!dmKickPrompted && LIVE_MINI) {
       dmKickPrompted = true;
@@ -4932,6 +4957,7 @@ export const consoleScript = `
       var miniTitle = byId('live-dialog-title');
       if (miniTitle) miniTitle.textContent = '互动消息区';
       setLiveDialog(true);
+      wireMiniSizeBadge();
     }
   }
 
@@ -5453,6 +5479,9 @@ body.live-mini.mini-collapsed .miniLatest{display:flex}
 .miniOpacityLabel{color:#c9cdd3;white-space:nowrap}
 .miniOpacityRange{width:110px;height:16px;margin:0;accent-color:#4fc3f7;cursor:pointer}
 .miniOpacityValue{min-width:38px;text-align:right;color:#9aa0a6;font-variant-numeric:tabular-nums}
+.miniSizeBadge{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:76;padding:4px 10px;border-radius:999px;background:rgba(28,29,32,.92);border:1px solid rgba(255,255,255,.14);color:#e8eaed;font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
+.miniSizeBadge[hidden]{display:none}
+.miniSizeBadge.is-on{opacity:1}
 /* 关闭确认气泡：和透明度浮层一样挂在页面顶层，锚在关闭按钮下方；折叠成一行时先展开窗口再显示 */
 .miniClosePop{position:fixed;top:52px;right:12px;z-index:72;width:248px;padding:12px;border-radius:12px;background:rgba(28,29,32,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 16px 36px rgba(0,0,0,.5);color:#e8eaed;font-size:13px;line-height:18px}
 .miniClosePop[hidden]{display:none}

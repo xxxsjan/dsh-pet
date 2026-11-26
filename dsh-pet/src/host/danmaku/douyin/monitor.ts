@@ -31,7 +31,7 @@ export type DouyinMonitorStartInput = {
   /** 是否把礼物感谢交给宠物 /chat。 */
   thankGift?: boolean;
   /**
-   * 开发调试：保持内嵌窗可见，仅周期暂停视频播放省流（不拦直播流、不删播放器），
+   * 开发调试：保持内嵌窗可见，视频仍拦流 + 周期暂停（不删播放器），页面/弹幕保持可用，
    * 用于观察窗口可见时弹幕连接断开后页面能否自己重连。只由开发环境控制台露出。
    */
   debugVisible?: boolean;
@@ -86,7 +86,7 @@ export type DouyinMonitorStatus = {
   cdpLoggedIn: boolean;
   /** 本次监听是否因「主播已下播」而自动结束（true 时 listening 恒为 false，需用户手动重连）。 */
   ended: boolean;
-  /** 疑似被其他设备挤下线：弹幕 WS 已断、恢复窗口内没新帧、房间仍在播；收到新帧或重新 start 后清空。 */
+  /** 被其他设备挤下线：页面显示「账号已在其他地方进入直播间」；页面恢复或重新 start 后清空。 */
   interrupted: boolean;
   /** 最近消息（新→旧或旧→新：按 at 升序，页面底部最新）。 */
   recent: DouyinFeedItem[];
@@ -114,8 +114,6 @@ export type DouyinMonitorDeps = {
   fetchLiveInfo?: (url: string, cookie: string) => Promise<DyLiveInfo>;
   /** 自动结束（下播）时回调一次，宿主可据此回写 state / 推通知。 */
   onEnded?: (status: DouyinMonitorStatus) => void;
-  /** 疑似被挤下线的恢复窗口：断线后这么久仍没新帧且房间在播才判定；缺省 30s（测试可调小）。 */
-  interruptGraceMs?: number;
 };
 
 /** 静默探活：多久没有业务帧才去查房间是否还在播（CDP 旁听收不到页面内 WS 的 close）。 */
@@ -128,10 +126,8 @@ const PREFLIGHT_TIMEOUT_MS = 8000;
 const COOKIE_VERIFY_TIMEOUT_MS = 10_000;
 /** 下播可能只是瞬时状态（切流 / reflow）：首次判下播后等这么久再确认一次。 */
 const OFFLINE_RETRY_DELAY_MS = 700;
-/** 弹幕 WS 断开后的恢复窗口；期间恢复出帧就撤销「疑似被挤下线」判定。 */
-const INTERRUPT_GRACE_MS = 30_000;
-/** 弹幕连接中断的提示文案；收到新帧后自动清空。 */
-const INTERRUPT_MESSAGE = '弹幕连接已中断：自动重连未成功，可能该账号已在其他设备进入别的直播间';
+/** 页面显示「账号已在其他地方进入直播间」时的提示文案。 */
+const KICKED_MESSAGE = '该账号已在其他设备进入直播间，弹幕连接已中断';
 
 /**
  * 创建抖音弹幕监听器（进程内单例语义由调用方保证）。
@@ -194,10 +190,8 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
   let currentJobKind: 'chat' | 'gift' | null = null;
   /** 本次监听是否已判定「主播下播」并自动停听；start 时清零。 */
   let ended = false;
-  /** 疑似被挤下线（见 INTERRUPT_MESSAGE）；start / 收到新帧 / 下播时清零。 */
+  /** 被挤下线（见 KICKED_MESSAGE）；页面恢复 / 重新 start / 下播时清零。 */
   let interrupted = false;
-  /** 断线后的恢复窗口定时器；收到新帧或停听时清掉。 */
-  let interruptTimer: ReturnType<typeof setTimeout> | null = null;
   /** 最近一帧业务帧的时间；用于长时间静默后的探活。 */
   let lastFrameAt = 0;
   /** 静默探活定时器（每个监听周期最多一个）。 */
@@ -245,39 +239,19 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     idleProbeTimer = null;
   }
 
-  function clearInterruptTimer(): void {
-    if (interruptTimer) clearTimeout(interruptTimer);
-    interruptTimer = null;
-  }
-
-  /** 链路恢复（收到新帧 / 重新 start / 下播）：撤掉恢复窗口与疑似被挤提示。 */
+  /** 页面恢复正常 / 重新 start / 下播：撤掉被挤下线提示。 */
   function clearInterrupt(): void {
-    clearInterruptTimer();
     if (!interrupted) return;
     interrupted = false;
-    if (lastError === INTERRUPT_MESSAGE) lastError = '';
+    if (lastError === KICKED_MESSAGE) lastError = '';
   }
 
-  /**
-   * 弹幕推送 WS 断开后开一个恢复窗口：窗口内没新帧、且进房探活仍在播，才判定疑似被挤下线。
-   * 抖音对「同账号在其他设备进入别的直播间」没有独立错误帧，只能靠「断线后长时间无帧 + 房间在播」
-   * 推断；网络抖动 / 切流恢复出帧后由 clearInterrupt 撤销。
-   */
-  function scheduleInterruptProbe(): void {
-    if (!wantListen || ended || interruptTimer) return;
-    const grace = deps.interruptGraceMs ?? INTERRUPT_GRACE_MS;
-    interruptTimer = setTimeout(() => {
-      interruptTimer = null;
-      if (!wantListen || ended) return;
-      void (async () => {
-        if (!(await probeRoomLiving())) return;
-        if (!wantListen || ended || interrupted) return;
-        interrupted = true;
-        lastError = INTERRUPT_MESSAGE;
-        log.warn?.(`[blue-fish][douyin] interrupted: no frames ${grace}ms after push ws closed, room living`);
-      })().catch((e) => noteError(e));
-    }, grace);
-    interruptTimer.unref?.();
+  /** 页面显示「账号已在其他地方进入直播间」：直接判定被挤下线，由控制页弹框询问是否重连。 */
+  function markKicked(): void {
+    if (!wantListen || ended || interrupted) return;
+    interrupted = true;
+    lastError = KICKED_MESSAGE;
+    log.warn?.('[blue-fish][douyin] kicked: 页面提示账号已在其他地方进入直播间');
   }
 
   /**
@@ -395,7 +369,10 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
           anchor: String(meta?.anchor || '').trim() || cdpMeta.anchor,
         };
       }),
-      bridge.onWsClosed(() => scheduleInterruptProbe()),
+      bridge.onPageState((pageState) => {
+        if (pageState === 'kicked') markKicked();
+        else clearInterrupt();
+      }),
     );
     await bridge.start({ url: currentUrl, cookie: currentCookie, debugVisible });
     const snap = bridge.status();
@@ -655,9 +632,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     const resp = DyResponse.decode(payload) as {
       messagesList?: Array<{ method?: string; payload?: Uint8Array; msgId?: unknown }>;
     };
-    // 只有解出合法推送帧（含心跳帧）才算链路恢复：桥会把所有 WS 的 payload 都喂进来，
-    // 其它通道的杂帧解不出 PushFrame，不能拿来重置「疑似被挤下线」的恢复窗口。
-    clearInterrupt();
     lastFrameAt = Date.now();
     // 每帧都打 payloadEncoding / 解压状态 / messagesList 数量——info 级别确保进日志。
     const methods = (resp.messagesList || []).flatMap((message) =>
@@ -964,7 +938,6 @@ export function createDouyinMonitor(deps: DouyinMonitorDeps) {
     wantListen = false;
     ended = false;
     clearIdleProbe();
-    clearInterruptTimer();
     // 保留 lastError：用户选择「暂不重新开始」后，状态行仍能看到被挤下线的原因。
     interrupted = false;
     clearCdp();

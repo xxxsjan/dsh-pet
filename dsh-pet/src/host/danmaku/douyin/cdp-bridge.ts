@@ -30,6 +30,8 @@ export type DouyinCdpBridge = {
     lastError: string;
     title: string;
     anchor: string;
+    /** 页面渲染态：'' 正常；'kicked' 表示页面显示「账号已在其他地方进入直播间」。 */
+    pageState: '' | 'kicked';
   };
   /** 订阅入站帧；返回取消订阅函数。 */
   onFrame(fn: (frame: DouyinCdpFrame) => void): () => void;
@@ -41,6 +43,8 @@ export type DouyinCdpBridge = {
   onMeta(fn: (meta: { title: string; anchor: string }) => void): () => void;
   /** 订阅弹幕推送 WS 被关闭；只上报 `/webcast/im/push/` 连接。 */
   onWsClosed(fn: (url: string) => void): () => void;
+  /** 订阅页面渲染态变化：命中「账号已在其他地方进入直播间」浮层即 `'kicked'`，恢复正常为空串。 */
+  onPageState(fn: (state: '' | 'kicked') => void): () => void;
 };
 
 /** globalThis 上挂 CDP 控制器的键（与 Helper 装配一致）。 */

@@ -32,7 +32,8 @@ function makeBridge() {
     closed: null | (() => void);
     meta: null | ((meta: { title: string; anchor: string }) => void);
     wsClosed: null | ((url: string) => void);
-  } = { frame: null, login: null, closed: null, meta: null, wsClosed: null };
+    pageState: null | ((state: '' | 'kicked') => void);
+  } = { frame: null, login: null, closed: null, meta: null, wsClosed: null, pageState: null };
   const bridge: DouyinCdpBridge & {
     starts: Array<{ url: string; cookie?: string; debugVisible?: boolean }>;
     visibleCalls: boolean[];
@@ -74,6 +75,7 @@ function makeBridge() {
         lastError: '',
         title: this.meta.title,
         anchor: this.meta.anchor,
+        pageState: '',
       };
     },
     onFrame(fn: (frame: Uint8Array) => void) {
@@ -104,6 +106,12 @@ function makeBridge() {
       subs.wsClosed = fn;
       return () => {
         subs.wsClosed = null;
+      };
+    },
+    onPageState(fn: (state: '' | 'kicked') => void) {
+      subs.pageState = fn;
+      return () => {
+        subs.pageState = null;
       };
     },
   };
@@ -912,61 +920,45 @@ describe('douyin monitor CDP 链路', () => {
   });
 });
 
-describe('douyin monitor 疑似被挤下线', () => {
-  /** 最简合法业务帧：只要能解开就算「链路恢复」，内容不重要。 */
-  const emptyFrame = () =>
-    PushFrame.encode(
-      PushFrame.create({ payload: DyResponse.encode(DyResponse.create({ messagesList: [] })).finish() }),
-    ).finish();
-
-  test('弹幕 WS 断开、恢复窗口内无帧且房间在播 → interrupted=true；stop 保留原因', async () => {
+describe('douyin monitor 被挤下线（页面检测）', () => {
+  test('页面显示账号已在其他地方进入直播间 → interrupted=true；恢复后清空', async () => {
     const bridge = makeBridge();
-    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 20 });
+    const mon = createDouyinMonitor(makeDeps(bridge));
     await mon.start({ url: 'https://live.douyin.com/123456789' });
 
-    bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
-    await new Promise((r) => setTimeout(r, 80));
-
+    bridge.subs.pageState?.('kicked');
     const status = mon.status();
-    assert.equal(status.interrupted, true, '断线超窗且房间在播应判定疑似被挤下线');
-    assert.match(status.lastError, /自动重连未成功/);
+    assert.equal(status.interrupted, true, '页面提示被挤即判定被挤下线');
+    assert.match(status.lastError, /该账号已在其他设备进入直播间/);
 
-    // 暂不重连：停听清掉 interrupted，但 lastError 保留给状态行展示。
-    mon.stop();
-    assert.equal(mon.status().interrupted, false);
-    assert.match(mon.status().lastError, /自动重连未成功/);
-  });
-
-  test('恢复窗口内恢复出帧 → 不判定被挤，提示与报错一起撤销', async () => {
-    const bridge = makeBridge();
-    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 40 });
-    await mon.start({ url: 'https://live.douyin.com/123456789' });
-
-    bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
-    await new Promise((r) => setTimeout(r, 10));
-    bridge.subs.frame?.(emptyFrame());
-    await new Promise((r) => setTimeout(r, 80));
-
-    assert.equal(mon.status().interrupted, false, '窗口内出帧即视为链路恢复');
+    bridge.subs.pageState?.('');
+    assert.equal(mon.status().interrupted, false, '页面恢复正常后撤销');
     assert.equal(mon.status().lastError, '');
     mon.stop();
   });
-});
 
-describe('douyin monitor 被挤判定不被杂帧干扰', () => {
-  test('断线后其它 WS 的脏帧解不出推送帧，不应重置恢复窗口', async () => {
+  test('暂不重连：stop 清 interrupted，但保留原因给状态行', async () => {
     const bridge = makeBridge();
-    const mon = createDouyinMonitor({ ...makeDeps(bridge), interruptGraceMs: 20 });
+    const mon = createDouyinMonitor(makeDeps(bridge));
+    await mon.start({ url: 'https://live.douyin.com/123456789' });
+
+    bridge.subs.pageState?.('kicked');
+    assert.equal(mon.status().interrupted, true);
+
+    mon.stop();
+    assert.equal(mon.status().interrupted, false);
+    assert.match(mon.status().lastError, /该账号已在其他设备进入直播间/);
+  });
+
+  test('推送 WS 断开本身不再触发弹框，只认页面检测', async () => {
+    const bridge = makeBridge();
+    const mon = createDouyinMonitor(makeDeps(bridge));
     await mon.start({ url: 'https://live.douyin.com/123456789' });
 
     bridge.subs.wsClosed?.('wss://webcast5-ws-web-lf.douyin.com/webcast/im/push/v2/');
-    // 模拟桥把其它通道 payload 也喂进来：持续喂脏帧，旧实现每次都会重置 20ms 窗口。
-    for (let i = 0; i < 10; i += 1) {
-      await new Promise((r) => setTimeout(r, 10));
-      bridge.subs.frame?.(new Uint8Array([0xff, 0xff, 0xff]));
-    }
+    await new Promise((r) => setTimeout(r, 30));
 
-    assert.equal(mon.status().interrupted, true, '脏帧不算链路恢复');
+    assert.equal(mon.status().interrupted, false, '没有页面提示就不判被挤下线');
     mon.stop();
   });
 });

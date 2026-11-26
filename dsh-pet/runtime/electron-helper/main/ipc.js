@@ -462,9 +462,21 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       return;
     }
     const scale = uiScale();
+    const width = Math.round(340 * scale);
+    const height = Math.round(480 * scale);
+    // 首次打开：贴主显示器右侧、垂直中间偏下一点；已存在/用户拖过的窗口不重新摆放。
+    const area = screen.getPrimaryDisplay().workArea;
+    const margin = Math.round(24 * scale);
+    const minY = area.y + margin;
+    const maxY = Math.max(minY, area.y + area.height - height - margin);
+    const centeredY = area.y + area.height * 0.55 - height / 2;
+    const x = Math.round(Math.max(area.x + margin, area.x + area.width - width - margin));
+    const y = Math.round(Math.min(Math.max(centeredY, minY), maxY));
     const win = new BrowserWindow({
-      width: Math.round(380 * scale),
-      height: Math.round(560 * scale),
+      x,
+      y,
+      width,
+      height,
       minWidth: Math.round(300 * scale),
       minHeight: Math.round(320 * scale),
       autoHideMenuBar: true,
