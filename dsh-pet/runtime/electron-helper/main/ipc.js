@@ -1,6 +1,7 @@
 'use strict';
+const fs = require('node:fs');
 const path = require('node:path');
-const { BrowserWindow, desktopCapturer, screen } = require('electron');
+const { app, BrowserWindow, desktopCapturer, screen } = require('electron');
 const { decideWindowIgnore } = require('../pointer-target.js');
 // 设置/控制台窗使用持久分区（persist: 前缀）：弹幕表单 Cookie、界面主题等写在 localStorage，
 // 不带 persist: 前缀会被当作内存会话，退出应用即清空，Cookie 下次打开回填不到。
@@ -411,6 +412,27 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
   };
   let liveMiniWindow = null;
   let liveMiniPlatform = '';
+  /** 小窗宽高缓存文件：设计像素（与尺寸角标同单位），下次打开按它还原。 */
+  const liveMiniSizeFile = () => path.join(app.getPath('userData'), 'live-mini-size.json');
+  const readLiveMiniSize = () => {
+    try {
+      const raw = JSON.parse(fs.readFileSync(liveMiniSizeFile(), 'utf8'));
+      const width = Math.round(Number(raw && raw.width));
+      const height = Math.round(Number(raw && raw.height));
+      if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+      if (width < 300 || height < 320 || width > 4000 || height > 4000) return null;
+      return { width, height };
+    } catch {
+      return null; // 首次打开 / 文件损坏：回落默认尺寸
+    }
+  };
+  const writeLiveMiniSize = (width, height) => {
+    try {
+      fs.writeFileSync(liveMiniSizeFile(), JSON.stringify({ width, height }), 'utf8');
+    } catch (e) {
+      console.error('[blue-fish-desktop-helper] write live mini size failed:', String(e && e.message ? e.message : e));
+    }
+  };
   // 折叠态：记下展开时的高度与最小尺寸，展开时原样还原；窗口被销毁就清空，别把上一扇窗的尺寸带到下一扇。
   let liveMiniCollapsed = null;
   const liveMiniSetCollapsed = (win, collapsed, cssHeight) => {
@@ -462,11 +484,17 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       return;
     }
     const scale = uiScale();
-    const width = Math.round(340 * scale);
-    const height = Math.round(480 * scale);
-    // 首次打开：贴主显示器右侧、垂直中间偏下一点；已存在/用户拖过的窗口不重新摆放。
     const area = screen.getPrimaryDisplay().workArea;
     const margin = Math.round(24 * scale);
+    const minWidth = Math.round(300 * scale);
+    const minHeight = Math.round(320 * scale);
+    // 上次用户拖出的宽高（设计像素）优先；没有缓存才用默认 340×480。
+    const savedSize = readLiveMiniSize();
+    const wantWidth = savedSize ? Math.round(savedSize.width * scale) : Math.round(340 * scale);
+    const wantHeight = savedSize ? Math.round(savedSize.height * scale) : Math.round(480 * scale);
+    const width = Math.min(Math.max(wantWidth, minWidth), Math.max(minWidth, area.width - margin * 2));
+    const height = Math.min(Math.max(wantHeight, minHeight), Math.max(minHeight, area.height - margin * 2));
+    // 首次打开：贴主显示器右侧、垂直中间偏下一点；已存在/用户拖过的窗口不重新摆放。
     const minY = area.y + margin;
     const maxY = Math.max(minY, area.y + area.height - height - margin);
     const centeredY = area.y + area.height * 0.55 - height / 2;
@@ -477,8 +505,8 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       y,
       width,
       height,
-      minWidth: Math.round(300 * scale),
-      minHeight: Math.round(320 * scale),
+      minWidth,
+      minHeight,
       autoHideMenuBar: true,
       // 窗底色全透明：面板那层淡白半透明由页面自己画，窗底再垫一层深色会把中性灰又压回偏黑，
       // 圆角之外的四角也会留下深色方块。
@@ -502,6 +530,25 @@ function registerIpc({ ipcMain, petWindows, shell, openTarget, petRoute, dpi, he
       },
     });
     liveMiniPlatform = wanted;
+    // 记住用户拖出来的宽高：折叠态是标题栏高度，不能当成用户尺寸写进缓存。
+    let sizeSaveTimer = null;
+    const saveMiniSize = () => {
+      if (!win || win.isDestroyed() || liveMiniCollapsed) return;
+      const bounds = win.getBounds();
+      writeLiveMiniSize(Math.round(bounds.width / scale), Math.round(bounds.height / scale));
+    };
+    win.on('resize', () => {
+      if (sizeSaveTimer) clearTimeout(sizeSaveTimer);
+      sizeSaveTimer = setTimeout(() => {
+        sizeSaveTimer = null;
+        saveMiniSize();
+      }, 400);
+    });
+    win.on('close', () => {
+      if (sizeSaveTimer) clearTimeout(sizeSaveTimer);
+      sizeSaveTimer = null;
+      saveMiniSize();
+    });
     win.on('closed', () => {
       if (liveMiniWindow === win) {
         liveMiniWindow = null;
