@@ -193,6 +193,15 @@
   // 必填布尔值，缺失按 true 处理；用户配置（main-config.jsonc）顶层可覆盖。
   // 改动后保存即生效（宿主会重启桌面 Helper，桌面宠物窗口会重建一次）。
   "obsCaptureEnabled": true,
+  // ===================== OBS 浏览器源（直播预览页） =====================
+  // 独立模式/桌面应用额外提供 http://127.0.0.1:<端口>/blue-fish/obs 透明页面：
+  // 在 OBS 里添加「浏览器源」填这个地址，即可拿到原生 Alpha 透明的宠物与头顶气泡，
+  // 不需要窗口捕获，也不需要绿幕抠像。以下三个字段只影响该页面，不改桌面/网页里的宠物。
+  // URL 参数可临时覆盖：?pet=0 隐藏宠物、?bubble=0 隐藏气泡、?scale=1.2 调整缩放。
+  // 设置页「OBS 直播源」卡片写的就是它们；改动后刷新 OBS 浏览器源生效。
+  "obsShowPet": true,
+  "obsShowBubble": true,
+  "obsScale": 1,
   // ===================== 工作状态联动文案（条目级，与 animations/physics 同级；种类文件 pet/<名>-config.json 顶层可覆盖） =====================
   // 工作状态气泡文本（pets[].workStatusEnabled 开启时展示；仅在 events.workStatus 动画触发时弹）。
   // 结构 = 二维数组，外层索引即档位（与 events.workStatus 动画索引一一对应，勿在中间插入新档）：

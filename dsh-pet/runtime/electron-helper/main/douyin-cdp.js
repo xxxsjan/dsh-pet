@@ -157,6 +157,8 @@ const PAGE_STATE_POLL_MS = 3000;
  * 页面状态探测：只读已渲染文字。
  * 「账号已在其他地方进入直播间」/「已退出直播间，无法评论」是抖音被挤下线浮层的固定文案，
  * innerText 不含 display:none 内容，浮层没显示时不会误命中。
+ * 「已暂停播放」是抖音自己的节能暂停浮层：顺手点掉「继续播放」（只点这个，不碰客户端引导），
+ * 避免页面被这一层挡住；视频流本身仍被拦，点了也不会真的播放。
  */
 const DY_PAGE_STATE_SCRIPT = `
 (function () {
@@ -165,6 +167,20 @@ const DY_PAGE_STATE_SCRIPT = `
   var text = body.innerText || '';
   if (text.indexOf('账号已在其他地方进入直播间') >= 0) return 'kicked';
   if (text.indexOf('已退出直播间，无法评论') >= 0) return 'kicked';
+  if (text.indexOf('已暂停播放') >= 0) {
+    var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+    var hit = null;
+    while (walker.nextNode()) {
+      var t = (walker.currentNode.nodeValue || '').trim();
+      if (t === '继续播放') { hit = walker.currentNode.parentElement; break; }
+    }
+    if (!hit) return 'idle-found';
+    var btn = (hit.closest && hit.closest('button, [role="button"], a')) || hit;
+    var rect = btn.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return 'idle-found';
+    try { btn.click(); } catch (_) {}
+    return 'idle-clicked';
+  }
   return '';
 })();
 `;
@@ -225,6 +241,8 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
   let pauseKeeper = null;
   /** @type {NodeJS.Timeout|null} */
   let pageStatePoll = null;
+  /** 节能暂停自动处理的日志限频（浮层可能连续几拍都在）。 */
+  let lastIdleLogAt = 0;
   let attached = false;
 
   const state = {
@@ -609,12 +627,24 @@ function startDouyinCdpBridge({ BrowserWindow, electronSession, log, pushReconne
   async function probePageState() {
     if (!win || win.isDestroyed()) return;
     let next = '';
+    let idle = '';
     try {
       const value = await win.webContents.executeJavaScript(DY_PAGE_STATE_SCRIPT);
-      next = typeof value === 'string' ? value : '';
+      const raw = typeof value === 'string' ? value : '';
+      if (raw.indexOf('idle-') === 0) {
+        // 节能暂停浮层：脚本已顺手点掉「继续播放」，不算页面状态变化。
+        idle = raw;
+        next = '';
+      } else {
+        next = raw;
+      }
     } catch {
       // 页面导航中执行会抛：保留上一次状态，等下一拍
       return;
+    }
+    if (idle && Date.now() - lastIdleLogAt >= 60_000) {
+      lastIdleLogAt = Date.now();
+      log?.info?.(`[blue-fish][douyin-cdp] 页面长时间无操作暂停，已自动处理（${idle}）`);
     }
     if (next === state.pageState) return;
     state.pageState = next;

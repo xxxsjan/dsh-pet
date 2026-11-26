@@ -156,6 +156,14 @@ export function saveUserConfig(
   // OBS 窗口捕获模式（全局，仅桌面模式）：与 trayEnabled 同语义——传了必须是布尔，没传走透传保留。
   const oce = o.obsCaptureEnabled;
   if (oce !== undefined && typeof oce !== 'boolean') return null;
+  // OBS 浏览器源页面的显示开关与缩放（全局，仅独立模式/桌面应用）：与上面几个全局字段同语义。
+  // 缩放直接复用读取侧的 topFieldValid（0.2–3），读写同一份规则。
+  const osp = o.obsShowPet;
+  if (osp !== undefined && typeof osp !== 'boolean') return null;
+  const osb = o.obsShowBubble;
+  if (osb !== undefined && typeof osb !== 'boolean') return null;
+  const osc = o.obsScale;
+  if (osc !== undefined && !topFieldValid('obsScale', osc)) return null;
   // physics（拖拽抛掷手感，设置页「物理」区可图形化编辑）：整段校验——physicsValid 与读取侧
   // 是同一份规则（gravity/groundFriction ≥ 0、restitution ∈ [0,1]、throwPower > 0、两个布尔）。
   // 传了就按白名单写入；没传则走下面的透传保留（用户手改的值原样不动）。
@@ -210,6 +218,9 @@ export function saveUserConfig(
   else if (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '') outConfig.breezeApiKey = breezeKeyRaw.trim();
   if (te !== undefined) outConfig.trayEnabled = te;
   if (oce !== undefined) outConfig.obsCaptureEnabled = oce;
+  if (osp !== undefined) outConfig.obsShowPet = osp;
+  if (osb !== undefined) outConfig.obsShowBubble = osb;
+  if (osc !== undefined) outConfig.obsScale = Number(osc);
   if (ph !== undefined) outConfig.physics = ph;
   if (fo !== undefined) outConfig.font = fo;
   if (wm !== undefined) outConfig.whisperModel = cleanModel(wm as Record<string, unknown>);
@@ -241,6 +252,9 @@ export function saveUserConfig(
   if (clearBreezeKey || (typeof breezeKeyRaw === 'string' && breezeKeyRaw.trim() !== '')) bodyOwned.add('breezeApiKey');
   if (te !== undefined) bodyOwned.add('trayEnabled');
   if (oce !== undefined) bodyOwned.add('obsCaptureEnabled');
+  if (osp !== undefined) bodyOwned.add('obsShowPet');
+  if (osb !== undefined) bodyOwned.add('obsShowBubble');
+  if (osc !== undefined) bodyOwned.add('obsScale');
   if (ph !== undefined) bodyOwned.add('physics');
   if (fo !== undefined) bodyOwned.add('font');
   if (wm !== undefined) bodyOwned.add('whisperModel');

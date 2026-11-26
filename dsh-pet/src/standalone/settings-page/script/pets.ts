@@ -32,6 +32,11 @@ function pickGlobals(main) {
     confineToScreen: source.confineToScreen === true,
     trayEnabled: source.trayEnabled !== false,
     obsCaptureEnabled: source.obsCaptureEnabled !== false,
+    obsShowPet: source.obsShowPet !== false,
+    obsShowBubble: source.obsShowBubble !== false,
+    obsScale: typeof source.obsScale === 'number' && Number.isFinite(source.obsScale)
+      ? Math.min(3, Math.max(0.2, source.obsScale))
+      : 1,
     voiceEnabled: source.voiceEnabled === true,
     voiceProvider: source.voiceProvider === 'fish' || source.voiceProvider === 'breeze' ? source.voiceProvider : 'edge',
     voiceName: typeof source.voiceName === 'string' && source.voiceName ? source.voiceName : (VOICES[1] ? VOICES[1].id : ''),
@@ -144,18 +149,17 @@ function renderPetsPanel() {
     if (voiceHost) voiceHost.hidden = false;
     renderVoicePanel();
   }
-  // 其他 Tab：显示对应的全局卡片
+  // 其他 Tab：显示对应的全局卡片（全局页除开关外还有 OBS 直播源卡片）
   else {
     host.hidden = false;
     host.textContent = '';
     const cardMap = {
-      global: globalFlagsCard,
-      font: fontCard,
-      physics: physicsCard,
-      advanced: advancedCard,
+      global: [globalFlagsCard, obsSourceCard],
+      font: [fontCard],
+      physics: [physicsCard],
+      advanced: [advancedCard],
     };
-    const builder = cardMap[configTab];
-    if (builder) host.append(builder());
+    for (const builder of cardMap[configTab] || []) host.append(builder());
     // 高级 Tab 只有落盘路径与「同步」，没有可保存的字段；其余 Tab 各自带一个保存按钮。
     if (configTab === 'advanced') {
       host.append(make('p', { class: 'status', text: '这一页只有说明与「同步」，没有需要保存的配置项。' }));
@@ -229,6 +233,9 @@ function tabBody(tab) {
       confineToScreen: state.globals.confineToScreen,
       trayEnabled: state.globals.trayEnabled,
       obsCaptureEnabled: state.globals.obsCaptureEnabled,
+      obsShowPet: state.globals.obsShowPet,
+      obsShowBubble: state.globals.obsShowBubble,
+      obsScale: state.globals.obsScale,
     });
   }
   if (tab === 'font') return Object.assign(p, { font: state.globals.font });
@@ -270,6 +277,11 @@ function applySavedTab(tab, merged) {
     g.confineToScreen = main.confineToScreen === true;
     g.trayEnabled = main.trayEnabled !== false;
     g.obsCaptureEnabled = main.obsCaptureEnabled !== false;
+    g.obsShowPet = main.obsShowPet !== false;
+    g.obsShowBubble = main.obsShowBubble !== false;
+    g.obsScale = typeof main.obsScale === 'number' && Number.isFinite(main.obsScale)
+      ? Math.min(3, Math.max(0.2, main.obsScale))
+      : 1;
     return;
   }
   if (tab === 'font') {

@@ -222,6 +222,15 @@ export function topFieldValid(key: string, value: unknown): boolean {
     case 'obsCaptureEnabled':
       // 窗口模式（main 条目顶层）：helper 读它决定是否进任务栏 / 清 TOOLWINDOW（仍保持透明）
       return typeof value === 'boolean';
+    case 'obsShowPet':
+    case 'obsShowBubble':
+      // OBS 浏览器源页面的两个显示开关（main 条目顶层）：只影响 /blue-fish/obs，不影响桌面/网页
+      return typeof value === 'boolean';
+    case 'obsScale': {
+      // OBS 页面缩放：0.2–3 倍（超出会让宠物糊成马赛克或缩到看不见）
+      const n = Number(value);
+      return Number.isFinite(n) && n >= 0.2 && n <= 3;
+    }
     case 'animations':
       return animationsValid(value);
     case 'animationWeights':

@@ -10,7 +10,7 @@
 export function globalsScript(): string {
   return `
 function globalCards() {
-  return [globalFlagsCard, fontCard, physicsCard, modelCard, advancedCard];
+  return [globalFlagsCard, obsSourceCard, fontCard, physicsCard, modelCard, advancedCard];
 }
 
 function setGlobal(key, value) {
@@ -27,6 +27,34 @@ function globalFlagsCard() {
     toggleRow('g-confine', '锁定在当前屏幕', '抛掷与自主漫游只在当前所在的这块屏幕里活动。', g.confineToScreen, (value) => setGlobal('confineToScreen', value)),
     toggleRow('g-tray', '系统托盘图标', '桌面模式常驻托盘；关掉后只能从任务栏找回。', g.trayEnabled, (value) => setGlobal('trayEnabled', value)),
     toggleRow('g-obs', '窗口模式', '开启后仍保持透明，但出现在任务栏并去掉工具窗样式，便于 OBS 窗口捕获；关掉则藏任务栏（窗口捕获通常列不到）。', g.obsCaptureEnabled !== false, (value) => setGlobal('obsCaptureEnabled', value)),
+  ]);
+}
+
+function obsSourceCard() {
+  const g = state.globals;
+  const url = location.origin + '/blue-fish/obs';
+  const urlInput = make('input', { type: 'text', id: 'obs-source-url', value: url });
+  urlInput.readOnly = true;
+  const copy = button('复制地址', () => {
+    const done = () => {
+      copy.textContent = '已复制';
+      window.setTimeout(() => { copy.textContent = '复制地址'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, () => urlInput.select());
+    } else {
+      urlInput.select();
+    }
+  }, { ghost: true });
+  return card('OBS 直播源', '在 OBS 添加「浏览器源」并填入下面的地址：透明底、免抠像。修改后刷新浏览器源生效。', [
+    make('div', { class: 'field' }, [
+      make('label', { for: 'obs-source-url', text: '页面地址' }),
+      urlInput,
+      copy,
+    ]),
+    toggleRow('g-obs-pet', '显示宠物', '关闭后只保留头顶气泡，适合只想要字幕的场景。', g.obsShowPet, (value) => setGlobal('obsShowPet', value)),
+    toggleRow('g-obs-bubble', '显示气泡', '碎碎念、对话回复、待办提醒与工作状态都走这里；关闭后只画宠物。', g.obsShowBubble, (value) => setGlobal('obsShowBubble', value)),
+    numberField('g-obs-scale', '缩放', g.obsScale, (value) => setGlobal('obsScale', Math.min(3, Math.max(0.2, value))), { min: 0.2, max: 3, step: 0.1, hint: '0.2–3；浏览器源尺寸不变时只改宠物大小。' }),
   ]);
 }
 

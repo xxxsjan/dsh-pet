@@ -290,6 +290,15 @@ test('桌面式布局：左侧宠物头像区、右侧设置入口格，配置�
   assert.doesNotMatch(css, /column-span:all/, '不应再残留通栏跨列写法');
   // 窄屏桌面回落到单列
   assert.match(css, /@media \(max-width:880px\)\{\.desktop\{grid-template-columns:1fr\}/, '窄屏桌面应回落到单列');
+  // 宽屏按桌面式一屏布局：页面不滚动，设置入口排成三列，图标保持原尺寸
+  assert.match(css, /@media \(min-width:881px\)/, '应有宽屏桌面布局');
+  assert.match(css, /html,body\{overflow:hidden\}/, '宽屏应锁住页面滚动');
+  assert.match(css, /\.console\{height:100%;overflow:hidden\}/, '控制台容器应占满一屏');
+  assert.match(
+    css,
+    /\.settingsGrid\{grid-template-columns:repeat\(3,minmax\(118px,1fr\)\)\}/,
+    '设置入口应排成三列（9 个入口正好三行，图标维持原尺寸）',
+  );
 });
 
 test('主题切换按钮可用：读写 /ui-theme、按磁盘值纠正、深色变量齐备', () => {
@@ -310,18 +319,42 @@ test('主题切换按钮可用：读写 /ui-theme、按磁盘值纠正、深色�
   assert.match(consoleStyles(), /console-bg\.webp/, '浅色 body 应引用控制台背景图');
   assert.match(
     consoleStyles(),
-    /html\[data-theme=dark\] body\{background-image:url\('\/standalone-console\/console-bg-dark\.webp'\)\}/,
+    /html\[data-theme=dark\] body::before\{background-image:url\('\/standalone-console\/console-bg-dark\.webp'\)\}/,
     '暗色下应引用暗色背景图',
+  );
+  assert.match(
+    consoleStyles(),
+    /body::before\{[^}]*position:fixed[^}]*inset:0/,
+    '背景图应固定在视口层，长页面滚动到底部不能露出底色',
   );
 });
 
-test('板块与旧设置页对齐：宠物、全局开关、字体、物理、模型、语音、高级', () => {
+test('板块与旧设置页对齐：宠物、全局开关、OBS 地址、字体、物理、模型、语音、高级', () => {
   const html = consolePage();
   const titles = [...html.matchAll(/class="cardTitle"[^>]*>([^<]+)</g)].map((m) => m[1]);
   assert.deepEqual(
     titles,
-    ['宠物', '全局开关', '字体', '物理', '模型', '语音', '高级'],
-    '七个板块的顺序与名称要与旧页配置 Tab 一一对应',
+    ['宠物', '全局开关', 'OBS 地址', '字体', '物理', '模型', '语音', '高级'],
+    '七个旧页板块保持原有顺序；OBS 地址是控制台独有的独立入口，紧跟全局开关',
+  );
+  const obsSection = html.slice(
+    html.indexOf('id="obs-panel-title">OBS 地址<'),
+    html.indexOf('id="font-panel-title">字体<'),
+  );
+  for (const key of ['g-obs-pet', 'g-obs-bubble']) {
+    assert.ok(obsSection.includes(`data-switch="${key}"`), `OBS 地址板块应包含 ${key}`);
+  }
+  assert.ok(obsSection.includes('id="g-obs-url"'), 'OBS 地址板块应给出浏览器源地址');
+  assert.ok(obsSection.includes('id="g-obs-scale"'), 'OBS 地址板块应包含缩放输入');
+  // OBS 相关设置不再挤在全局开关卡里
+  const globalCardSection = html.slice(
+    html.indexOf('id="global-panel-title">全局开关<'),
+    html.indexOf('id="obs-panel-title">OBS 地址<'),
+  );
+  assert.equal(
+    (globalCardSection.match(/data-switch="g-obs-(?:pet|bubble)"/g) ?? []).length,
+    0,
+    '全局开关卡不再放 OBS 开关',
   );
   // 旧页没有「移动端效果」板块：那张卡与它的保存按钮都不该再有；它的三个体感开关旧页物理卡也没做，一并不放
   assert.doesNotMatch(html, /移动端效果/, '不应再有独立「移动端效果」板块');
@@ -338,7 +371,7 @@ test('板块与旧设置页对齐：宠物、全局开关、字体、物理、�
   // 全局开关对齐旧页（点击音效已下沉宠物卡；三个配图 / 动作联动开关原先落在模型卡）
   const globalSection = html.slice(
     html.indexOf('id="global-panel-title">全局开关<'),
-    html.indexOf('id="font-panel-title">字体<'),
+    html.indexOf('id="obs-panel-title">OBS 地址<'),
   );
   for (const key of ['g-notify', 'g-whisper-image', 'g-chat-image', 'g-chat-anim', 'g-confine', 'g-tray', 'g-obs']) {
     assert.ok(globalSection.includes(`data-switch="${key}"`), `全局开关板块应包含 ${key}`);

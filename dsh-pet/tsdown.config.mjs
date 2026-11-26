@@ -134,6 +134,19 @@ export default defineConfig([
   },
   {
     ...shared,
+    // OBS 浏览器源页面（lib/obs-page.js）：跑在 OBS 内嵌 Chromium 里，只读 /config 与 /state。
+    // 与 client 同理：页面刷新会重跑脚本，包一层 IIFE 免得顶层声明重复触发 SyntaxError。
+    // 头像式的纯浏览器实现，不引入 react，也无 node 运行时依赖。
+    platform: 'browser',
+    target: 'es2022',
+    entry: {
+      'obs-page': 'src/obs/main.ts',
+    },
+    external: [/^node:/],
+    outputOptions: { banner: ';(()=>{', footer: '})();' },
+  },
+  {
+    ...shared,
     // 设置页 HTML/CSS/JS 外壳（lib/settings-shell.js）：与 app/standalone 解耦，
     // watch 只更新本文件时本机服务按 mtime 热读，刷新设置页即可，不必重启 Electron。
     target: 'es2022',

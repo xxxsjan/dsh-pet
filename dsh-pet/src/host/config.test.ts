@@ -428,6 +428,35 @@ describe('saveUserConfig —— OBS 窗口捕获（obsCaptureEnabled）', () => 
   });
 });
 
+describe('saveUserConfig —— OBS 直播源页面（obsShowPet / obsShowBubble / obsScale）', () => {
+  test('非法值整包拒绝', () => {
+    assert.equal(saveUserConfig({ pets: PETS, obsShowPet: 'true' }, undefined), null);
+    assert.equal(saveUserConfig({ pets: PETS, obsShowBubble: 1 }, undefined), null);
+    assert.equal(saveUserConfig({ pets: PETS, obsScale: 0.1 }, undefined), null);
+    assert.equal(saveUserConfig({ pets: PETS, obsScale: 3.1 }, undefined), null);
+  });
+
+  test('请求体没带 → 透传磁盘旧值', () => {
+    const out = saveUserConfig({ pets: PETS }, { obsShowPet: false, obsShowBubble: false, obsScale: 1.5 }) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(out.obsShowPet, false);
+    assert.equal(out.obsShowBubble, false);
+    assert.equal(out.obsScale, 1.5);
+  });
+
+  test('请求体带了 → 以请求体为准并归一成数字', () => {
+    const out = saveUserConfig(
+      { pets: PETS, obsShowPet: true, obsShowBubble: false, obsScale: '2' },
+      { obsShowPet: false, obsShowBubble: true, obsScale: 1 },
+    ) as Record<string, unknown>;
+    assert.equal(out.obsShowPet, true);
+    assert.equal(out.obsShowBubble, false);
+    assert.equal(out.obsScale, 2);
+  });
+});
+
 describe('JSONC 配置读取：字符串中的注释标记与转义', () => {
   const prompts = [
     '请原样解释 // 示例 这段文字',

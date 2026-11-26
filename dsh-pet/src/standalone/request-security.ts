@@ -87,6 +87,18 @@ function readTokenCookie(req: IncomingMessage): string {
   return '';
 }
 
+/**
+ * 请求是否由浏览器发起（而不是桌面 file 渲染端）。
+ *
+ * 浏览器导航与同源子资源不带 Origin，却一定带 `Sec-Fetch-Site`；桌面 file 渲染端的媒体请求
+ * 这两者都缺，靠宿主注入的令牌通过。应用模式把「无 Origin」整段当成 file 渲染端，
+ * 会把浏览器直接打开 `/blue-fish/obs` 及其页内资源一并拦掉，这里只把浏览器标记的请求放回公开只读。
+ */
+function browserIssued(req: IncomingMessage): boolean {
+  const site = req.headers['sec-fetch-site'];
+  return site === 'none' || site === 'same-origin';
+}
+
 /** 创建请求安全门面。 */
 export function createRequestSecurity(): RequestSecurity {
   const token = randomBytes(32).toString('base64url');
@@ -125,7 +137,7 @@ export function createRequestSecurity(): RequestSecurity {
         return rejectRequest(res, 403, '不允许跨站请求');
       }
       try {
-        if (publicRead(req) && !fileOrigin) return true;
+        if (publicRead(req) && (!fileOrigin || browserIssued(req))) return true;
       } catch {
         return rejectRequest(res, 400, '请求地址无效');
       }

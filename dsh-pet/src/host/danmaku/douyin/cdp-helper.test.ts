@@ -294,6 +294,17 @@ describe('douyin CDP 桥：页面状态探测', () => {
     assert.equal(bridge.status().pageState, '', 'stop 后清空页面状态');
   });
 
+  test('节能暂停浮层（已点掉继续播放）不算被挤下线', async () => {
+    const fake = makeFakeWin();
+    fake.setPageState('idle-clicked');
+    const bridge = makeBridge(fake);
+    await bridge.start({ url: 'https://live.douyin.com/123456789' });
+    await tick();
+
+    assert.equal(bridge.status().pageState, '', '自动处理暂停浮层不应改变页面状态');
+    bridge.stop();
+  });
+
   test('普通页面保持空状态，不影响监听', async () => {
     const fake = makeFakeWin();
     const bridge = makeBridge(fake);

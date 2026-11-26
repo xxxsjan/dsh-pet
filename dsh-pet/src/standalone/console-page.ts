@@ -71,6 +71,7 @@ export function consolePage(): string {
 <div class="settingsGrid" role="group" aria-label="设置入口">
 <button type="button" class="deskEntry" data-panel="pet-panel" title="宠物配置"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="1.6"/><circle cx="11" cy="6" r="1.6"/><circle cx="3.6" cy="9.6" r="1.6"/><circle cx="12.4" cy="9.6" r="1.6"/><path d="M8 8.6c-1.9 0-3.2 1.4-3.2 2.7 0 .9.7 1.5 1.6 1.5 1 0 1.1-.4 1.6-.4s.6.4 1.6.4c.9 0 1.6-.6 1.6-1.5C11.2 10 9.9 8.6 8 8.6Z"/></svg></span><span class="deskEntryLabel">宠物</span></button>
 <button type="button" class="deskEntry" data-panel="global-panel" title="全局开关"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.7 3.7l1.1 1.1M11.2 11.2l1.1 1.1M12.3 3.7l-1.1 1.1M4.8 11.2l-1.1 1.1"/></svg></span><span class="deskEntryLabel">全局</span></button>
+<button type="button" class="deskEntry" data-panel="obs-panel" title="OBS 地址"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="8" rx="1.6"/><path d="M5.4 13.6h5.2M8 11v2.6"/><path d="M6.2 6.2a2.6 2.6 0 0 1 3.6 0M4.8 4.8a4.6 4.6 0 0 1 6.4 0"/></svg></span><span class="deskEntryLabel">OBS地址</span></button>
 <button type="button" class="deskEntry" data-panel="physics-panel" title="物理"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.5c2.6 1.6 7.4 1.6 10 0M3 8c2.6 1.6 7.4 1.6 10 0M3 12.5c2.6 1.6 7.4 1.6 10 0"/></svg></span><span class="deskEntryLabel">物理</span></button>
 <button type="button" class="deskEntry" data-panel="font-panel" title="字体"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M2.5 12.5 5 4.5h2l2.5 8M3.6 9.6h4.8M9.5 12.5 12 4.5h1.5"/></svg></span><span class="deskEntryLabel">字体</span></button>
 <button type="button" class="deskEntry" data-panel="voice-panel" title="语音"><span class="deskEntryIcon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="4" height="7.5" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5"/></svg></span><span class="deskEntryLabel">语音</span></button>
@@ -167,6 +168,23 @@ export function consolePage(): string {
 <div class="switchLine"><span>窗口模式</span><button type="button" class="switch" data-switch="g-obs" aria-checked="false"></button></div>
 </div>
 <div class="cardFoot"><button type="button" class="btn primary" id="global-save">保存</button><span class="voiceStatus" id="global-status" role="status" aria-live="polite"></span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="panelMask" id="obs-panel" hidden>
+<div class="panelDialog" role="dialog" aria-modal="true" aria-labelledby="obs-panel-title">
+<div class="panelBody">
+<div class="card">
+<div class="cardHead"><h2 class="cardTitle" id="obs-panel-title">OBS 地址</h2><div class="cardActions"><button type="button" class="panelClose" data-panel-close aria-label="关闭 OBS 配置"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>
+<div class="switchGrid">
+<div class="switchLine"><span>显示宠物</span><button type="button" class="switch" data-switch="g-obs-pet" aria-checked="false"></button></div>
+<div class="switchLine"><span>显示气泡</span><button type="button" class="switch" data-switch="g-obs-bubble" aria-checked="false"></button></div>
+</div>
+<div class="fieldRow rangeField"><label class="fieldLabel" for="g-obs-scale">缩放 <output id="g-obs-scale-value" for="g-obs-scale">1.0</output></label><input class="fieldRange" id="g-obs-scale" type="range" min="0.2" max="3" step="0.1" value="1" aria-label="缩放（0.2–3）"><span class="fieldHint">0.2–3；只影响 OBS 直播源页面。</span></div>
+<div class="fieldRow"><label class="fieldLabel" for="g-obs-url">浏览器源地址</label><div class="obsUrlRow"><input class="fieldInput" id="g-obs-url" type="text" readonly><button type="button" class="secondaryBtn compact" id="g-obs-copy">复制</button><a class="obsPreviewLink" id="g-obs-preview" href="#" target="_blank" rel="noopener">在浏览器中预览 ›</a></div></div>
+<div class="cardFoot"><button type="button" class="btn primary" id="obs-save">保存</button><span class="voiceStatus" id="obs-status" role="status" aria-live="polite"></span></div>
 </div>
 </div>
 </div>
@@ -3077,6 +3095,9 @@ export const consoleScript = `
       confineToScreen: src.confineToScreen === true,
       trayEnabled: src.trayEnabled !== false,
       obsCaptureEnabled: src.obsCaptureEnabled !== false,
+      obsShowPet: src.obsShowPet !== false,
+      obsShowBubble: src.obsShowBubble !== false,
+      obsScale: clamp(src.obsScale, 0.2, 3, 1),
       physics: {
         gravity: clamp(physics && physics.gravity, 0, 10000, FALLBACK_PHYSICS.gravity),
         restitution: clamp(physics && physics.restitution, 0, 1, FALLBACK_PHYSICS.restitution),
@@ -3325,6 +3346,17 @@ export const consoleScript = `
     setSwitchByKey('g-confine', g.confineToScreen);
     setSwitchByKey('g-tray', g.trayEnabled);
     setSwitchByKey('g-obs', g.obsCaptureEnabled);
+    setSwitchByKey('g-obs-pet', g.obsShowPet);
+    setSwitchByKey('g-obs-bubble', g.obsShowBubble);
+    var obsScaleEl = byId('g-obs-scale');
+    if (obsScaleEl && document.activeElement !== obsScaleEl) obsScaleEl.value = String(g.obsScale);
+    var obsScaleOut = byId('g-obs-scale-value');
+    if (obsScaleOut) obsScaleOut.textContent = Number(g.obsScale).toFixed(1);
+    var obsUrl = location.origin + API + '/obs';
+    var obsUrlEl = byId('g-obs-url');
+    if (obsUrlEl) obsUrlEl.value = obsUrl;
+    var obsPreviewEl = byId('g-obs-preview');
+    if (obsPreviewEl) obsPreviewEl.href = obsUrl;
     setSwitchByKey('g-whisper-image', g.whisperImageEnabled);
     setSwitchByKey('g-chat-image', g.chatImageEnabled);
     setSwitchByKey('g-chat-anim', g.chatAnimationEnabled);
@@ -3570,7 +3602,10 @@ export const consoleScript = `
       chatAnimationEnabled: g.chatAnimationEnabled,
       confineToScreen: g.confineToScreen,
       trayEnabled: g.trayEnabled,
-      obsCaptureEnabled: g.obsCaptureEnabled
+      obsCaptureEnabled: g.obsCaptureEnabled,
+      obsShowPet: g.obsShowPet,
+      obsShowBubble: g.obsShowBubble,
+      obsScale: g.obsScale
     };
   }
 
@@ -3637,6 +3672,9 @@ export const consoleScript = `
       g.confineToScreen = fresh.confineToScreen;
       g.trayEnabled = fresh.trayEnabled;
       g.obsCaptureEnabled = fresh.obsCaptureEnabled;
+      g.obsShowPet = fresh.obsShowPet;
+      g.obsShowBubble = fresh.obsShowBubble;
+      g.obsScale = fresh.obsScale;
     }
     if (section === 'physics') {
       g.physics = draftFrom(main).physics;
@@ -3699,6 +3737,11 @@ export const consoleScript = `
 
   function saveGlobal() {
     void submitPayload(Object.assign(basePayload(), globalsPayload()), byId('global-status'), byId('global-save'), '全局开关已保存。', 'global');
+  }
+
+  // OBS 面板仍写 main 的全局段：提交体与全局保存同源，两个入口保存的都是同一组字段。
+  function saveObs() {
+    void submitPayload(Object.assign(basePayload(), globalsPayload()), byId('obs-status'), byId('obs-save'), 'OBS 地址设置已保存。', 'global');
   }
 
   function savePhysics() {
@@ -4140,6 +4183,8 @@ export const consoleScript = `
     'g-confine': 'confineToScreen',
     'g-tray': 'trayEnabled',
     'g-obs': 'obsCaptureEnabled',
+    'g-obs-pet': 'obsShowPet',
+    'g-obs-bubble': 'obsShowBubble',
     'g-whisper-image': 'whisperImageEnabled',
     'g-chat-image': 'chatImageEnabled',
     'g-chat-anim': 'chatAnimationEnabled'
@@ -4231,7 +4276,12 @@ export const consoleScript = `
       'ph-restitution': function (value) { state.globals.physics.restitution = clamp(value, 0, 1, 0.78); },
       'ph-friction': function (value) { state.globals.physics.groundFriction = clamp(value, 0, 30, 2.5); },
       'ph-power': function (value) { state.globals.physics.throwPower = clamp(value, 0.1, 5, 1); },
-      'font-size': function (value) { state.globals.font.size = clamp(value, 4, 200, 21); }
+      'font-size': function (value) { state.globals.font.size = clamp(value, 4, 200, 21); },
+      'g-obs-scale': function (value) {
+        state.globals.obsScale = clamp(value, 0.2, 3, 1);
+        var output = byId('g-obs-scale-value');
+        if (output) output.textContent = state.globals.obsScale.toFixed(1);
+      }
     };
     Object.keys(numField).forEach(function (id) {
       var el = byId(id);
@@ -4241,6 +4291,21 @@ export const consoleScript = `
     var familyEl = byId('font-family');
     if (familyEl) familyEl.addEventListener('change', function () {
       if (state.globals) state.globals.font.family = familyEl.value;
+    });
+    // OBS 浏览器源地址：一键复制（剪贴板不可用时退回选中，让用户自己 Ctrl+C）
+    var obsCopyEl = byId('g-obs-copy');
+    if (obsCopyEl) obsCopyEl.addEventListener('click', function () {
+      var urlEl = byId('g-obs-url');
+      var url = urlEl ? urlEl.value : location.origin + API + '/obs';
+      var done = function () {
+        obsCopyEl.textContent = '已复制';
+        window.setTimeout(function () { obsCopyEl.textContent = '复制'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done, function () { if (urlEl) urlEl.select(); });
+      } else if (urlEl) {
+        urlEl.select();
+      }
     });
 
     // 开关：语音 / 全局 / 物理 / 字体 / 宠物
@@ -4917,6 +4982,7 @@ export const consoleScript = `
       markDirty(true);
     });
     byId('global-save').addEventListener('click', saveGlobal);
+    byId('obs-save').addEventListener('click', saveObs);
     byId('physics-save').addEventListener('click', savePhysics);
     byId('font-save').addEventListener('click', saveFont);
     byId('ai-save').addEventListener('click', function () { void saveAi(); });
@@ -4986,8 +5052,10 @@ html[data-theme=dark]{
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;background-color:var(--bg-base);background-image:url('/standalone-console/console-bg.webp');background-size:cover;background-position:center top;background-repeat:no-repeat;color:var(--label-primary);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
-html[data-theme=dark] body{background-image:url('/standalone-console/console-bg-dark.webp')}
+body{margin:0;background-color:var(--bg-base);color:var(--label-primary);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+/* 背景图放固定层：内容变高、页面滚动时也始终铺满视口，不会在底部露出 body 底色 */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-color:var(--bg-base);background-image:url('/standalone-console/console-bg.webp');background-size:cover;background-position:center top;background-repeat:no-repeat}
+html[data-theme=dark] body::before{background-image:url('/standalone-console/console-bg-dark.webp')}
 .console{max-width:1080px;margin:0 auto;padding:28px 28px 104px;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:14px}
@@ -5039,6 +5107,13 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .lmOpen:hover{text-decoration:underline}
 /* 两个文字动作并排时拉开间距（8px 容器 gap + 16px ≈ 24px），避免「弹幕小窗」「跳转直播间」粘连 */
 .lmUrl .lmOpen+.lmOpen{margin-left:16px}
+/* OBS 面板：地址、复制、预览同一行；预览是纯文字链接（无边框/底色） */
+.obsUrlRow{display:flex;align-items:center;gap:10px}
+.obsUrlRow .fieldInput{flex:1;min-width:0}
+.obsUrlRow .secondaryBtn{flex:none;height:34px}
+.obsPreviewLink{flex:none;white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--primary);text-decoration:none;border:0;background:none;padding:0}
+.obsPreviewLink:hover{text-decoration:underline}
+.obsPreviewLink:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
 .deskSectionHead{display:flex;align-items:center;gap:10px;color:var(--label-secondary)}
 .settingsGrid{display:grid;grid-template-columns:repeat(2,minmax(118px,1fr));gap:14px;align-content:start}
 /* 直播平台入口列：纵向四张卡片，与右侧设置格逐行对齐；点击打开对应平台的直播间弹窗 */
@@ -5058,6 +5133,14 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .dangerEntry:hover{border-color:var(--danger)}
 .dangerEntry:hover .deskEntryIcon{background:color-mix(in srgb,var(--danger) 18%,transparent)}
 @media (max-width:880px){.desktop{grid-template-columns:1fr}.settingsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.liveEntryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* 宽屏（默认控制台窗口）：整页锁成一屏桌面不滚动；设置入口排成三列，
+   OBS 地址落在最后一列第一格，9 个入口正好三行，图标保持原来的大小 */
+@media (min-width:881px){
+html,body{overflow:hidden}
+.console{height:100%;overflow:hidden}
+.desktop{flex:1 1 auto;min-height:0}
+.settingsGrid{grid-template-columns:repeat(3,minmax(118px,1fr))}
+}
 /* 宠物面板：左「预览」+ 右四块功能面板，与设计稿一致 */
 .petGrid{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:880px){.petGrid{grid-template-columns:minmax(0,1fr)}}
@@ -5097,6 +5180,10 @@ html[data-theme=light] .themeToggle .iconMoon{display:none}
 .voiceVolumeField output{font-variant-numeric:tabular-nums;color:var(--label-primary)}
 .voiceVolumeRange{width:100%;height:20px;margin:2px 0 0;accent-color:var(--primary);cursor:pointer}
 .voiceVolumeRange:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+.rangeField .fieldLabel{display:flex;align-items:center;gap:6px}
+.rangeField output{font-variant-numeric:tabular-nums;color:var(--label-primary)}
+.fieldRange{width:100%;height:20px;margin:2px 0 0;accent-color:var(--primary);cursor:pointer}
+.fieldRange:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
 .personaBlock{display:flex;flex-direction:column;gap:6px;min-width:0}
 .avatarBox{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px 14px;text-align:center}
 .avatarBox img{width:100%;max-width:100%;object-fit:contain;border-radius:10px}
