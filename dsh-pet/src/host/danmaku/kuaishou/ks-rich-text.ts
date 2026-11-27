@@ -2,7 +2,7 @@
  * 快手 829 / 112 富文本弹幕分段解码（对齐 danmuapp `src/platforms/ksDanmaku.js` 224-366, 372-405）。
  *
  * 829 = 进场 / 富文本区（repeated 富文本消息）；112 = 独立富文本消息。
- * 进场项标 `isEnter=true`，由调用方按口径跳过；普通弹幕入库 chat。
+ * 进场项标 `isEnter=true`，由调用方归一成 enter 条目；普通弹幕入库 chat。
  * 字段号：RichTextMessage id=1(string)、userId=2(varint)、texts=7(repeated 富文本段)；
  * 富文本段 text_segment=1；文本段 text=1(string)。
  * @module dsh-pet/src/host/danmaku/kuaishou/ks-rich-text

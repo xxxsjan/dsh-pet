@@ -7,10 +7,9 @@
  */
 'use strict';
 
-// 菜单首项文案随宿主形态变：桌面应用唤起主窗口，独立模式打开本机 AI 设置页，web 宿主打开站点。
-const OPEN_LABEL = { desktop: '打开软件', standalone: '打开 AI 设置', web: '打开网站' };
-/** 旧「打开 AI 设置」项的开发标记后缀：只在开发环境露出时加，正式环境整项不出现。 */
-const OPEN_DEV_SUFFIX = '（开发）';
+// 菜单首项文案随宿主形态变：桌面应用唤起主窗口，web 宿主打开站点。
+// 独立模式不再提供「打开 AI 设置」入口——设置统一从「桌宠控制台」进。
+const OPEN_LABEL = { desktop: '打开软件', web: '打开网站' };
 
 /** 睡觉拒绝台词的气泡时长（ms）：比默认 10s 略短，它只是「被打扰了」的一句回绝。 */
 const SLEEP_REFUSE_BUBBLE_MS = 8000;
@@ -24,23 +23,15 @@ Object.assign(PetSprite.prototype, {
     this.stopMove(); // 菜单悬停期间宠物不漫游
     // 桌面专属工具根项 + 共享菜单树（动作 → 分类 → 具体动画）。碎碎念/对话无条件显示：手动触发
     // 不受 whisperEnabled 限制（该字段只影响自动轮询）。首项文案与去向随宿主形态变，见 OPEN_LABEL。
-    // 顺序：打开软件 / 余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
+    // 顺序：打开软件（仅 desktop/web）/ 余额 / 待办 / 碎碎念 / 对话 / 配图 / 睡觉 → 动作树 → 重载配置 / 回到初始位置。
     const tools = [
-      // 「打开 AI 设置」：只在独立模式 + 开发环境露出，露出时文案带「（开发）」后缀。
-      // desktop / web 形态仍按表原样（打开软件 / 打开网站），不受开发标记影响。
-      // 快捷键（Ctrl/Cmd+左键）已改绑到「桌宠控制台」：独立模式下提示挂在那里，其它形态仍挂首项。
-      ...(OPEN_TARGET === 'standalone' && !DEV_MODE
+      // 「打开软件」/「打开网站」：独立模式不出现（「打开 AI 设置」入口已移除，设置改走「桌宠控制台」）。
+      // desktop / web 形态仍按表原样；快捷键（Ctrl/Cmd+左键）挂首项。
+      ...(OPEN_TARGET === 'standalone'
         ? []
-        : [
-            {
-              label:
-                OPEN_TARGET === 'standalone' ? OPEN_LABEL.standalone + OPEN_DEV_SUFFIX : OPEN_LABEL[OPEN_TARGET],
-              action: 'open-site',
-              hint: OPEN_TARGET === 'standalone' ? undefined : OPEN_SHORTCUT_HINT,
-            },
-          ]),
-      // 「桌宠控制台」：新独立入口，只在独立模式出现（desktop/web 没有本机控制台路由）；
-      // 与旧「打开 AI 设置」并列，旧入口、旧路由与旧窗口链路一行不动。Ctrl/Cmd+左键 直接开它。
+        : [{ label: OPEN_LABEL[OPEN_TARGET], action: 'open-site', hint: OPEN_SHORTCUT_HINT }]),
+      // 「桌宠控制台」：新独立入口，只在独立模式出现（desktop/web 没有本机控制台路由）。
+      // 独立模式已移除「打开 AI 设置」，控制台就是唯一入口。Ctrl/Cmd+左键 直接开它。
       ...(OPEN_TARGET === 'standalone'
         ? [{ label: '桌宠控制台', action: 'open-console', hint: OPEN_SHORTCUT_HINT }]
         : []),

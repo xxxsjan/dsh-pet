@@ -140,7 +140,7 @@ async function run(logger: StandaloneLogger, options: { port: number }): Promise
       : `  桌面小窗    ${desktopVisible.length} 只`,
     ai.isReady()
       ? '  AI          本机 API 已启用；自动碎碎念遵循设置页开关'
-      : '  AI          未配置或未启用，不发送模型请求；右键“打开 AI 设置”后在本机填写',
+      : '  AI          未配置或未启用，不发送模型请求；右键“桌宠控制台”后在本机填写',
     ai.getSettings().balanceProvider
       ? `  余额        已选 ${ai.getSettings().balanceProvider}，设置页点「查询余额」取数`
       : '  余额        未选服务商；设置页「模型」→「余额查询服务商」里选一家',

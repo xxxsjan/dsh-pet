@@ -1,8 +1,8 @@
 /**
  * 菜单首项按宿主形态自动分派的契约测试（宿主 = DSH 桌面应用 / dsh web / 独立模式）。
  *
- * 需求：三种形态下同一个工具项要有三种去向与文案——桌面应用「打开软件」（把主窗口叫回前台）、
- * 独立模式「打开 AI 设置」（本机设置页）、dsh web「打开网站」（DSH 站点）。
+ * 需求：工具首项按形态分派——桌面应用「打开软件」（把主窗口叫回前台）、dsh web「打开网站」（DSH 站点）；
+ * 独立模式不再显示「打开 AI 设置」，设置统一从「桌宠控制台」进。
  * 判定逻辑已抽成纯函数 {@link resolveOpenTarget}，直接断言行为；两侧装配（宿主注入与 helper 解析）
  * 各自构建、无法互相 import，仍用源码断言守住接线。
  */
@@ -103,7 +103,7 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
     );
   });
 
-  test('helper 渲染端：三态文案查表，动作名不变', () => {
+  test('helper 渲染端：首项文案查表，独立模式整项不显示', () => {
     assert.ok(
       /const OPEN_TARGET_RAW = params\.get\('openTarget'\);\s*const OPEN_TARGET = OPEN_TARGET_RAW === 'desktop' \|\| OPEN_TARGET_RAW === 'standalone' \? OPEN_TARGET_RAW : 'web'/.test(
         constants,
@@ -111,26 +111,19 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
       "constants.js 必须从 query 读三态且默认 'web'",
     );
     assert.ok(
-      /\{ desktop: '打开软件', standalone: '打开 AI 设置', web: '打开网站' \}/.test(sprite),
-      '三种形态必须有三种文案，web 不得再显示「打开 AI 设置」',
+      /\{ desktop: '打开软件', web: '打开网站' \}/.test(sprite),
+      '首项只剩 desktop / web 两种文案，独立模式不再有「打开 AI 设置」',
     );
     assert.ok(
-      /label:\s*OPEN_TARGET === 'standalone' \? OPEN_LABEL\.standalone \+ OPEN_DEV_SUFFIX : OPEN_LABEL\[OPEN_TARGET\]/.test(
+      /\.\.\.\(OPEN_TARGET === 'standalone'\s*\? \[\]\s*:\s*\[\{ label: OPEN_LABEL\[OPEN_TARGET\], action: 'open-site', hint: OPEN_SHORTCUT_HINT \}\]\)/.test(
         sprite,
       ),
-      '独立模式的旧入口要带「（开发）」后缀，其余形态仍按表原样',
+      '独立模式下首项整项不出现（设置改走「桌宠控制台」），desktop / web 仍走 open-site',
     );
-    assert.ok(
-      /const OPEN_DEV_SUFFIX = '（开发）'/.test(sprite),
-      '开发标记后缀必须是「（开发）」',
-    );
-    assert.ok(
-      /OPEN_TARGET === 'standalone' && !DEV_MODE[\s\S]*?\? \[\]/.test(sprite),
-      '正式环境（DEV_MODE 为假）下这一项必须整项不出现，不能只是改文案',
-    );
+    assert.ok(!/OPEN_DEV_SUFFIX/.test(sprite), '已移除「（开发）」后缀与开发环境露出逻辑');
   });
 
-  test('开发环境判定：显式开关优先，其次 NODE_ENV，两侧口径一致', () => {
+  test('开发环境判定：显式开关优先，其次 NODE_ENV', () => {
     assert.equal(resolveDevMode({ BLUE_FISH_DEV: '1', NODE_ENV: 'production' } as NodeJS.ProcessEnv), true);
     assert.equal(resolveDevMode({ BLUE_FISH_DEV: '0' } as NodeJS.ProcessEnv), false);
     assert.equal(resolveDevMode({ NODE_ENV: 'production' } as NodeJS.ProcessEnv), false);
@@ -140,8 +133,10 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
       /BLUE_FISH_DEV: resolveDevMode\(\)\s*\?\s*'1'\s*:\s*'0'/.test(host),
       '宿主必须把判定结果注入 helper，别让子进程自己猜',
     );
-    assert.ok(/const DEV_MODE = params\.get\('dev'\) === '1'/.test(constants), '渲染端要从 query 读开发标记');
-    assert.ok(/dev: devMode \? '1' : '0'/.test(main), '主进程要把开发标记传进窗口 query');
+    assert.ok(
+      !/params\.get\('dev'\)/.test(constants),
+      '渲染端不再消费 dev 标记（「打开 AI 设置」入口已移除）',
+    );
   });
 
   test('快捷键（Ctrl/Cmd+左键）改绑到桌宠控制台，其它形态仍走原入口', () => {
@@ -156,10 +151,6 @@ describe('装配接线：宿主注入 → helper 解析 → 渲染端文案', ()
     assert.ok(
       /\{ label: '桌宠控制台', action: 'open-console', hint: OPEN_SHORTCUT_HINT \}/.test(sprite),
       '快捷键提示要挂在控制台项上',
-    );
-    assert.ok(
-      /hint: OPEN_TARGET === 'standalone' \? undefined : OPEN_SHORTCUT_HINT/.test(sprite),
-      '独立模式下旧「打开 AI 设置」项不再显示快捷键提示（提示只挂一处）',
     );
   });
 

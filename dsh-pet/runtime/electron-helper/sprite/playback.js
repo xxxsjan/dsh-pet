@@ -273,6 +273,11 @@ Object.assign(PetSprite.prototype, {
   },
 
   handleEnded() {
+    // 播完通知：让宿主掷骰写下一个自播 anim，两端（桌面/OBS）同步空闲动作。
+    // 异步发，不阻塞本地 playIdle 等后续逻辑。宿主 paused（sleep/lock）时会 skip。
+    // 静默忽略错误——宿主不可用时本地 playIdle 继续走 fallback 自掷。
+    void S.postAction(BASE + '/anim/next?pet=' + encodeURIComponent(this.pet.id));
+
     // 播放回执：前台视频真的播完了 → 如实回 ended。放在拖拽守卫之前——「播完了」是既成事实，
     // 拖拽守卫管的是动画链怎么推进，不该影响回执的准确性。
     if (this.playback) {

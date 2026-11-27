@@ -198,15 +198,23 @@ describe('快手帧分发', () => {
     assert.equal(items[0]?.text, '你好');
   });
 
-  test('829 进场区只入库普通弹幕，进场跳过', () => {
+  test('829 进场区：普通弹幕入 chat，进场项入 enter 并按 id 去重', () => {
     const payload = zonePayload([
       richMsg('z1', '1', ['阿喵', '开播啦']),
       richMsg('z2', '2', ['阿财', '加入']),
     ]);
     const msg = encodeSocketMessage(KS_SC_COMMENT_ZONE_RICH_TEXT, payload);
-    const items = parseKsWsFrame(msg, new Set());
-    assert.equal(items.length, 1);
-    assert.equal(items[0]?.text, '开播啦');
+    const seen = new Set<string>();
+    const items = parseKsWsFrame(msg, seen);
+    assert.equal(items.length, 2);
+    const chat = items.find((i) => i.kind === 'chat');
+    assert.equal(chat?.text, '开播啦');
+    const enter = items.find((i) => i.kind === 'enter');
+    assert.equal(enter?.nick, '阿财');
+    assert.equal(enter?.text, '加入');
+    assert.equal(enter?.principalId, '2');
+    assert.equal(enter?.count, 0);
+    assert.deepEqual(parseKsWsFrame(msg, seen), []);
   });
 
   test('非 FeedPush 帧（错误/暂停/在线榜）不入库', () => {

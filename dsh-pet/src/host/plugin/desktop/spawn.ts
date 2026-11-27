@@ -48,10 +48,10 @@ export function resolveOpenTarget(siteUrl: string, desktopHost: boolean): OpenTa
 }
 
 /**
- * 是否开发环境：只决定右键菜单里旧「打开 AI 设置」项露不露出（露出时文案带「（开发）」）。
+ * 是否开发环境：控制台地址是否追加 `?dev=1`（页面据此只露出调试开关）。
  *
  * 口径依次是：显式 `BLUE_FISH_DEV`（'1' 开发 / '0' 正式）→ `NODE_ENV=production` 视为正式 →
- * 其余算开发。与路由、权限、读写链路无关，判错只会少一个菜单项，不会影响任何请求。
+ * 其余算开发。与路由、权限、读写链路无关，判错只会少/多一个调试开关，不会影响任何请求。
  * @param env - 进程环境（测试可注入）。
  * @returns true 表示按开发环境展示。
  */
@@ -152,13 +152,12 @@ export function createDesktopSpawn(deps: DesktopSpawnInput) {
           BLUE_FISH_SITE_URL: siteUrl,
           // 已鉴权控制台 URL（含本进程启动令牌）：只供 helper 的「桌宠控制台」菜单使用
           BLUE_FISH_CONSOLE_URL: consoleUrl,
-          // 宿主形态决定菜单首项的去向与文案（同名「打开」项，三种形态三种语义）：
+          // 宿主形态决定菜单首项的去向与文案（同名「打开」项，各形态各自语义）：
           //   desktop    = DSH 桌面应用 → 唤起应用主窗口（helper 走 dsh://open）
-          //   standalone = 独立模式 → 本机 AI 设置页
+          //   standalone = 独立模式 → 不显示首项（设置改走「桌宠控制台」）
           //   web        = dsh web → DSH 站点
           BLUE_FISH_OPEN_TARGET: resolveOpenTarget(siteUrl, isDesktopHost()),
-          // 开发环境标记：旧「打开 AI 设置」菜单项只在开发环境露出（文案带「（开发）」），
-          // 正式环境整项不出现；与本机路由、权限、读写链路无关。
+          // 开发环境标记：控制台地址据此追加 ?dev=1 露出调试开关；与本机路由、权限、读写链路无关。
           BLUE_FISH_DEV: resolveDevMode() ? '1' : '0',
           BLUE_FISH_SCALE: '1',
           // 打开 bridge 协议：main.js 注册 blue-fish-bridge scheme，把渲染端请求经管道转给宿主

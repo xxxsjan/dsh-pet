@@ -73,7 +73,7 @@ Windows 常见示例：
 - 桌面：`C:\Users\<你>\.blue-fish\standalone-runtime.json`
 - CLI：`C:\Users\<你>\.dsh\blue-fish6\standalone-runtime.json`（未设置 `DSH_HOME` 时）
 
-设置页的右键入口「打开 AI 设置」只在开发环境露出（菜单文案带「（开发）」后缀）；正式环境（`NODE_ENV=production` 或跑在 asar 打包产物里）整项不出现，需要手动打开时把 `BLUE_FISH_DEV=1` 并在浏览器里使用 runtime 文件中的已鉴权地址。页面本身是应用内弹窗窗口，URL 短暂含 `#token=`，加载后会清掉地址栏 hash；对接请优先读对应模式的 runtime 文件。
+右键菜单里的「打开 AI 设置」入口已移除（独立模式只保留「桌宠控制台」）；需要手动打开设置页时，使用 runtime 文件中的已鉴权地址（可配合 `BLUE_FISH_DEV=1`）。页面本身是应用内弹窗窗口，URL 短暂含 `#token=`，加载后会清掉地址栏 hash；对接请优先读对应模式的 runtime 文件。
 
 ---
 

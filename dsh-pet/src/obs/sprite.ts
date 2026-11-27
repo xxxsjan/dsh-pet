@@ -72,7 +72,10 @@ export class ObsSprite {
     this.#assetBase = `${base}thumb/${encodeURIComponent(root)}/`;
   }
 
-  /** 从待机随机链开始播。 */
+  /**
+   * 启动：立即播一个 idle 动画（保证不黑屏），同时轮询宿主推的 anim 叶子覆盖。
+   * 宿主集中掷骰后 anim 叶子 counter 会比首拉基线大，applySnapshot 会消费 → 和桌面端同步。
+   */
   start(): void {
     this.#playIdle();
   }
@@ -97,12 +100,18 @@ export class ObsSprite {
     this.#bubble.showSay(said.text, duration);
   }
 
-  /** 处理一次 `pets.<id>.anim` 叶子：按名字点播一遍。 */
+  /** 处理一次 `pets.<id>.anim` 叶子：按名字点播一遍，按 facing 设置镜像。 */
   applyAnim(leaf: StateLeaf): void {
     const data = leaf.data;
     if (!data || typeof data !== 'object') return;
-    const name = (data as { name?: unknown }).name;
-    if (typeof name === 'string' && name) this.#playOnce(name);
+    const d = data as { name?: unknown; facing?: unknown };
+    if (typeof d.name !== 'string' || !d.name) return;
+    // facing：宿主自播链掷骰后会带；外部点播也可能带（显式指定朝向）。
+    // 两个合法值：'left' 原样、'right' 镜像。缺省 = 保持当前 #facing 不动。
+    if (d.facing === 'left' || d.facing === 'right') {
+      this.#facing = d.facing;
+    }
+    this.#playOnce(d.name);
   }
 
   /**
@@ -218,7 +227,9 @@ export class ObsSprite {
   #handleEnded(): void {
     if (this.#animations.turn.includes(this.#anim)) {
       this.#facing = this.#facing === 'left' ? 'right' : 'left';
+      // turn 后不再本地掷骰——宿主 anim 叶子里会带 facing，applyAnim 会设置。
     }
-    this.#playIdle();
+    // 不再调 #playIdle（本地掷骰）：等宿主推的下一个 anim 叶子。
+    // 两端同一份 anim 叶子 = 空闲动作同步。
   }
 }

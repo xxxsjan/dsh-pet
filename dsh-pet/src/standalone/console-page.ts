@@ -5516,8 +5516,9 @@ body.live-standalone .liveDialog .chatHead{-webkit-app-region:drag}
 body.live-standalone .liveDialog .chatClose{-webkit-app-region:no-drag}
 /* 弹幕小窗（直播伴侣式浮窗）：整窗只有一行头部 + 礼物/弹幕两区，固定深色，不跟随明暗主题 */
 body.live-mini{background:transparent;color:#e8eaed}
-/* 暗色主题 body 的背景图选择器优先级更高，必须在小窗显式关掉，否则控制台背景图会透进浮窗 */
+/* 背景图挂在 body::before 固定层上，小窗必须连同伪元素一起关掉，否则控制台背景图会透进浮窗 */
 body.live-mini,html[data-theme=dark] body.live-mini{background-image:none}
+body.live-mini::before,html[data-theme=dark] body.live-mini::before{content:none;background-image:none;background-color:transparent}
 /* 小窗底色：rgb(41,41,41)，滑块调的是这一层底色自身的不透明度（100% = 纯 #292929），
    文字、图标、描边不跟着变。注意两点：必须用 background-color 长写（background 简写里 var() 不替换）；
    这层不能挂 transition，带过渡时 var 换出来的颜色不落地，读到的只是旧值。 */

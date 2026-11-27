@@ -7,7 +7,7 @@ const { decideWindowIgnore } = require('../pointer-target.js');
 // 不带 persist: 前缀会被当作内存会话，退出应用即清空，Cookie 下次打开回填不到。
 const SETTINGS_PARTITION = 'persist:blue-fish-settings';
 /**
- * 渲染端到主进程的 ipc：窗口跟随、飞行状态、碰撞转发、穿透翻转、输入租约与菜单首项（打开软件 / 打开 AI 设置）。
+ * 渲染端到主进程的 ipc：窗口跟随、飞行状态、碰撞转发、穿透翻转、输入租约与菜单首项（打开软件 / 打开网站）。
  *
  * 唯一的窗口状态入口是 windows 模块导出的方法与 state；本模块不自己存任何状态（设置窗口是独立普通窗口，不算宠物窗）。
  * @module dsh-pet/runtime/electron-helper/main/ipc

@@ -1,9 +1,9 @@
 /**
  * 快手直连最小 protobuf：SocketMessage 外壳 + 进房/心跳 + FeedPush 弹幕/礼物/在线观看数。
  *
- * 字段号对齐 danmuapp `src/proto/ks.js` 与公开 KuaiShouPack，只覆盖本轮
- * 「弹幕 + 礼物 + 在线观看数」链路；点赞 / 进场 / 在线榜 / 分享 / 系统通知等字段在解码时被
- * protobufjs 自动跳过。
+ * 字段号对齐 danmuapp `src/proto/ks.js` 与公开 KuaiShouPack，覆盖
+ * 「弹幕 + 礼物 + 在线观看数 + 本场累计点赞」链路（进场走 829/112 富文本，见 ks-rich-text）；
+ * 在线榜 / 分享 / 系统通知等字段在解码时被 protobufjs 自动跳过。
  * @module dsh-pet/src/host/danmaku/kuaishou/proto
  */
 import protobuf from 'protobufjs';

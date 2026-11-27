@@ -4,6 +4,7 @@
  * @module dsh-pet/src/host/index
  */
 import { createHostSetup } from './plugin/setup.ts';
+import { AnimLoop } from './anim-loop.ts';
 import { readAllConfig } from './config.ts';
 import { createHttpRoute, registerHttpRoute } from './plugin/http-route.ts';
 import { registerLifecycle } from './plugin/lifecycle.ts';
@@ -35,7 +36,7 @@ import type { PetRouteDeps } from './routes/types.ts';
 
 /** 插件行 id（与 cordis.patch.yml 一致） */
 export const name = 'pet';
-/** 需要注入的服务：webServer（路由）+ agentDefaultModel（当前服务商）+ credentials（凭证）+ llm（对话模型调用）+ commands（/balance 斜杠命令）+ connection（桌面 Helper「打开 AI 设置」用的已鉴权站点 URL） */
+/** 需要注入的服务：webServer（路由）+ agentDefaultModel（当前服务商）+ credentials（凭证）+ llm（对话模型调用）+ commands（/balance 斜杠命令）+ connection（桌面 Helper「打开软件 / 打开网站」用的已鉴权站点 URL） */
 export const inject = ['webServer', 'agentDefaultModel', 'credentials', 'llm', 'commands', 'connection'];
 
 /** 宿主插件主体：注册 `/blue-fish` 前缀路由与斜杠命令（/balance /pet /chat）；ctx 暂用 any（peer 类型包本地不可解析）。 */
@@ -99,6 +100,10 @@ export function apply(ctx: any): void {
 
   // 待办清单：一份用户级数据（不分宠物），落盘在插件数据根；提醒循环与 /todos 路由共用同一个实例。
   const todos = new TodoStore({ file: join(userRoot, TODO_FILE_NAME), log });
+
+  // 自播链调度器：集中掷骰选下一个自播动画，两端（桌面/OBS）据此同步空闲动作。
+  // 所有显示在桌面的宠物都会被 start；渲染端播完后 POST /anim/next 继续循环。
+  const animLoop = new AnimLoop({ configPaths, state, log });
 
   const desktopHelper = createDesktopHelper({
     ctx,
@@ -243,6 +248,7 @@ export function apply(ctx: any): void {
     ...sessionNotify,
     ctx,
     todos,
+    animLoop,
     douyinDanmaku,
     xiaohongshuDanmaku,
     kuaishouDanmaku,
@@ -330,4 +336,24 @@ export function apply(ctx: any): void {
 
   // 路由就绪后拉起桌面 Helper（Electron 缺失时仅告警，不影响 DSH 与浏览器 overlay）
   startHelper();
+
+  // 为所有显示在桌面的宠物启动自播链：宿主先写一个初始自播 anim，
+  // 渲染端加载后消费这个叶子开始播；播完 POST /anim/next 继续循环。
+  // 异步启动（下一拍）：startHelper 是同步返回的，Helper 的子进程可能还没起来，
+  // 但这不影响——anim 叶子写进 S 后，Helper 的长轮询一拍就能拿到。
+  try {
+    const allCfg = readAllConfig(configPaths);
+    // allCfg.pets 是扁平数组（flattenConfigPets），过滤 display 包含桌面语义的
+    for (const pet of Object.values(allCfg)) {
+      if (!pet || typeof pet !== 'object') continue;
+      const display = String((pet as { display?: unknown }).display ?? '');
+      // display 含 'desktop' 或 'all'（兼容两种口径）→ 启动自播链
+      if (display === 'none') continue;
+      const petId = String((pet as { id?: unknown }).id ?? '').trim();
+      if (!petId) continue;
+      animLoop.start(petId);
+    }
+  } catch (e) {
+    log.warn?.(`[blue-fish] 自播链启动失败: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }

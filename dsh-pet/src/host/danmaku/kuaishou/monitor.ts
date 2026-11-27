@@ -1,7 +1,7 @@
 /**
  * 快手直连弹幕监听器：进房换票 → WSS 直连 → 进房帧 + 20s 心跳 → protobuf 解码分发。
  *
- * 不走 CDP 旁听；入库弹幕 + 礼物 + 在线观看数 + 本场累计点赞，进场 / 在线榜 / 分享 / 系统通知留样本不展示。
+ * 不走 CDP 旁听；入库弹幕 + 礼物 + 进场 + 在线观看数 + 本场累计点赞，在线榜 / 分享 / 系统通知留样本不展示。
  * 进房握手（登录 Cookie / 换票 / 风控）只能桌面真机连直播间验证。
  * @module dsh-pet/src/host/danmaku/kuaishou/monitor
  */
@@ -9,9 +9,24 @@ import WebSocket from 'ws';
 
 import type { LoggerLike } from '../../log-file.ts';
 import { cookieHasKsLogin, resolveKsWsInfo, sanitizeKsCookie, type KsWsInfo } from './ks-live-info.ts';
-import { parseKsWsFrame, type KsParsedItem } from './ks-danmaku.ts';
+import {
+  decompressKsPayload,
+  listKsProtoFields,
+  parseKsWsFrame,
+  readKsFrameEnvelope,
+  type KsParsedItem,
+} from './ks-danmaku.ts';
 import { createKsGiftCatalog, preloadKsGiftCatalog } from './ks-gift-catalog.ts';
-import { encodeEnterRoom, encodeHeartbeat, encodeSocketMessage, makeKsPageId, KS_PAYLOAD } from './proto.ts';
+import {
+  decodeSocketMessage,
+  encodeEnterRoom,
+  encodeHeartbeat,
+  encodeSocketMessage,
+  KS_PAYLOAD,
+  KS_SC_COMMENT_ZONE_RICH_TEXT,
+  KS_SC_WEB_COMMENT_RICH_TEXT_MESSAGE,
+  makeKsPageId,
+} from './proto.ts';
 
 /** 启动参数。 */
 export type KsMonitorStartInput = {
@@ -35,10 +50,10 @@ export type KsMonitorOptions = {
 export type KsFeedItem = {
   id: number;
   at: number;
-  kind: 'chat' | 'gift';
+  kind: 'chat' | 'gift' | 'enter';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0。 */
+  /** 礼物件数；聊天 / 进场为 0。 */
   count: number;
 };
 
@@ -156,8 +171,13 @@ export function createKsMonitor(deps: KsMonitorDeps) {
   let reconnectAttempts = 0;
   /** 静默探活定时器（每个监听周期最多一个）。 */
   let idleProbeTimer: ReturnType<typeof setInterval> | null = null;
+  /** 诊断：每种帧类型只打一次 info（类型 / 压缩 / 载荷字节），避免刷屏。 */
+  const loggedFrameTypes = new Set<number>();
+  /** 诊断：SCWebFeedPush 字段表与富文本帧样本各只打前几条。 */
+  let feedFieldLogs = 0;
+  let richSampleLogs = 0;
 
-  function pushFeed(kind: 'chat' | 'gift', nick: string, text: string, count = 0): void {
+  function pushFeed(kind: 'chat' | 'gift' | 'enter', nick: string, text: string, count = 0): void {
     feedSeq += 1;
     recentFeed.push({
       id: feedSeq,
@@ -233,6 +253,12 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       log.debug?.(`[blue-fish][kuaishou] likes=${likeCount}`);
       return;
     }
+    if (item.kind === 'enter') {
+      // 进场只进互动消息区（控制台按正文识别成进场行），不计入弹幕数、不触发宠物语音。
+      pushFeed('enter', item.nick, item.text);
+      log.info?.(`[blue-fish][kuaishou] enter nick=${item.nick} text=${item.text}`);
+      return;
+    }
     if (item.kind === 'chat') {
       chatCount += 1;
       pushFeed('chat', item.nick, item.text);
@@ -257,6 +283,59 @@ export function createKsMonitor(deps: KsMonitorDeps) {
     }
   }
 
+  /** 解出外壳载荷（含解压），诊断用；失败返回 null。 */
+  function framePayload(buf: Uint8Array, compressionType: number): Uint8Array | null {
+    try {
+      return decompressKsPayload(compressionType, decodeSocketMessage(buf).payload);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 帧级诊断日志（每种各打少数几次）：
+   * - 310 的字段号表：进场若走 SCWebFeedPush 的未建模字段，这里能直接看出来；
+   * - 829/112 解出的条目数与进场数；解不出时打载荷前 96 字节的 hex。
+   */
+  function logFrameDiagnostics(
+    env: { payloadType: number; compressionType: number },
+    items: KsParsedItem[],
+    buf: Uint8Array,
+  ): void {
+    if (env.payloadType === KS_PAYLOAD.SC_FEED_PUSH && feedFieldLogs < 5) {
+      const payload = framePayload(buf, env.compressionType);
+      if (payload) {
+        feedFieldLogs += 1;
+        const fields = listKsProtoFields(payload)
+          .map((f) => `${f.field}/${f.wire}:${f.bytes}`)
+          .join(',');
+        log.info?.(
+          `[blue-fish][kuaishou] feed fields=[${fields}] items=${items.map((i) => i.kind).join(',')}`,
+        );
+      }
+      return;
+    }
+    if (
+      (env.payloadType === KS_SC_COMMENT_ZONE_RICH_TEXT ||
+        env.payloadType === KS_SC_WEB_COMMENT_RICH_TEXT_MESSAGE) &&
+      richSampleLogs < 3
+    ) {
+      richSampleLogs += 1;
+      const enters = items.filter((i) => i.kind === 'enter').length;
+      log.info?.(
+        `[blue-fish][kuaishou] rich type=${env.payloadType} items=${items.length} enter=${enters}`,
+      );
+      if (items.length === 0) {
+        const payload = framePayload(buf, env.compressionType);
+        if (payload) {
+          log.info?.(
+            `[blue-fish][kuaishou] rich sample type=${env.payloadType} hex=${Buffer.from(payload.slice(0, 96)).toString('hex')}`,
+          );
+        }
+      }
+    }
+  }
+
   function onMessage(data: WebSocket.RawData): void {
     lastFrameAt = Date.now();
     const buf =
@@ -267,6 +346,13 @@ export function createKsMonitor(deps: KsMonitorDeps) {
           : Array.isArray(data)
             ? Buffer.concat(data)
             : new Uint8Array(data as Uint8Array);
+    const env = readKsFrameEnvelope(buf);
+    if (env && !loggedFrameTypes.has(env.payloadType)) {
+      loggedFrameTypes.add(env.payloadType);
+      log.info?.(
+        `[blue-fish][kuaishou] frame type=${env.payloadType} compression=${env.compressionType} bytes=${env.payloadBytes}`,
+      );
+    }
     let items: KsParsedItem[];
     try {
       items = parseKsWsFrame(buf, seenIds);
@@ -274,6 +360,7 @@ export function createKsMonitor(deps: KsMonitorDeps) {
       log.debug?.(`[blue-fish][kuaishou] decode failed: ${e instanceof Error ? e.message : String(e)}`);
       return;
     }
+    if (env) logFrameDiagnostics(env, items, buf);
     for (const item of items) handleItem(item);
   }
 

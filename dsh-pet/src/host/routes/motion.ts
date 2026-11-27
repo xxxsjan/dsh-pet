@@ -15,8 +15,20 @@ import { failResult, invalidJson, methodNotAllowed, okResult } from './result.ts
 
 /** 动作与位置领域：未命中返回 undefined，命中返回应答。 */
 export async function handleMotionRoutes(deps: PetRouteDeps, input: RouteInput): Promise<RouteResult | undefined> {
-  const { configPaths, lockBlocked, playback, pose, requirePet, state, surfaceBlocked } = deps;
+  const { animLoop, configPaths, lockBlocked, playback, pose, requirePet, state, surfaceBlocked } = deps;
   const { body, method, rest, url } = input;
+
+  // 自播链"播完了"通知：POST /anim/next?pet=xxx
+  // 渲染端播完一段非点播动画（自播/菜单/点击/拖拽等都不带 playbackId）后调此端点，
+  // 宿主掷骰写下一个自播 anim 叶子，两端同步消费。渲染端只传 petId，宿主全知。
+  // 不在 sleepGated 里：即使睡眠期间收到了也无害（paused 状态下 next 会直接 return）。
+  if (rest === 'anim/next') {
+    if (method !== 'POST') return methodNotAllowed();
+    const petId = String(url.searchParams.get('pet') ?? '').trim();
+    if (!petId) return failResult('pet-required', 'pet 必填：要指定哪只桌宠刚播完了');
+    animLoop.next(petId);
+    return okResult({ ok: true });
+  }
 
   // 点播动画：POST /anim?pet=，name 与 url 恰好给一个。
   //   name = 池内动画名，效果与右键「动作」完全一致（两端复用同一个菜单动作处理函数），

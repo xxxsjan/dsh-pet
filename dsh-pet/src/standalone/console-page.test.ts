@@ -1073,6 +1073,11 @@ test('弹幕小窗：?mini=1 只显示弹幕、平台由开窗时传入、窗内
   );
   assert.match(
     styles,
+    /body\.live-mini::before,html\[data-theme=dark\] body\.live-mini::before\{content:none;background-image:none;background-color:transparent\}/,
+    '背景图挂在 body::before 固定层上，小窗必须连伪元素一起关掉，否则背景图仍会透进浮窗',
+  );
+  assert.match(
+    styles,
     /body\.live-mini #live-dialog\{[^}]*background-color:rgba\(41,41,41,var\(--mini-panel-alpha,1\)\)[^}]*border:1px solid rgba\(255,255,255,\.24\)[^}]*border-radius:10px;overflow:hidden/,
     '小窗底色对齐抖音：淡白半透明底 + 淡白灰描边 + 圆角裁剪',
   );

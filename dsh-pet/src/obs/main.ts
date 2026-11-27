@@ -96,11 +96,17 @@ async function pollState(options: ObsOptions, since: number): Promise<void> {
 function applySnapshot(snapshot: StateSnapshot, options: ObsOptions): void {
   for (const item of mounted) {
     const leaves = snapshot.pets?.[item.sprite.id];
-    // 首拉建立基线：页面打开前写过的 say / anim 是历史指令，重放会凭空演一遍。
+    // 首拉建立基线：页面打开前写过的 say / anim 是历史指令，不凭空重放。
+    // 但如果 anim 叶子已经有值（宿主启动时写的初始自播 anim），立即 apply 覆盖本地 playIdle——
+    // 这样 OBS 端 start() 里本地随机播的动画会被宿主集中掷骰的结果立即替换，两端同步。
     if (!item.ready) {
       item.ready = true;
       item.sayCounter = leaves?.say?.counter ?? 0;
       item.animCounter = leaves?.anim?.counter ?? 0;
+      // 宿主已经写了 anim（counter > 0）→ 立即覆盖本地播放，保证同步
+      if (item.animCounter > 0 && leaves?.anim) {
+        item.sprite.applyAnim(leaves.anim);
+      }
       continue;
     }
     if (leaves?.say && leaves.say.counter !== item.sayCounter) {

@@ -3,11 +3,13 @@
  *
  * 入站二进制先解 `SocketMessage` 外壳：compressionType=2 时 gzip 解压（inflate 失败回退
  * inflateRaw）；`SC_FEED_PUSH(310)` 内 `displayWatchingCount` / `displayLikeCount` /
- * `commentFeeds` / `giftFeeds` 入库，进场 / 在线榜 / 分享 / 系统通知本轮留样本不入库。
+ * `commentFeeds` / `giftFeeds` 入库；829/112 富文本里的普通弹幕与进场提示分别归一到
+ * chat / enter，在线榜 / 分享 / 系统通知本轮留样本不入库。
  * 礼物名无目录兜底为 `礼物#<giftId>`。
  * @module dsh-pet/src/host/danmaku/kuaishou/ks-danmaku
  */
 import { inflate, inflateRaw } from 'pako';
+import { Reader } from 'protobufjs/minimal.js';
 
 import {
   decodeCommentFeed,
@@ -30,10 +32,10 @@ import {
 
 /** 归一到展示口径的一条消息。 */
 export type KsParsedItem = {
-  kind: 'chat' | 'gift' | 'online' | 'like';
+  kind: 'chat' | 'gift' | 'online' | 'like' | 'enter';
   nick: string;
   text: string;
-  /** 礼物件数；聊天为 0；online 为在线观看数；like 为本场累计点赞数。 */
+  /** 礼物件数；聊天 / 进场为 0；online 为在线观看数；like 为本场累计点赞数。 */
   count: number;
   giftName: string;
   /** 礼物原始 id；聊天为空。 */
@@ -51,6 +53,50 @@ export function decompressKsPayload(compressionType: number, payload: Uint8Array
   } catch {
     return inflateRaw(payload);
   }
+}
+
+/** 只解外壳的帧摘要：给「到底收到了哪些帧」的诊断日志用，解不出返回 null。 */
+export function readKsFrameEnvelope(
+  raw: Uint8Array,
+): { payloadType: number; compressionType: number; payloadBytes: number } | null {
+  if (!raw || raw.length === 0) return null;
+  try {
+    const socket = decodeSocketMessage(raw);
+    return {
+      payloadType: socket.payloadType,
+      compressionType: socket.compressionType,
+      payloadBytes: socket.payload?.length ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 诊断：列出消息的一级字段号 / wire type / 占用字节数。
+ *
+ * 用来发现未建模的 feed 字段（例如进场数据是否走 `SCWebFeedPush` 的其他 repeated 字段）。
+ */
+export function listKsProtoFields(
+  payload: Uint8Array,
+): Array<{ field: number; wire: number; bytes: number }> {
+  const out: Array<{ field: number; wire: number; bytes: number }> = [];
+  if (!payload || payload.length === 0) return out;
+  try {
+    const r = Reader.create(payload);
+    while (r.pos < r.len && out.length < 32) {
+      const tag = r.uint32();
+      const field = tag >>> 3;
+      const wire = tag & 7;
+      if (field === 0) break;
+      const start = r.pos;
+      r.skipType(wire);
+      out.push({ field, wire, bytes: r.pos - start });
+    }
+  } catch {
+    /* 坏帧：返回已读到的部分 */
+  }
+  return out;
 }
 
 /**
@@ -98,16 +144,27 @@ function commentItem(c: KsCommentFeed, seen: Set<string>): KsParsedItem | null {
   };
 }
 
-/** 富文本 item → 归一 parsed；进场项与空内容跳过（留样本），id 去重。 */
+/** 富文本 item → 归一 parsed；进场项单独入 enter，普通弹幕入 chat，均按 id 去重。 */
 function richItemToParsed(rich: KsRichItem, seen: Set<string>): KsParsedItem | null {
-  if (rich.isEnter) return null;
   const content = String(rich.content || '').trim();
-  if (!content || isKsEnterContent(content)) return null;
+  if (!content) return null;
   const id = String(rich.id || '').trim();
   if (id) {
     if (seen.has(id)) return null;
     seen.add(id);
   }
+  if (rich.isEnter) {
+    return {
+      kind: 'enter',
+      nick: rich.nickname || '匿名',
+      text: content,
+      count: 0,
+      giftName: '',
+      giftId: '',
+      principalId: rich.principalId,
+    };
+  }
+  if (isKsEnterContent(content)) return null;
   return {
     kind: 'chat',
     nick: rich.nickname || '匿名',

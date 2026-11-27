@@ -137,14 +137,14 @@ async function boot(): Promise<void> {
   // 先把「我自己就是应用」告诉插件，再 apply：apply 内部据此短路 spawn 与下载
   process.env.BLUE_FISH_IN_PROCESS = '1';
   process.env.BLUE_FISH_APP_MODE = '1';
-  // 独立模式点首项打开的是本机 AI 设置页，不是 DSH 站点：形态必须显式标成 standalone。
+  // 独立模式：标记 standalone，右键菜单据此只保留「桌宠控制台」（不再显示「打开 AI 设置」首项）。
   process.env.BLUE_FISH_OPEN_TARGET = 'standalone';
   // 不注入宿主 PID：helper 的「宿主没了就退出」只对双进程有意义，同进程里设了会自己杀自己
   delete process.env.BLUE_FISH_HOST_PID;
   process.env.BLUE_FISH_CONFIG_URL = `${origin}${ROUTE_SEGMENT}/config`;
-  // 右键「打开 AI 设置」用它：带令牌的配置页（与 CLI 行为一致）。裸 origin 在应用里没有页面可看。
+  // 已鉴权的站点 / 配置页地址（裸 origin 在应用里没有页面可看）；桌面应用与 web 形态的「打开」首项用它。
   process.env.BLUE_FISH_SITE_URL = security.authenticatedUrl(origin);
-  // 右键「桌宠控制台」用它：新独立路由，与旧 AI 设置页并行；旧入口与 /standalone-ai/ 路由保持不动。
+  // 右键「桌宠控制台」用它：设置统一从控制台进；/standalone-ai/ 路由本身保持不变。
   process.env.BLUE_FISH_CONSOLE_URL = security.authenticatedUrl(origin, '/standalone-console/');
   if (!process.env.BLUE_FISH_SCALE) process.env.BLUE_FISH_SCALE = '1';
 
@@ -268,7 +268,7 @@ function landingPage(port: number): string {
   <p><code>${escapeHtml(String(info.configFile))}</code></p>
   <p>改完配置后从托盘退出、重新打开应用即可生效（本模式没有「重载配置」菜单）。</p>
   <h2>AI 设置</h2>
-  <p>AI 模型与密钥的配置页需要令牌，请<strong>右键桌宠 →「打开 AI 设置」</strong>，会在应用内弹窗中打开已授权的页面。</p>
+  <p>AI 模型与密钥请在<strong>右键桌宠 →「桌宠控制台」</strong>里填写；也可用带令牌的配置页地址直接打开。</p>
   <h2>状态</h2>
   <p><a href="/health">/health</a> · <a href="/standalone-ai/">配置页（未授权时读写会返回 403）</a></p>
 </main></body></html>`;

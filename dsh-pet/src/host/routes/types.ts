@@ -7,6 +7,7 @@
  * @module dsh-pet/src/host/routes/types
  */
 import type { ChatMemoryMessage } from '../chat.ts';
+import type { AnimLoop } from '../anim-loop.ts';
 import type { ConfigPaths } from '../config.ts';
 import type { RouteResult } from '../http.ts';
 import type { PetImageRef } from '../image-attachment.ts';
@@ -104,6 +105,8 @@ export interface PetRouteDeps {
   ) => PetLookup;
   /** 播放记录表。 */
   readonly playback: PlaybackStore;
+  /** 自播链调度器：集中掷骰选下一个自播动画，两端据此同步空闲动作。 */
+  readonly animLoop: AnimLoop;
   /** 语音播报回执表（对话回复「真正读完」）。 */
   readonly voiceUtterances: VoiceUtteranceStore;
   /** 用户数据根。 */
